@@ -1,15 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Check, X } from "lucide-react";
+import { Building2, Check, X, UserPlus, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { listMembershipsForUser, listMembershipsForSchool, setMembershipStatus } from "@/lib/memberships";
 import { getSchool } from "@/lib/schools";
 import { getUserDoc } from "@/lib/users";
 import { Loading, EmptyState } from "@/components/States";
+import { listStudents } from "@/lib/students";
+import {
+  createParentLink,
+  deleteParentLink,
+  findUserByEmail,
+  listSchoolParentLinks,
+} from "@/lib/parentLinks";
 import type { MembershipDoc, SchoolDoc, UserDoc } from "@/lib/types";
 
 export const Route = createFileRoute("/app/escola")({
