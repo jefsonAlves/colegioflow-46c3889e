@@ -1,69 +1,98 @@
-## O que vou implementar
+## Diagnóstico
 
-### 1. Nova tela inicial `/app` (substitui o placeholder)
-`src/routes/app.index.tsx` vira um dashboard mobile-first com:
-- Saudação "Olá, {primeiro nome}" + subtítulo por perfil (Professor / Admin / Família).
-- **Grid 2×3 com 6 cards grandes** (124px alt., ícone em badge colorida, título + descrição curta), cada um navegando via `<Link>`:
-  - Frequência → `/app/frequencia`
-  - Notas → `/app/notas`
-  - Turmas → `/app/turmas`
-  - Boletim → `/app/boletim`
-  - Advertências → `/app/advertencias`
-  - Relatórios → `/app/relatorios`
-- Card largo extra: **Avisos** → `/app/avisos`.
-- Para `school_admin`: card extra **Minha escola** → `/app/escola`.
-- Paleta azul/verde/branco usando tokens `primary`/`secondary`/`accent` já no design system.
+O login fica preso porque o boot grava em **Cloud Firestore**, que ainda não foi ativado no projeto `projetojefson`. O **Realtime Database (RTDB)** já está ativo (URL `europe-west1`) e já contém os dados antigos do app. A solução é migrar a camada de dados de boot (users / schools / memberships) **e** todas as áreas pedidas (turmas, alunos, frequência, notas, boletim, advertências, relatórios) para o RTDB. Sem novos domínios.
 
-### 2. Esqueleto das 7 áreas (rotas vazias navegáveis)
-Crio 7 arquivos de rota `src/routes/app.{frequencia,notas,turmas,boletim,advertencias,relatorios,avisos}.tsx`, todos com `AppShell` + `EmptyState` PT-BR ("Em construção — disponível em breve") + botão "Voltar". Isso garante que **clicar em qualquer card já navega sem 404**. O CRUD completo de cada área entra nas próximas fases.
+## Fase 1 — Destravar login (camada de boot vai para o RTDB)
 
-### 3. Robustez do boot (resolve o travamento atual)
-O log mostra que o Firestore `(default)` não existe → `ensureUserDoc` lança `unavailable` → `userDoc` fica null → `/app` trava em spinner para sempre.
+Reescrever para usar `firebase/database` em vez de `firestore`:
+- `src/lib/users.ts` — `ensureUserDoc`, `updateUserProfile`, `getUserDoc` lendo/gravando em `/users/{uid}`. Hidrata legado: se já existir `name`/`profileType` no nó antigo, reaproveita; senão cria com `onboardingComplete: false`. Detecta master por e-mail.
+- `src/lib/schools.ts` — `createSchool`, `getSchool`, `searchSchoolsByPrefix`, `findSimilarSchools`, `listAllSchoolsForMaster`, `setSchoolStatus`, `mergeSchools` em `/schools/{schoolId}` + índice `/schools_index/{normalizedName}` para busca por prefixo.
+- `src/lib/memberships.ts` — `requestMembership`, `listMembershipsForUser`, `listMembershipsForSchool`, `setMembershipStatus` em `/school_memberships/{id}` + índices `byUser/{uid}/{id}` e `bySchool/{sid}/{id}`.
+- `src/contexts/AuthContext.tsx` — mantém `bootError` mas agora ele só dispara em falha real do RTDB (raro). Auto-redireciona para `/onboarding` se `onboardingComplete=false` ou `/app` se completo. Sem mais "Database (default) not found".
+- `src/routes/login.tsx` — assim que `firebaseUser && userDoc` aparece, navega imediatamente (já existe, vai funcionar agora que o `userDoc` é criado em milissegundos).
+- `src/routes/app.tsx` — mantém card de diagnóstico mas mostra mensagem genérica em caso de falha do RTDB.
 
-`src/contexts/AuthContext.tsx`:
-- Adicionar estado `bootError: { code, message, firestoreMissing }`.
-- Detectar `code === "unavailable"` ou mensagem "Database '(default)' not found" / "client is offline" e marcar `firestoreMissing = true`.
-- Expor `retryBoot()` para re-hidratar sem precisar dar logout.
+Resultado: ao detectar o login, o sistema entra sem travar.
 
-`src/routes/app.tsx` (layout):
-- Se `bootError`, em vez de spinner infinito, renderizar **card de diagnóstico** em PT-BR explicando que o Firestore precisa ser ativado, com:
-  - Instruções passo a passo (Console → Firestore Database → Criar banco → modo Produção → região).
-  - Link direto para `https://console.firebase.google.com/project/projetojefson/firestore`.
-  - Botões **Tentar novamente** (chama `retryBoot`) e **Sair** (`signOut` + volta pro `/login`).
-- Trocar mensagem de loading para "Carregando seu perfil..." em vez de spinner mudo.
+## Fase 2 — Tela de revisão/edição do perfil
 
-### 4. Onboarding mais resiliente
-`src/routes/onboarding.tsx`: capturar erro de `updateUserProfile`/`requestMembership` e mostrar toast PT-BR específico quando for erro de Firestore indisponível ("Banco de dados indisponível — peça ao admin para ativar o Firestore"), em vez de só "Erro ao salvar".
+`src/routes/app.perfil.tsx` ganha um modo edição:
+- Botão **Editar perfil** abre um formulário (mesma página) com:
+  - Nome completo
+  - Tipo de perfil (Professor / Admin / Pai)
+  - Escola vinculada (busca/criar/trocar, reaproveita o `SchoolStep` do onboarding extraído para `src/components/SchoolPicker.tsx`)
+- Salva chamando `updateUserProfile` + `requestMembership` (se trocou de escola).
+- Aviso quando há membership pendente ("Aguardando aprovação do admin").
+- Botão "Concluir cadastro" se `onboardingComplete=false`, evitando que o usuário fique preso no onboarding.
 
-### 5. Pequenos ajustes
-- `AppShell`: nenhum cambio de estrutura, mas confirmar que o card de "Minha escola" e os cards de ação ficam bem em 360–430px (testar no preview 458px atual).
-- Manter o BottomNav existente (Início / Escola / Master / Perfil).
+Nova rota auxiliar: nenhuma — tudo no `/app/perfil`.
+
+## Fase 3 — Modelo de dados no RTDB para escola/turma/aluno
+
+Caminhos:
+```
+/schools/{sid}                       — dados da escola
+/school_memberships/{mid}            — vínculo user↔school
+/classes/{sid}/{cid}                 — turma { name, year, teacherUid, createdAt }
+/students/{sid}/{stid}               — aluno { name, classId, parentUid?, active }
+/attendance/{sid}/{cid}/{YYYY-MM-DD}/{stid} — { status: P|F|J, by, at }
+/grades/{sid}/{cid}/{bimestre}/{stid}       — { p1, p2, atividade, media, by, at }
+/disciplinary/{sid}/{id}             — { studentId, type, description, date, by }
+/notices/{sid}/{id}                  — { title, body, audience, createdAt, by }
+```
+
+Novos módulos em `src/lib/`:
+- `classes.ts` — `listClasses`, `createClass`, `getClass`, `updateClass`, `deleteClass`
+- `students.ts` — `listStudentsByClass`, `createStudent`, `updateStudent`
+- `attendance.ts` — `getAttendance(sid,cid,date)`, `setAttendance(sid,cid,date,map)`, `summaryByStudent`
+- `grades.ts` — `getGrades(sid,cid,bim)`, `setGrade(...)`, `studentGrades(stid)`
+- `disciplinary.ts` — `list`, `create`
+
+## Fase 4 — Ligar as 6 telas a dados reais
+
+Cada arquivo `src/routes/app.{...}.tsx` deixa de ser placeholder e usa `useQuery` em cima da escola ativa (`localStorage.activeSchool`). Se não há escola ativa, mostra card "Selecione uma escola" com link para `/app`.
+
+- **Turmas** (`app.turmas.tsx`): lista cards de turmas com nº de alunos. Botão flutuante "Nova turma". Clique → drawer/modal de detalhe com lista de alunos + "Adicionar aluno".
+- **Frequência** (`app.frequencia.tsx`): seleciona turma → data (default hoje) → lista de alunos com botões P/F/J (3 toggles) → "Salvar chamada". Mostra última data salva.
+- **Notas** (`app.notas.tsx`): seleciona turma → bimestre (1–4) → tabela aluno × {P1, P2, Atividade, Média auto} com inputs numéricos. Salvar por linha.
+- **Boletim** (`app.boletim.tsx`): seleciona turma → lista alunos → clique abre boletim com 4 bimestres (médias) + % de presença calculado da Frequência.
+- **Advertências** (`app.advertencias.tsx`): lista cronológica reversa com filtro por turma. Botão "Nova advertência" (escolhe aluno, tipo verbal/escrita/grave, descrição).
+- **Relatórios** (`app.relatorios.tsx`): cards-resumo da escola ativa: nº turmas, nº alunos, frequência média do mês, média geral por turma (top 5).
+
+Permissões na UI:
+- Professor: só vê turmas onde é `teacherUid`.
+- Admin da escola (`school_admin` aprovado): vê todas as turmas da escola e pode criar.
+- Pai: por enquanto bloqueado com aviso "em breve".
+
+## Fase 5 — Regras de segurança do RTDB
+
+Atualizar `database.rules.json` para refletir os caminhos novos: `users` só dono, `schools` leitura para membros + admin master, `school_memberships` dono ou admin, `classes/students/attendance/grades/disciplinary` exigem membership aprovada na escola, professor só escreve em turmas onde é `teacherUid`. Master tem acesso global.
 
 ## Arquivos
 
-**Criar (8):**
-- `src/routes/app.frequencia.tsx`
-- `src/routes/app.notas.tsx`
-- `src/routes/app.turmas.tsx`
-- `src/routes/app.boletim.tsx`
-- `src/routes/app.advertencias.tsx`
-- `src/routes/app.relatorios.tsx`
-- `src/routes/app.avisos.tsx`
+**Editar (8):**
+- `src/lib/users.ts`, `src/lib/schools.ts`, `src/lib/memberships.ts`
+- `src/contexts/AuthContext.tsx`, `src/routes/app.tsx`, `src/routes/onboarding.tsx`
+- `src/routes/app.perfil.tsx`, `database.rules.json`
 
-**Substituir (3):**
-- `src/routes/app.index.tsx` — novo dashboard de 6 cards.
-- `src/contexts/AuthContext.tsx` — adicionar `bootError` + `retryBoot`.
-- `src/routes/app.tsx` — card de diagnóstico quando `bootError`.
+**Criar (6):**
+- `src/lib/classes.ts`, `src/lib/students.ts`, `src/lib/attendance.ts`, `src/lib/grades.ts`, `src/lib/disciplinary.ts`
+- `src/components/SchoolPicker.tsx` (extraído do onboarding, reutilizado em perfil)
 
-**Editar (1):**
-- `src/routes/onboarding.tsx` — toasts PT-BR específicos para erro de Firestore.
+**Substituir conteúdo (6 rotas):**
+- `src/routes/app.turmas.tsx`, `src/routes/app.frequencia.tsx`, `src/routes/app.notas.tsx`, `src/routes/app.boletim.tsx`, `src/routes/app.advertencias.tsx`, `src/routes/app.relatorios.tsx`
 
-`src/routeTree.gen.ts` é regenerado automaticamente pelo plugin do TanStack Router — não edito à mão.
+**Não mexer:** lista de domínios autorizados no Firebase (mantém os atuais). `firestore.rules`/`firestore.indexes.json` ficam para uma migração futura — não bloqueiam mais nada.
 
 ## Fora desta fase
-- CRUD real de turmas / alunos / chamada / notas / boletim / advertência / relatórios (cada um é uma fase grande, vem depois).
-- Capacitor/Android.
-- Rodar migração RTDB → Firestore (já existe em **Master → Migração**, só rodar depois que o Firestore for ativado).
+- Capacitor/Android (próxima fase).
+- Notificações push.
+- Boletim em PDF.
+- Exportação de relatórios.
+- Vínculo aluno↔pai (mostra aviso "em breve").
 
-## Pré-requisito (ação sua, 1 minuto)
-Ativar o **Cloud Firestore** no projeto `projetojefson` (Console → Firestore Database → Criar banco → Produção → região). Sem isso, mesmo com o código pronto, o app vai mostrar o card de diagnóstico que vou criar — porque o banco realmente não existe ainda. O card já vai te guiar caso esqueça.
+## Resultado esperado
+1. Login Google ou e-mail entra direto na `/app` (ou `/onboarding` da primeira vez).
+2. Perfil pode ser revisado e editado a qualquer momento.
+3. As 6 telas mostram listas reais lidas do RTDB e permitem CRUD básico de turmas, alunos, chamada, notas, advertências.
+4. Nenhum domínio novo precisa ser adicionado.
