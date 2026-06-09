@@ -91,7 +91,7 @@ export async function updateUserProfile(
   uid: string,
   patch: { name?: string; profileType?: ProfileType; onboardingComplete?: boolean; photoUrl?: string | null },
 ) {
-  const row: Record<string, unknown> = {};
+  const row: Partial<ProfileRow> = {};
   if (patch.name !== undefined) row.name = patch.name;
   if (patch.profileType !== undefined) row.profile_type = patch.profileType;
   if (patch.onboardingComplete !== undefined) row.onboarding_complete = patch.onboardingComplete;

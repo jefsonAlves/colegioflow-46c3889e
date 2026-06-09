@@ -71,7 +71,7 @@ export async function updateStudent(
   studentId: string,
   patch: Partial<Omit<StudentDoc, "id">>,
 ) {
-  const row: Record<string, unknown> = {};
+  const row: Partial<Row> = {};
   if (patch.name !== undefined) row.name = patch.name;
   if (patch.classId !== undefined) row.class_id = patch.classId;
   const { error } = await supabase.from("students").update(row).eq("school_id", schoolId).eq("id", studentId);

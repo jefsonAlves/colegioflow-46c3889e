@@ -73,7 +73,7 @@ export async function updateClass(
   classId: string,
   patch: Partial<Omit<ClassDoc, "id">>,
 ) {
-  const row: Record<string, unknown> = {};
+  const row: Partial<Row> = {};
   if (patch.name !== undefined) row.name = patch.name;
   if (patch.year !== undefined) row.year = patch.year;
   if (patch.teacherUid !== undefined) row.teacher_uid = patch.teacherUid;
