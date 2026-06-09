@@ -94,6 +94,14 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
               />
             </div>
             <div className="space-y-1.5">
+              <Label>Série / Ano (ex.: 5º Ano, 3ª Série EM)</Label>
+              <Input
+                placeholder="5º Ano"
+                value={newGrade}
+                onChange={(e) => setNewGrade(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
               <Label>Ano letivo</Label>
               <Input
                 type="number"
