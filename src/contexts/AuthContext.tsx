@@ -1,58 +1,99 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { User } from "firebase/auth";
 import { consumeRedirectResult, watchAuth } from "@/integrations/firebase/auth";
 import { ensureUserDoc, getUserDoc } from "@/lib/users";
 import type { UserDoc } from "@/lib/types";
 
+export interface BootError {
+  code?: string;
+  message: string;
+  firestoreMissing?: boolean;
+}
+
 interface AuthCtx {
   loading: boolean;
   firebaseUser: User | null;
   userDoc: UserDoc | null;
+  bootError: BootError | null;
   refresh: () => Promise<void>;
+  retryBoot: () => Promise<void>;
 }
 
 const Ctx = createContext<AuthCtx>({
   loading: true,
   firebaseUser: null,
   userDoc: null,
+  bootError: null,
   refresh: async () => {},
+  retryBoot: async () => {},
 });
+
+function parseError(e: unknown): BootError {
+  const err = e as { code?: string; message?: string };
+  const msg = err?.message ?? "Erro desconhecido.";
+  const firestoreMissing =
+    err?.code === "unavailable" ||
+    /Database '\(default\)' not found/i.test(msg) ||
+    /client is offline/i.test(msg);
+  return { code: err?.code, message: msg, firestoreMissing };
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
+  const [bootError, setBootError] = useState<BootError | null>(null);
+
+  const hydrate = useCallback(async (u: User) => {
+    setBootError(null);
+    try {
+      const doc = await ensureUserDoc(u);
+      setUserDoc(doc);
+    } catch (e) {
+      console.error("ensureUserDoc failed", e);
+      setUserDoc(null);
+      setBootError(parseError(e));
+    }
+  }, []);
 
   useEffect(() => {
-    // Finalize any pending redirect sign-in (signInWithRedirect fallback)
     consumeRedirectResult().catch((e) => console.warn("redirect result", e));
 
     const unsub = watchAuth(async (u) => {
       setFirebaseUser(u);
       if (u) {
-        try {
-          const doc = await ensureUserDoc(u);
-          setUserDoc(doc);
-        } catch (e) {
-          console.error("ensureUserDoc failed", e);
-          setUserDoc(null);
-        }
+        await hydrate(u);
       } else {
         setUserDoc(null);
+        setBootError(null);
       }
       setLoading(false);
     });
     return () => unsub();
-  }, []);
+  }, [hydrate]);
 
   const refresh = async () => {
     if (!firebaseUser) return;
-    const d = await getUserDoc(firebaseUser.uid);
-    setUserDoc(d);
+    try {
+      const d = await getUserDoc(firebaseUser.uid);
+      setUserDoc(d);
+      setBootError(null);
+    } catch (e) {
+      setBootError(parseError(e));
+    }
+  };
+
+  const retryBoot = async () => {
+    if (!firebaseUser) return;
+    setLoading(true);
+    await hydrate(firebaseUser);
+    setLoading(false);
   };
 
   return (
-    <Ctx.Provider value={{ loading, firebaseUser, userDoc, refresh }}>{children}</Ctx.Provider>
+    <Ctx.Provider value={{ loading, firebaseUser, userDoc, bootError, refresh, retryBoot }}>
+      {children}
+    </Ctx.Provider>
   );
 }
 

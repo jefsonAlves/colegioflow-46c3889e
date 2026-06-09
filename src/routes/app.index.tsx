@@ -1,145 +1,127 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Building2, ClipboardList, GraduationCap, Megaphone, NotebookPen, Users } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  ClipboardCheck,
+  NotebookPen,
+  Users,
+  FileText,
+  AlertOctagon,
+  BarChart3,
+  Megaphone,
+  Building2,
+  ChevronRight,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-import { listMembershipsForUser } from "@/lib/memberships";
-import { getSchool } from "@/lib/schools";
-import { Loading, EmptyState } from "@/components/States";
-import type { SchoolDoc } from "@/lib/types";
-import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/app/")({
   component: AppHome,
 });
 
+interface Action {
+  to: "/app/frequencia" | "/app/notas" | "/app/turmas" | "/app/boletim" | "/app/advertencias" | "/app/relatorios";
+  label: string;
+  description: string;
+  icon: LucideIcon;
+  accent: "primary" | "secondary" | "accent";
+}
+
+const ACTIONS: Action[] = [
+  { to: "/app/frequencia", label: "Frequência", description: "Fazer chamada", icon: ClipboardCheck, accent: "primary" },
+  { to: "/app/notas", label: "Notas", description: "Lançar notas", icon: NotebookPen, accent: "secondary" },
+  { to: "/app/turmas", label: "Turmas", description: "Adicionar e gerenciar", icon: Users, accent: "primary" },
+  { to: "/app/boletim", label: "Boletim", description: "Fechamento do bimestre", icon: FileText, accent: "secondary" },
+  { to: "/app/advertencias", label: "Advertências", description: "Registrar ocorrências", icon: AlertOctagon, accent: "accent" },
+  { to: "/app/relatorios", label: "Relatórios", description: "Desempenho dos alunos", icon: BarChart3, accent: "primary" },
+];
+
+function accentClasses(a: Action["accent"]) {
+  switch (a) {
+    case "secondary":
+      return "bg-secondary/15 text-secondary-foreground border-secondary/30";
+    case "accent":
+      return "bg-accent/15 text-accent-foreground border-accent/30";
+    default:
+      return "bg-primary/10 text-primary border-primary/20";
+  }
+}
+
 function AppHome() {
   const { userDoc } = useAuth();
-
   if (!userDoc) return null;
 
-  if (userDoc.profileType === "parent") return <ParentDashboard />;
-  // Teacher and school_admin both see teacher-style home (admin also has /app/escola)
-  return <TeacherDashboard />;
-}
-
-function TeacherDashboard() {
-  const { firebaseUser, userDoc } = useAuth();
-  const [activeSchool, setActiveSchool] = useState<string | null>(
-    () => (typeof window !== "undefined" ? localStorage.getItem("activeSchool") : null),
-  );
-
-  const memQ = useQuery({
-    queryKey: ["memberships", firebaseUser?.uid],
-    queryFn: () => listMembershipsForUser(firebaseUser!.uid),
-    enabled: !!firebaseUser,
-  });
-
-  const schoolsQ = useQuery({
-    queryKey: ["schools-from-memberships", memQ.data?.map((m) => m.schoolId).join(",")],
-    queryFn: async () => {
-      const list = await Promise.all((memQ.data ?? []).map((m) => getSchool(m.schoolId)));
-      return list.filter(Boolean) as SchoolDoc[];
-    },
-    enabled: !!memQ.data,
-  });
-
-  useEffect(() => {
-    if (activeSchool) localStorage.setItem("activeSchool", activeSchool);
-  }, [activeSchool]);
-
-  const approved = (memQ.data ?? []).filter((m) => m.status === "approved");
-  const pending = (memQ.data ?? []).filter((m) => m.status === "pending");
+  const firstName = userDoc.name?.split(" ")[0] ?? "";
 
   return (
-    <AppShell title={`Olá, ${userDoc?.name.split(" ")[0] ?? ""}`}>
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Minhas escolas
-        </h2>
-        {memQ.isLoading ? (
-          <Loading />
-        ) : (memQ.data ?? []).length === 0 ? (
-          <EmptyState
-            title="Sem escolas ainda"
-            description="Você ainda não está vinculado a nenhuma escola."
-          />
-        ) : (
-          <div className="space-y-2">
-            {(schoolsQ.data ?? []).map((s) => {
-              const mem = (memQ.data ?? []).find((m) => m.schoolId === s.id);
-              const isActive = activeSchool === s.id;
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => mem?.status === "approved" && setActiveSchool(s.id)}
-                  className={`w-full text-left rounded-xl border p-4 transition flex items-center gap-3 ${
-                    isActive ? "border-primary bg-primary/5" : "bg-card"
-                  }`}
-                >
-                  <div className="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                    <Building2 className="size-5" />
+    <AppShell title={`Olá, ${firstName}`}>
+      <section className="space-y-1">
+        <p className="text-sm text-muted-foreground">
+          {userDoc.profileType === "school_admin"
+            ? "Painel da escola"
+            : userDoc.profileType === "parent"
+              ? "Acompanhamento escolar"
+              : "Painel do professor"}
+        </p>
+        <h2 className="text-xl font-bold">O que você quer fazer hoje?</h2>
+      </section>
+
+      <section className="grid grid-cols-2 gap-3">
+        {ACTIONS.map((a) => {
+          const Icon = a.icon;
+          return (
+            <Link key={a.to} to={a.to} className="group">
+              <Card className="h-full transition active:scale-[0.98] hover:border-primary/40">
+                <CardContent className="pt-5 pb-4 flex flex-col gap-2 items-start min-h-[124px]">
+                  <div className={`size-11 rounded-xl border flex items-center justify-center ${accentClasses(a.accent)}`}>
+                    <Icon className="size-5" />
                   </div>
-                  <div className="flex-1">
-                    <div className="font-semibold">{s.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {mem?.status === "approved"
-                        ? isActive
-                          ? "Escola ativa"
-                          : "Toque para ativar"
-                        : mem?.status === "pending"
-                          ? "Aguardando aprovação"
-                          : mem?.status}
-                    </div>
+                  <div className="space-y-0.5">
+                    <div className="font-semibold leading-tight">{a.label}</div>
+                    <div className="text-xs text-muted-foreground">{a.description}</div>
                   </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-        {pending.length > 0 && approved.length === 0 && (
-          <Card className="bg-warning/10 border-warning/30">
-            <CardContent className="pt-4 text-sm">
-              Suas solicitações estão aguardando aprovação do administrador da escola.
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
+      </section>
+
+      <section className="space-y-2">
+        <Link to="/app/avisos">
+          <Card className="transition active:scale-[0.99]">
+            <CardContent className="pt-4 pb-4 flex items-center gap-3">
+              <div className="size-10 rounded-lg bg-accent/15 text-accent-foreground flex items-center justify-center">
+                <Megaphone className="size-5" />
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold">Avisos</div>
+                <div className="text-xs text-muted-foreground">Comunicados da escola e turmas</div>
+              </div>
+              <ChevronRight className="size-5 text-muted-foreground" />
             </CardContent>
           </Card>
-        )}
-      </section>
+        </Link>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Ações
-        </h2>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { icon: Users, label: "Turmas" },
-            { icon: ClipboardList, label: "Chamada" },
-            { icon: NotebookPen, label: "Notas" },
-            { icon: GraduationCap, label: "Relatórios" },
-            { icon: Megaphone, label: "Avisos" },
-          ].map((a) => (
-            <Card key={a.label} className="opacity-60">
-              <CardContent className="pt-4 pb-4 flex flex-col gap-2 items-start">
-                <a.icon className="size-6 text-primary" />
-                <div className="font-medium">{a.label}</div>
-                <div className="text-xs text-muted-foreground">Em breve</div>
+        {userDoc.profileType === "school_admin" && (
+          <Link to="/app/escola">
+            <Card className="transition active:scale-[0.99]">
+              <CardContent className="pt-4 pb-4 flex items-center gap-3">
+                <div className="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <Building2 className="size-5" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold">Minha escola</div>
+                  <div className="text-xs text-muted-foreground">
+                    Aprovar professores, configurar dados
+                  </div>
+                </div>
+                <ChevronRight className="size-5 text-muted-foreground" />
               </CardContent>
             </Card>
-          ))}
-        </div>
+          </Link>
+        )}
       </section>
-    </AppShell>
-  );
-}
-
-function ParentDashboard() {
-  return (
-    <AppShell title="Família">
-      <EmptyState
-        title="Vínculo com aluno em breve"
-        description="O vínculo com seus filhos será liberado na próxima atualização do aplicativo."
-      />
     </AppShell>
   );
 }
