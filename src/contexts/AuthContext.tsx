@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { User } from "firebase/auth";
-import { watchAuth } from "@/integrations/firebase/auth";
+import { consumeRedirectResult, watchAuth } from "@/integrations/firebase/auth";
 import { ensureUserDoc, getUserDoc } from "@/lib/users";
 import type { UserDoc } from "@/lib/types";
 
@@ -24,6 +24,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
 
   useEffect(() => {
+    // Finalize any pending redirect sign-in (signInWithRedirect fallback)
+    consumeRedirectResult().catch((e) => console.warn("redirect result", e));
+
     const unsub = watchAuth(async (u) => {
       setFirebaseUser(u);
       if (u) {
