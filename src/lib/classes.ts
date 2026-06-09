@@ -4,6 +4,7 @@ export interface ClassDoc {
   id: string;
   name: string;
   year: number;
+  gradeLevel: string | null;
   teacherUid: string | null;
   createdBy: string;
   createdAt: number;
@@ -14,6 +15,7 @@ type Row = {
   school_id: string;
   name: string;
   year: number;
+  grade_level: string | null;
   teacher_uid: string | null;
   created_by: string;
   created_at: string;
@@ -23,6 +25,7 @@ const toDoc = (r: Row): ClassDoc => ({
   id: r.id,
   name: r.name,
   year: r.year,
+  gradeLevel: r.grade_level ?? null,
   teacherUid: r.teacher_uid,
   createdBy: r.created_by,
   createdAt: new Date(r.created_at).getTime(),
@@ -41,7 +44,7 @@ export async function listClasses(schoolId: string): Promise<ClassDoc[]> {
 
 export async function createClass(
   schoolId: string,
-  input: { name: string; year: number; teacherUid?: string | null; createdBy: string },
+  input: { name: string; year: number; gradeLevel?: string | null; teacherUid?: string | null; createdBy: string },
 ): Promise<ClassDoc> {
   const { data, error } = await supabase
     .from("classes")
@@ -49,6 +52,7 @@ export async function createClass(
       school_id: schoolId,
       name: input.name.trim(),
       year: input.year,
+      grade_level: input.gradeLevel ?? null,
       teacher_uid: input.teacherUid ?? null,
       created_by: input.createdBy,
     })
