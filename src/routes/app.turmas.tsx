@@ -582,7 +582,7 @@ function SpecialNeedsDialog({
   );
 }
 
-const _lastOpenId: { current: string | null } = { current: null };
+
 
 function SchedulesSection({
   cls,
