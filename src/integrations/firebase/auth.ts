@@ -1,5 +1,6 @@
 // Shim that preserves the old "firebase/auth" import surface but is backed by Supabase.
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 
 export interface User {
   uid: string;
@@ -22,12 +23,9 @@ function toUser(u: { id: string; email?: string | null; user_metadata?: Record<s
 }
 
 export async function signInWithGoogle() {
-  const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/app` : undefined;
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: { redirectTo, queryParams: { prompt: "select_account" } },
-  });
-  if (error) throw error;
+  const redirect_uri = typeof window !== "undefined" ? window.location.origin : undefined;
+  const result = await lovable.auth.signInWithOAuth("google", { redirect_uri });
+  if (result?.error) throw result.error;
 }
 
 export async function signInWithEmail(email: string, password: string): Promise<UserCredential> {
