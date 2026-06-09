@@ -161,6 +161,8 @@ export type Database = {
           id: string
           school_id: string
           start_time: string
+          subject: string
+          teacher_id: string
           weekday: number
         }
         Insert: {
@@ -171,6 +173,8 @@ export type Database = {
           id?: string
           school_id: string
           start_time: string
+          subject?: string
+          teacher_id: string
           weekday: number
         }
         Update: {
@@ -181,6 +185,8 @@ export type Database = {
           id?: string
           school_id?: string
           start_time?: string
+          subject?: string
+          teacher_id?: string
           weekday?: number
         }
         Relationships: [
