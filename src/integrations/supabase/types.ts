@@ -274,6 +274,63 @@ export type Database = {
           },
         ]
       }
+      import_sources: {
+        Row: {
+          api_key_encrypted: string
+          base_url: string
+          class_id: string | null
+          created_at: string
+          created_by: string
+          id: string
+          label: string
+          last_run_at: string | null
+          last_status: string | null
+          school_id: string
+          updated_at: string
+        }
+        Insert: {
+          api_key_encrypted: string
+          base_url: string
+          class_id?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          label: string
+          last_run_at?: string | null
+          last_status?: string | null
+          school_id: string
+          updated_at?: string
+        }
+        Update: {
+          api_key_encrypted?: string
+          base_url?: string
+          class_id?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          label?: string
+          last_run_at?: string | null
+          last_status?: string | null
+          school_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_sources_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_sources_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           active: boolean

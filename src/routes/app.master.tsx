@@ -2,7 +2,19 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Building2, Check, Database, Download, Merge, ShieldCheck, X } from "lucide-react";
+import {
+  Building2,
+  Check,
+  Database,
+  Download,
+  Merge,
+  Pencil,
+  Play,
+  Plus,
+  ShieldCheck,
+  Trash2,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,7 +31,16 @@ import {
   getSchool,
 } from "@/lib/schools";
 import { Loading, EmptyState } from "@/components/States";
-import { importExternalData, previewExternalData } from "@/lib/import.functions";
+import {
+  deleteImportSource,
+  importExternalData,
+  listImportSources,
+  previewExternalData,
+  previewImportSource,
+  runImportSource,
+  upsertImportSource,
+  type ImportSourceRow,
+} from "@/lib/import.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { setMembershipStatus } from "@/lib/memberships";
 import { getUserDoc } from "@/lib/users";
@@ -92,6 +113,8 @@ function MasterPage() {
       </Link>
 
       <ImportExternalCard schools={active} />
+
+      <SavedImportSourcesCard schools={active} />
 
       <AdminRequestsSection />
 
@@ -496,5 +519,277 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       </h2>
       {children}
     </section>
+  );
+}
+
+type EditState = {
+  id?: string;
+  label: string;
+  baseUrl: string;
+  apiKey: string;
+  schoolId: string;
+  classId: string;
+};
+
+const emptyEdit = (defaultSchool?: string): EditState => ({
+  label: "",
+  baseUrl: "",
+  apiKey: "",
+  schoolId: defaultSchool ?? "",
+  classId: "",
+});
+
+function SavedImportSourcesCard({ schools }: { schools: SchoolDoc[] }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [edit, setEdit] = useState<EditState | null>(null);
+  const [preview, setPreview] = useState<PreviewResult | null>(null);
+  const [previewingId, setPreviewingId] = useState<string | null>(null);
+
+  const list = useServerFn(listImportSources);
+  const upsert = useServerFn(upsertImportSource);
+  const remove = useServerFn(deleteImportSource);
+  const doPreview = useServerFn(previewImportSource);
+  const doRun = useServerFn(runImportSource);
+
+  const sourcesQ = useQuery({
+    queryKey: ["import-sources"],
+    queryFn: () => list(),
+  });
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["import-sources"] });
+
+  const saveMut = useMutation({
+    mutationFn: async () => {
+      if (!edit) throw new Error("Nada para salvar.");
+      if (!edit.label.trim()) throw new Error("Informe um nome.");
+      if (!edit.baseUrl.trim()) throw new Error("Informe a URL.");
+      if (!edit.schoolId) throw new Error("Selecione a escola.");
+      return upsert({
+        data: {
+          id: edit.id,
+          label: edit.label.trim(),
+          baseUrl: edit.baseUrl.trim(),
+          apiKey: edit.apiKey ? edit.apiKey : undefined,
+          schoolId: edit.schoolId,
+          classId: edit.classId || null,
+        },
+      });
+    },
+    onSuccess: () => {
+      toast.success("Fonte salva.");
+      setEdit(null);
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: async (id: string) => remove({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Fonte removida.");
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const previewMut = useMutation({
+    mutationFn: async (id: string) => {
+      setPreviewingId(id);
+      return doPreview({ data: { id } });
+    },
+    onSuccess: (res) => {
+      setPreview(res as PreviewResult);
+      toast.success("Prévia carregada.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+    onSettled: () => invalidate(),
+  });
+
+  const runMut = useMutation({
+    mutationFn: async (id: string) => {
+      if (!confirm("Aplicar importação desta fonte?")) throw new Error("Cancelado.");
+      return doRun({ data: { id } });
+    },
+    onSuccess: (res) => {
+      toast.success(
+        `Importação ok: ${res.report.students.linked} vinculados, ${res.report.students.created} criados.`,
+      );
+      setPreview(null);
+      setPreviewingId(null);
+      invalidate();
+    },
+    onError: (e: Error) => {
+      if (e.message !== "Cancelado.") toast.error(e.message);
+    },
+  });
+
+  const schoolName = (id: string) => schools.find((s) => s.id === id)?.name ?? "—";
+
+  return (
+    <Card className="border-primary/30">
+      <CardContent className="pt-4 pb-4 space-y-3">
+        <button
+          className="w-full flex items-center gap-3 text-left"
+          onClick={() => setOpen((v) => !v)}
+        >
+          <Database className="size-5 text-primary" />
+          <div className="flex-1">
+            <div className="font-medium">Fontes externas salvas</div>
+            <div className="text-xs text-muted-foreground">
+              Cadastre URL + API key uma vez e reutilize para importar
+            </div>
+          </div>
+        </button>
+
+        {open && (
+          <div className="space-y-3 pt-2 border-t">
+            {sourcesQ.isLoading ? (
+              <Loading />
+            ) : (sourcesQ.data ?? []).length === 0 ? (
+              <p className="text-xs text-muted-foreground">Nenhuma fonte cadastrada ainda.</p>
+            ) : (
+              <ul className="space-y-2">
+                {(sourcesQ.data ?? []).map((s: ImportSourceRow) => (
+                  <li key={s.id} className="border rounded-md p-3 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{s.label}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {schoolName(s.schoolId)} · {s.baseUrl}
+                        </div>
+                        {s.lastStatus && (
+                          <div className="text-[11px] text-muted-foreground mt-0.5">
+                            Último: {s.lastStatus}
+                            {s.lastRunAt
+                              ? ` · ${new Date(s.lastRunAt).toLocaleString()}`
+                              : ""}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={previewMut.isPending}
+                        onClick={() => previewMut.mutate(s.id)}
+                      >
+                        <Download className="size-3.5" /> Prévia
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={runMut.isPending}
+                        onClick={() => runMut.mutate(s.id)}
+                      >
+                        <Play className="size-3.5" /> Importar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setEdit({
+                            id: s.id,
+                            label: s.label,
+                            baseUrl: s.baseUrl,
+                            apiKey: "",
+                            schoolId: s.schoolId,
+                            classId: s.classId ?? "",
+                          })
+                        }
+                      >
+                        <Pencil className="size-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          if (confirm(`Remover fonte "${s.label}"?`)) deleteMut.mutate(s.id);
+                        }}
+                      >
+                        <Trash2 className="size-3.5 text-destructive" />
+                      </Button>
+                    </div>
+                    {previewingId === s.id && preview && <PreviewView preview={preview} />}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {edit ? (
+              <div className="border rounded-md p-3 space-y-2">
+                <div className="font-medium text-sm">
+                  {edit.id ? "Editar fonte" : "Nova fonte"}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Nome</Label>
+                  <Input
+                    value={edit.label}
+                    onChange={(e) => setEdit({ ...edit, label: e.target.value })}
+                    placeholder="Sistema da Secretaria"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Endpoint (URL JSON)</Label>
+                  <Input
+                    value={edit.baseUrl}
+                    onChange={(e) => setEdit({ ...edit, baseUrl: e.target.value })}
+                    placeholder="https://api.exemplo.com/exportar"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>API Key (Bearer)</Label>
+                  <Input
+                    type="password"
+                    value={edit.apiKey}
+                    onChange={(e) => setEdit({ ...edit, apiKey: e.target.value })}
+                    placeholder={edit.id ? "Deixe vazio para manter atual" : "sk_..."}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Escola de destino</Label>
+                  <select
+                    value={edit.schoolId}
+                    onChange={(e) => setEdit({ ...edit, schoolId: e.target.value })}
+                    className="w-full border rounded-md h-10 px-3 bg-background"
+                  >
+                    <option value="">— escolha —</option>
+                    {schools.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setEdit(null)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    disabled={saveMut.isPending}
+                    onClick={() => saveMut.mutate()}
+                  >
+                    Salvar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setEdit(emptyEdit(schools[0]?.id))}
+              >
+                <Plus className="size-4" /> Adicionar fonte
+              </Button>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
