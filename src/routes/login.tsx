@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { GraduationCap, LogIn, Mail, AlertTriangle, Copy, ExternalLink } from "lucide-react";
+import { GraduationCap, LogIn, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,18 +30,13 @@ interface AuthError {
   message?: string;
 }
 
-function translateError(code?: string, message?: string): string {
-  if (message && /invalid login/i.test(message)) return "E-mail ou senha incorretos.";
-  if (message && /already registered/i.test(message)) return "Este e-mail já está cadastrado. Faça login.";
-  if (message && /weak.password/i.test(message)) return "Senha muito fraca. Use 6+ caracteres.";
-  switch (code) {
-    case "auth/invalid-email":
-      return "E-mail inválido.";
-    case "auth/network-request-failed":
-      return "Sem conexão. Verifique sua internet.";
-    default:
-      return message || "Não foi possível entrar. Tente novamente.";
-  }
+function translateError(message?: string): string {
+  if (!message) return "Não foi possível entrar. Tente novamente.";
+  if (/invalid login/i.test(message)) return "E-mail ou senha incorretos.";
+  if (/already registered|already exists/i.test(message)) return "Este e-mail já está cadastrado. Faça login.";
+  if (/weak.?password|at least 6/i.test(message)) return "Senha muito fraca. Use 6+ caracteres.";
+  if (/network/i.test(message)) return "Sem conexão. Verifique sua internet.";
+  return message;
 }
 
 function LoginPage() {
@@ -66,7 +61,7 @@ function LoginPage() {
     } catch (e) {
       const err = e as AuthError;
       console.error(err);
-      toast.error(translateError(err.code, err.message));
+      toast.error(translateError(err.message));
     } finally {
       setSubmitting(false);
     }
@@ -80,23 +75,16 @@ function LoginPage() {
     setSubmitting(true);
     try {
       if (mode === "signin") await signInWithEmail(email, password);
-      else await signUpWithEmail(email, password);
+      else {
+        await signUpWithEmail(email, password);
+        toast.success("Conta criada! Verifique seu e-mail se necessário.");
+      }
     } catch (e) {
       const err = e as AuthError;
       console.error(err);
-      toast.error(translateError(err.code, err.message));
+      toast.error(translateError(err.message));
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const copyDomain = async () => {
-    if (!unauthorizedDomain) return;
-    try {
-      await navigator.clipboard.writeText(unauthorizedDomain);
-      toast.success("Domínio copiado!");
-    } catch {
-      toast.error("Não foi possível copiar.");
     }
   };
 
@@ -112,36 +100,6 @@ function LoginPage() {
             Gestão escolar simples para professores, escolas e famílias.
           </p>
         </div>
-
-        {unauthorizedDomain && (
-          <Card className="border-destructive/40 bg-destructive/5 w-full text-left">
-            <CardContent className="pt-4 pb-4 space-y-3">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <div className="font-semibold">Domínio não autorizado</div>
-                  <p className="text-muted-foreground mt-1">
-                    Adicione este domínio em <b>Firebase Console → Authentication → Settings → Authorized domains</b>:
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 rounded-md border bg-background p-2 font-mono text-xs break-all">
-                <span className="flex-1">{unauthorizedDomain}</span>
-                <Button size="sm" variant="ghost" onClick={copyDomain}>
-                  <Copy className="size-3.5" />
-                </Button>
-              </div>
-              <a
-                href="https://console.firebase.google.com/project/projetojefson/authentication/settings"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-              >
-                Abrir Firebase Console <ExternalLink className="size-3" />
-              </a>
-            </CardContent>
-          </Card>
-        )}
 
         <Button
           size="lg"
@@ -193,22 +151,12 @@ function LoginPage() {
               </div>
 
               <TabsContent value="signin" className="pt-3">
-                <Button
-                  className="w-full h-12"
-                  variant="outline"
-                  disabled={submitting}
-                  onClick={() => handleEmail("signin")}
-                >
+                <Button className="w-full h-12" variant="outline" disabled={submitting} onClick={() => handleEmail("signin")}>
                   <Mail className="size-4" /> Entrar
                 </Button>
               </TabsContent>
               <TabsContent value="signup" className="pt-3">
-                <Button
-                  className="w-full h-12"
-                  variant="outline"
-                  disabled={submitting}
-                  onClick={() => handleEmail("signup")}
-                >
+                <Button className="w-full h-12" variant="outline" disabled={submitting} onClick={() => handleEmail("signup")}>
                   <Mail className="size-4" /> Criar conta
                 </Button>
               </TabsContent>
