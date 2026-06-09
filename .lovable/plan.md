@@ -1,66 +1,59 @@
-## Diagnóstico (estado atual no banco)
+# Fontes de importação salvas (Painel Master)
 
-- **Jefson (jefson.ti@gmail.com)** já tem `globalRole = master` ✅, mas no CEF15 está como `teacher / pending`. Como ele criou a escola antes da regra de bootstrap automática, ele **nunca virou school_admin aprovado** — por isso o painel `/app/escola` aparece vazio ("Você não administra nenhuma escola") e ele não consegue aprovar o funcionário.
-- **CEF15** já está com `status = active` ✅ (a tela só parece "inativa" porque ninguém aparece como admin).
-- **Admin CEF15 (jefson.s.a7@gmail.com)** está com pedido `school_admin / pending` aguardando aprovação — ninguém pode aprovar hoje, porque não existe school_admin aprovado e o painel Master não lista pedidos de membros.
-- **Importação** hoje só faz match por `external_id`; sem ele, sempre cria um aluno novo. Não existe `matricula` na tabela `students`. A prévia atual só mostra um JSON cru, sem distinguir "vai vincular" × "vai criar".
+Adicionar, no ambiente Master do Jefson, uma seção "Fontes externas" onde ele cadastra, edita e remove conexões (URL + API key + escola/turma destino) e executa prévia/importação a partir delas. Os dados importados continuam visíveis para os membros aprovados da escola via RLS atual — sem links públicos, sem replicação para outras escolas.
 
-## O que será feito
+## O que será adicionado
 
-### 1. Auto‑promover criador da escola a school_admin aprovado (retroativo)
-- Migration única: para toda escola, se o `created_by` não tiver membership `school_admin/approved`, **inserir/atualizar** para `school_admin / approved` (resolve o CEF15 + Jefson agora e qualquer escola futura criada antes do fix).
-- Mantém `createSchool` bootstrapando admin aprovado (já feito).
+1. **Tabela `import_sources`** (somente master acessa)
+   - Campos visíveis: `label`, `base_url`, `school_id` (destino), `class_id` (opcional), `last_run_at`, `last_status`.
+   - Campo sensível: `api_key_encrypted` (criptografado server-side com `SUPABASE_SERVICE_ROLE_KEY` + `pgcrypto`). A key NUNCA volta para o cliente.
+   - RLS: somente `is_master(auth.uid())` pode `SELECT/INSERT/UPDATE/DELETE`.
 
-### 2. Painel Master também aprova pedidos de school_admin
-- Em `/app/master`, adicionar seção **"Pedidos de administrador de escola"** listando todos `school_memberships` com `role_in_school = school_admin` e `status = pending`, com botões Aprovar/Rejeitar.
-- RLS: permitir que `is_master(auth.uid())` faça `UPDATE` em `school_memberships` (hoje a policy só cobre o próprio school_admin aprovando outros).
-- Isso aprova o pedido do funcionário do CEF15 mesmo se o admin local não fizer.
+2. **Server functions novas** (`src/lib/importSources.functions.ts`)
+   - `listImportSources()` — retorna fontes sem a key.
+   - `upsertImportSource({ id?, label, baseUrl, apiKey?, schoolId, classId? })` — cria/atualiza; só grava `apiKey` se enviado.
+   - `deleteImportSource({ id })`.
+   - `previewImportSource({ id })` / `runImportSource({ id })` — buscam a key descriptografada server-side e delegam para a lógica já existente em `src/lib/import.functions.ts` (sem duplicar regras de matching).
+   - Todas com `requireSupabaseAuth` + checagem `assertMaster`.
 
-### 3. Painel da escola: ativar fluxo de funcionário pendente
-- `/app/escola` já lista pendentes — depois da migração (1), Jefson verá o CEF15 e poderá aprovar o funcionário direto.
-- Adicionar coluna de papel ao aprovar (teacher / school_admin) já que o pedido vem com `role_in_school` definido — apenas exibir corretamente (já está OK no código).
+3. **UI no `src/routes/app.master.tsx`**
+   - Novo card "Fontes externas de dados" com:
+     - Lista de fontes salvas (label, escola, turma, último status/data).
+     - Botões por linha: **Prévia**, **Importar**, **Editar**, **Remover**.
+     - Formulário "Adicionar fonte" (label, URL, API key, escola, turma opcional). Ao editar, o campo de key fica vazio com placeholder "Manter atual".
+   - O bloco atual de "campos voláteis" (URL/key digitados a cada vez) é substituído por este fluxo.
+   - Prévia/importação reutilizam o componente de exibição já existente (alunos a vincular/criar, frequência, notas).
 
-### 4. Importação: matrícula + prévia real
+## Detalhes técnicos
 
-**Schema:**
-- Adicionar coluna `matricula text` a `public.students` + índice único parcial `(school_id, matricula)` quando matricula não é nula. Mantém `external_id` como fallback.
+- Migração:
+  ```
+  CREATE EXTENSION IF NOT EXISTS pgcrypto;
+  CREATE TABLE public.import_sources (
+    id uuid PK default gen_random_uuid(),
+    label text not null,
+    base_url text not null,
+    api_key_encrypted bytea not null,
+    school_id uuid not null references public.schools(id) on delete cascade,
+    class_id uuid references public.classes(id) on delete set null,
+    last_run_at timestamptz, last_status text,
+    created_by uuid not null, created_at/updated_at timestamptz
+  );
+  GRANT SELECT,INSERT,UPDATE,DELETE ON public.import_sources TO authenticated;
+  GRANT ALL ON public.import_sources TO service_role;
+  ALTER TABLE ... ENABLE RLS;
+  CREATE POLICY ... USING (public.is_master(auth.uid())) WITH CHECK (...);
+  ```
+- Criptografia: `pgp_sym_encrypt(api_key, current_setting('app.import_key'))` chamada via `supabaseAdmin.rpc` em função SECURITY DEFINER `encrypt_import_key`/`decrypt_import_key`. Chave-mestra vem de novo secret `IMPORT_KEY_SECRET` (será solicitado via add_secret na fase de build).
+- A descriptografia só acontece dentro de `previewImportSource`/`runImportSource` no servidor — nunca trafega no payload de `listImportSources`.
+- Reaproveita `previewExternalData`/`importExternalData` extraindo seu núcleo em um helper interno `runPreview({ schoolId, classId, baseUrl, apiKey })` para evitar duplicação.
 
-**Server function `previewExternalData` (nova) + `importExternalData` (ajustada):**
-- Aceita payload `{ students:[{matricula?, external_id?, name, ...}], attendance:[...], grades:[...] }`.
-- Para cada aluno do payload, classifica:
-  - **match** se acha aluno existente na escola por (a) `matricula` igual, (b) `external_id` igual, ou (c) nome normalizado idêntico — nessa ordem.
-  - **new** caso contrário.
-- `previewExternalData` retorna listas: `studentsToLink[]`, `studentsToCreate[]`, `attendanceToApply[]` (com indicação de match), `gradesToApply[]`, e contagem de órfãos (sem aluno correspondente).
-- `importExternalData` reusa a mesma classificação e:
-  - Para alunos com match → `UPDATE` (preenche `matricula`/`external_id` faltantes, atualiza `class_id` opcional, **não sobrescreve nome**).
-  - Para novos → `INSERT`.
-  - Frequência e notas → `UPSERT` por `external_id` se houver, senão `INSERT` vinculado ao aluno resolvido; pula órfãos com aviso.
-- Ambas protegidas por `requireSupabaseAuth` + checagem `is_master`.
+## Fora do escopo
 
-**Tela `/app/master` — card "Importar dados externos":**
-- Campos: Endpoint URL, API Key, Escola de destino, Turma (opcional).
-- Botão **"Carregar prévia"** chama `previewExternalData` e renderiza tabelas separadas:
-  - "Alunos a vincular" (mostra `nome existente ← payload`, matricula casada)
-  - "Alunos a criar" (nome, matricula)
-  - "Frequência" (qtd, qtd com aluno resolvido, qtd órfã)
-  - "Notas" (idem)
-- Botão **"Aplicar importação"** só habilita após prévia carregada; confirma antes.
-- Mantém Textarea com JSON cru no fim para debug.
+- Compartilhar dados com escolas externas ou gerar tokens públicos.
+- Mudar regras de matching/dedup (continuam matricula → external_id → nome).
+- Alterar `app.escola` ou aprovações de admin (já existem).
 
-### 5. Detalhes técnicos
-- Migration única cobre: (a) retro‑promover criadores a school_admin aprovado, (b) policy `UPDATE`/`DELETE` em `school_memberships` para master, (c) `students.matricula` + índice único parcial.
-- Tipos `src/integrations/supabase/types.ts` serão regenerados após a migration.
-- Sem mudanças em telas além de `/app/master` e (cosmético) `/app/escola`.
+## Pergunta pendente para a build
 
-## Arquivos afetados
-
-- `supabase/migrations/<novo>.sql` — bootstrap retroativo, policy master, coluna matricula.
-- `src/lib/import.functions.ts` — adicionar `previewExternalData`, refatorar matching e ajuste de `importExternalData`.
-- `src/lib/students.ts` — expor `matricula` no DTO.
-- `src/routes/app.master.tsx` — nova seção "Pedidos de admin de escola" + UI de prévia rica no card de importação.
-- (sem mudanças funcionais) `src/routes/app.escola.tsx`.
-
-## Perguntas
-
-1. Para casar alunos por **nome**, devo exigir match exato (normalizado) ou aceitar similaridade alta (≥0.9, igual ao agrupador de escolas duplicadas)? Similaridade pode causar falsos positivos em turmas com nomes parecidos.
-2. Quando o payload trouxer `class_id`/turma diferente do aluno já cadastrado, devo **atualizar** a turma do aluno ou **ignorar** (manter cadastro atual)?
+- Confirmar que posso adicionar o secret `IMPORT_KEY_SECRET` (32+ chars aleatórios) na fase de implementação — sem ele, a key fica armazenada em texto plano, o que não é aceitável.
