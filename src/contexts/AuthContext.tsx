@@ -7,9 +7,8 @@ import type { UserDoc } from "@/lib/types";
 export interface BootError {
   code?: string;
   message: string;
-  firestoreMissing?: boolean;
-  rulesMissing?: boolean;
 }
+
 
 interface AuthCtx {
   loading: boolean;

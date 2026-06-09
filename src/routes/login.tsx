@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { GraduationCap, LogIn, Mail, AlertTriangle, Copy, ExternalLink } from "lucide-react";
+import { GraduationCap, LogIn, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,39 +25,20 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
-interface AuthError {
-  code?: string;
-  message?: string;
-}
-
-function translateError(code?: string): string {
-  switch (code) {
-    case "auth/unauthorized-domain":
-      return "Este domínio não está autorizado no Firebase Console.";
-    case "auth/invalid-email":
-      return "E-mail inválido.";
-    case "auth/user-not-found":
-    case "auth/wrong-password":
-    case "auth/invalid-credential":
-      return "E-mail ou senha incorretos.";
-    case "auth/email-already-in-use":
-      return "Este e-mail já está cadastrado. Faça login.";
-    case "auth/weak-password":
-      return "Senha muito fraca. Use 6+ caracteres.";
-    case "auth/network-request-failed":
-      return "Sem conexão. Verifique sua internet.";
-    case "auth/popup-blocked":
-      return "Popup bloqueado pelo navegador.";
-    default:
-      return "Não foi possível entrar. Tente novamente.";
-  }
+function translateError(message?: string): string {
+  const m = (message ?? "").toLowerCase();
+  if (m.includes("invalid login") || m.includes("invalid credentials")) return "E-mail ou senha incorretos.";
+  if (m.includes("already registered") || m.includes("already exists")) return "Este e-mail já está cadastrado. Faça login.";
+  if (m.includes("weak password") || m.includes("password should be at least")) return "Senha muito fraca. Use 6+ caracteres.";
+  if (m.includes("network")) return "Sem conexão. Verifique sua internet.";
+  if (m.includes("email not confirmed")) return "Confirme seu e-mail antes de entrar.";
+  return message || "Não foi possível entrar. Tente novamente.";
 }
 
 function LoginPage() {
   const { loading, firebaseUser, userDoc } = useAuth();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
-  const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -70,18 +51,12 @@ function LoginPage() {
   }, [loading, firebaseUser, userDoc, navigate]);
 
   const handleGoogle = async () => {
-    setUnauthorizedDomain(null);
     try {
       setSubmitting(true);
       await signInWithGoogle();
     } catch (e) {
-      const err = e as AuthError;
-      console.error(err);
-      if (err.code === "auth/unauthorized-domain") {
-        setUnauthorizedDomain(window.location.hostname);
-      } else {
-        toast.error(translateError(err.code));
-      }
+      console.error(e);
+      toast.error(translateError((e as Error)?.message));
     } finally {
       setSubmitting(false);
     }
@@ -95,23 +70,15 @@ function LoginPage() {
     setSubmitting(true);
     try {
       if (mode === "signin") await signInWithEmail(email, password);
-      else await signUpWithEmail(email, password);
+      else {
+        await signUpWithEmail(email, password);
+        toast.success("Conta criada! Verifique seu e-mail se necessário.");
+      }
     } catch (e) {
-      const err = e as AuthError;
-      console.error(err);
-      toast.error(translateError(err.code));
+      console.error(e);
+      toast.error(translateError((e as Error)?.message));
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const copyDomain = async () => {
-    if (!unauthorizedDomain) return;
-    try {
-      await navigator.clipboard.writeText(unauthorizedDomain);
-      toast.success("Domínio copiado!");
-    } catch {
-      toast.error("Não foi possível copiar.");
     }
   };
 
@@ -127,36 +94,6 @@ function LoginPage() {
             Gestão escolar simples para professores, escolas e famílias.
           </p>
         </div>
-
-        {unauthorizedDomain && (
-          <Card className="border-destructive/40 bg-destructive/5 w-full text-left">
-            <CardContent className="pt-4 pb-4 space-y-3">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <div className="font-semibold">Domínio não autorizado</div>
-                  <p className="text-muted-foreground mt-1">
-                    Adicione este domínio em <b>Firebase Console → Authentication → Settings → Authorized domains</b>:
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 rounded-md border bg-background p-2 font-mono text-xs break-all">
-                <span className="flex-1">{unauthorizedDomain}</span>
-                <Button size="sm" variant="ghost" onClick={copyDomain}>
-                  <Copy className="size-3.5" />
-                </Button>
-              </div>
-              <a
-                href="https://console.firebase.google.com/project/projetojefson/authentication/settings"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-              >
-                Abrir Firebase Console <ExternalLink className="size-3" />
-              </a>
-            </CardContent>
-          </Card>
-        )}
 
         <Button
           size="lg"
