@@ -1,7 +1,8 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Check, Merge, X } from "lucide-react";
+import { Building2, Check, Database, Merge, X } from "lucide-react";
+
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -63,6 +64,20 @@ function MasterPage() {
 
   return (
     <AppShell title="Painel Master">
+      <Link to="/app/master/migracao" className="block">
+        <Card className="border-primary/30 hover:bg-primary/5 transition">
+          <CardContent className="pt-4 pb-4 flex items-center gap-3">
+            <Database className="size-5 text-primary" />
+            <div className="flex-1">
+              <div className="font-medium">Migração de dados</div>
+              <div className="text-xs text-muted-foreground">
+                Mesclar dados do app antigo (RTDB + Firestore)
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+
       <div className="grid grid-cols-3 gap-3">
         <Stat label="Ativas" value={active.length} />
         <Stat label="Pendentes" value={pending.length} />
