@@ -221,12 +221,17 @@ function ClassDetail({
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-bold text-lg">{cls.name}</h3>
-            <p className="text-xs text-muted-foreground">{cls.year}</p>
+            <p className="text-xs text-muted-foreground">
+              {cls.gradeLevel ? `${cls.gradeLevel} · ` : ""}{cls.year}
+            </p>
           </div>
           <Button size="sm" variant="ghost" onClick={onClose}>
             <X className="size-4" />
           </Button>
         </div>
+
+        <TeachToggle cls={cls} schoolId={schoolId} />
+
 
         {canEdit && (
           <div className="flex gap-2">
