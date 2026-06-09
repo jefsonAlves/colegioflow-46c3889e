@@ -1,49 +1,62 @@
-import {
-  createUserWithEmailAndPassword,
-  getRedirectResult,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signInWithRedirect,
-  signOut as fbSignOut,
-  type User,
-  type UserCredential,
-} from "firebase/auth";
-import { auth, googleProvider } from "./client";
+// Shim that preserves the old "firebase/auth" import surface but is backed by Supabase.
+import { supabase } from "@/integrations/supabase/client";
 
-/**
- * Try popup first; if the popup is blocked or closed, fall back to redirect.
- * Surfaces auth/unauthorized-domain so the UI can render a helpful message.
- */
-export async function signInWithGoogle(): Promise<UserCredential | void> {
-  try {
-    return await signInWithPopup(auth, googleProvider);
-  } catch (e: unknown) {
-    const code = (e as { code?: string })?.code ?? "";
-    if (code === "auth/popup-blocked" || code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
-      await signInWithRedirect(auth, googleProvider);
-      return;
-    }
-    throw e;
-  }
+export interface User {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
 }
 
-export function signInWithEmail(email: string, password: string) {
-  return signInWithEmailAndPassword(auth, email, password);
+export type UserCredential = { user: User };
+
+function toUser(u: { id: string; email?: string | null; user_metadata?: Record<string, unknown> } | null): User | null {
+  if (!u) return null;
+  const meta = (u.user_metadata ?? {}) as Record<string, unknown>;
+  return {
+    uid: u.id,
+    email: u.email ?? null,
+    displayName: (meta.full_name as string) || (meta.name as string) || null,
+    photoURL: (meta.avatar_url as string) || (meta.picture as string) || null,
+  };
 }
 
-export function signUpWithEmail(email: string, password: string) {
-  return createUserWithEmailAndPassword(auth, email, password);
+export async function signInWithGoogle() {
+  const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/app` : undefined;
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo, queryParams: { prompt: "select_account" } },
+  });
+  if (error) throw error;
 }
 
-export function consumeRedirectResult() {
-  return getRedirectResult(auth);
+export async function signInWithEmail(email: string, password: string): Promise<UserCredential> {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return { user: toUser(data.user)! };
 }
 
-export function signOut() {
-  return fbSignOut(auth);
+export async function signUpWithEmail(email: string, password: string): Promise<UserCredential> {
+  const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/app` : undefined;
+  const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } });
+  if (error) throw error;
+  return { user: toUser(data.user)! };
 }
 
-export function watchAuth(cb: (u: User | null) => void) {
-  return onAuthStateChanged(auth, cb);
+export async function consumeRedirectResult() {
+  // Supabase handles the callback automatically via detectSessionInUrl.
+  return null;
+}
+
+export async function signOut() {
+  await supabase.auth.signOut();
+}
+
+export function watchAuth(cb: (u: User | null) => void): () => void {
+  // Fire immediately with current session
+  supabase.auth.getSession().then(({ data }) => cb(toUser(data.session?.user ?? null)));
+  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    cb(toUser(session?.user ?? null));
+  });
+  return () => data.subscription.unsubscribe();
 }

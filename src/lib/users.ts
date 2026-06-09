@@ -1,127 +1,101 @@
-import { get, ref, set, update } from "firebase/database";
-import type { User } from "firebase/auth";
-import { rtdb } from "@/integrations/firebase/client";
+import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@/integrations/firebase/auth";
 import { ADMIN_MASTER_EMAIL } from "./constants";
-import type { ProfileType, UserDoc } from "./types";
+import type { ProfileType, UserDoc, GlobalRole } from "./types";
 
 const isMasterEmail = (email: string | null | undefined) =>
   (email ?? "").toLowerCase() === ADMIN_MASTER_EMAIL.toLowerCase();
 
-interface LegacyShape {
-  nome?: string;
-  name?: string;
-  email?: string;
-  foto?: string;
-  photoUrl?: string;
-  tipo?: string;
-  profileType?: ProfileType;
-  onboardingComplete?: boolean;
-  globalRole?: "master" | "user";
-  active?: boolean;
-  createdAt?: number;
-  updatedAt?: number;
+type ProfileRow = {
+  id: string;
+  name: string;
+  email: string;
+  photo_url: string | null;
+  profile_type: ProfileType | null;
+  onboarding_complete: boolean;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+async function fetchRole(uid: string): Promise<GlobalRole> {
+  const { data } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+  const roles = (data ?? []).map((r) => r.role as string);
+  return roles.includes("master") ? "master" : "user";
 }
 
-function pickProfileTypeFromLegacy(tipo?: string, profileType?: ProfileType): ProfileType | undefined {
-  if (profileType) return profileType;
-  if (!tipo) return undefined;
-  const t = tipo.toLowerCase();
-  if (t.includes("prof")) return "teacher";
-  if (t.includes("adm") || t.includes("dir") || t.includes("coord")) return "school_admin";
-  if (t.includes("pai") || t.includes("resp") || t.includes("parent")) return "parent";
-  return undefined;
-}
-
-/**
- * Ensure a user document exists in RTDB at /users/{uid}.
- * On first login, also tries to hydrate from legacy /usuarios/{uid}.
- */
-export async function ensureUserDoc(user: User): Promise<UserDoc> {
-  const path = `users/${user.uid}`;
-  const snap = await get(ref(rtdb, path));
-  const now = Date.now();
-  const isMaster = isMasterEmail(user.email);
-
-  if (snap.exists()) {
-    const existing = snap.val() as LegacyShape;
-    const doc: UserDoc = {
-      id: user.uid,
-      name: existing.name || existing.nome || user.displayName || "",
-      email: existing.email || user.email || "",
-      photoUrl: existing.photoUrl ?? existing.foto ?? user.photoURL ?? null,
-      globalRole: isMaster ? "master" : existing.globalRole ?? "user",
-      profileType: pickProfileTypeFromLegacy(existing.tipo, existing.profileType),
-      onboardingComplete: Boolean(existing.onboardingComplete),
-      active: existing.active !== false,
-      createdAt: existing.createdAt ?? now,
-      updatedAt: now,
-    };
-    // Normalize back to canonical shape
-    await update(ref(rtdb, path), {
-      name: doc.name,
-      email: doc.email,
-      photoUrl: doc.photoUrl,
-      globalRole: doc.globalRole,
-      profileType: doc.profileType ?? null,
-      onboardingComplete: doc.onboardingComplete,
-      active: doc.active,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
-    });
-    return doc;
-  }
-
-  // First time — try legacy /usuarios/{uid}
-  let legacy: LegacyShape | null = null;
-  try {
-    const legacySnap = await get(ref(rtdb, `usuarios/${user.uid}`));
-    if (legacySnap.exists()) legacy = legacySnap.val() as LegacyShape;
-  } catch {
-    /* ignore */
-  }
-
-  const profileType = pickProfileTypeFromLegacy(legacy?.tipo, legacy?.profileType);
-  const doc: UserDoc = {
-    id: user.uid,
-    name: legacy?.name || legacy?.nome || user.displayName || "",
-    email: user.email || legacy?.email || "",
-    photoUrl: legacy?.photoUrl ?? legacy?.foto ?? user.photoURL ?? null,
-    globalRole: isMaster ? "master" : "user",
-    profileType,
-    onboardingComplete: Boolean(profileType && (legacy?.name || legacy?.nome)),
-    active: true,
-    createdAt: now,
-    updatedAt: now,
+function rowToDoc(r: ProfileRow, role: GlobalRole): UserDoc {
+  return {
+    id: r.id,
+    name: r.name ?? "",
+    email: r.email ?? "",
+    photoUrl: r.photo_url,
+    globalRole: role,
+    profileType: r.profile_type ?? undefined,
+    onboardingComplete: !!r.onboarding_complete,
+    active: r.active !== false,
+    createdAt: new Date(r.created_at).getTime(),
+    updatedAt: new Date(r.updated_at).getTime(),
   };
-  await set(ref(rtdb, path), {
-    name: doc.name,
-    email: doc.email,
-    photoUrl: doc.photoUrl,
-    globalRole: doc.globalRole,
-    profileType: doc.profileType ?? null,
-    onboardingComplete: doc.onboardingComplete,
-    active: doc.active,
-    createdAt: doc.createdAt,
-    updatedAt: doc.updatedAt,
-  });
-  return doc;
+}
+
+export async function ensureUserDoc(user: User): Promise<UserDoc> {
+  // The handle_new_user DB trigger should have created the profile; if not, upsert it.
+  const { data: existing } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.uid)
+    .maybeSingle();
+
+  if (!existing) {
+    const { data: inserted, error } = await supabase
+      .from("profiles")
+      .insert({
+        id: user.uid,
+        name: user.displayName ?? "",
+        email: user.email ?? "",
+        photo_url: user.photoURL,
+        onboarding_complete: false,
+      })
+      .select("*")
+      .single();
+    if (error) throw error;
+
+    if (isMasterEmail(user.email)) {
+      await supabase.from("user_roles").upsert({ user_id: user.uid, role: "master" }, { onConflict: "user_id,role" });
+    } else {
+      await supabase.from("user_roles").upsert({ user_id: user.uid, role: "user" }, { onConflict: "user_id,role" });
+    }
+
+    const role = await fetchRole(user.uid);
+    return rowToDoc(inserted as ProfileRow, role);
+  }
+
+  // Ensure master role if email matches
+  if (isMasterEmail(user.email)) {
+    await supabase.from("user_roles").upsert({ user_id: user.uid, role: "master" }, { onConflict: "user_id,role" });
+  }
+
+  const role = await fetchRole(user.uid);
+  return rowToDoc(existing as ProfileRow, role);
+}
+
+export async function getUserDoc(uid: string): Promise<UserDoc | null> {
+  const { data } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
+  if (!data) return null;
+  const role = await fetchRole(uid);
+  return rowToDoc(data as ProfileRow, role);
 }
 
 export async function updateUserProfile(
   uid: string,
   patch: { name?: string; profileType?: ProfileType; onboardingComplete?: boolean; photoUrl?: string | null },
 ) {
-  const clean: Record<string, unknown> = { updatedAt: Date.now() };
-  if (patch.name !== undefined) clean.name = patch.name;
-  if (patch.profileType !== undefined) clean.profileType = patch.profileType;
-  if (patch.onboardingComplete !== undefined) clean.onboardingComplete = patch.onboardingComplete;
-  if (patch.photoUrl !== undefined) clean.photoUrl = patch.photoUrl;
-  await update(ref(rtdb, `users/${uid}`), clean);
-}
-
-export async function getUserDoc(uid: string): Promise<UserDoc | null> {
-  const snap = await get(ref(rtdb, `users/${uid}`));
-  if (!snap.exists()) return null;
-  const v = snap.val() as Omit<UserDoc, "id">;
-  return { id: uid, ...v };
+  const row: Record<string, unknown> = {};
+  if (patch.name !== undefined) row.name = patch.name;
+  if (patch.profileType !== undefined) row.profile_type = patch.profileType;
+  if (patch.onboardingComplete !== undefined) row.onboarding_complete = patch.onboardingComplete;
+  if (patch.photoUrl !== undefined) row.photo_url = patch.photoUrl;
+  const { error } = await supabase.from("profiles").update(row).eq("id", uid);
+  if (error) throw error;
 }

@@ -1,8 +1,27 @@
-import { get, push, ref, set, update } from "firebase/database";
-import { rtdb } from "@/integrations/firebase/client";
+import { supabase } from "@/integrations/supabase/client";
 import type { MembershipDoc, MembershipStatus, RoleInSchool } from "./types";
 
-const ROOT = "school_memberships";
+type Row = {
+  id: string;
+  school_id: string;
+  user_id: string;
+  role_in_school: RoleInSchool;
+  status: MembershipStatus;
+  approved_by: string | null;
+  created_at: string;
+};
+
+function rowToDoc(r: Row): MembershipDoc {
+  return {
+    id: r.id,
+    schoolId: r.school_id,
+    userId: r.user_id,
+    roleInSchool: r.role_in_school,
+    status: r.status,
+    approvedBy: r.approved_by ?? undefined,
+    createdAt: new Date(r.created_at).getTime(),
+  };
+}
 
 export async function requestMembership(input: {
   schoolId: string;
@@ -12,48 +31,31 @@ export async function requestMembership(input: {
   approvedBy?: string;
 }): Promise<MembershipDoc> {
   const status: MembershipStatus = input.autoApprove ? "approved" : "pending";
-  const now = Date.now();
-  const newRef = push(ref(rtdb, ROOT));
-  const payload = {
-    schoolId: input.schoolId,
-    userId: input.userId,
-    roleInSchool: input.roleInSchool,
-    status,
-    approvedBy: input.approvedBy ?? null,
-    createdAt: now,
-  };
-  await set(newRef, payload);
-  return {
-    id: newRef.key as string,
-    schoolId: input.schoolId,
-    userId: input.userId,
-    roleInSchool: input.roleInSchool,
-    status,
-    approvedBy: input.approvedBy,
-    createdAt: now,
-  };
+  const { data, error } = await supabase
+    .from("school_memberships")
+    .insert({
+      school_id: input.schoolId,
+      user_id: input.userId,
+      role_in_school: input.roleInSchool,
+      status,
+      approved_by: input.approvedBy ?? null,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return rowToDoc(data as Row);
 }
 
 export async function listMembershipsForUser(userId: string): Promise<MembershipDoc[]> {
-  const snap = await get(ref(rtdb, ROOT));
-  if (!snap.exists()) return [];
-  const out: MembershipDoc[] = [];
-  snap.forEach((c) => {
-    const v = c.val() as Omit<MembershipDoc, "id">;
-    if (v?.userId === userId) out.push({ id: c.key as string, ...v });
-  });
-  return out;
+  const { data, error } = await supabase.from("school_memberships").select("*").eq("user_id", userId);
+  if (error) throw error;
+  return (data ?? []).map((r) => rowToDoc(r as Row));
 }
 
 export async function listMembershipsForSchool(schoolId: string): Promise<MembershipDoc[]> {
-  const snap = await get(ref(rtdb, ROOT));
-  if (!snap.exists()) return [];
-  const out: MembershipDoc[] = [];
-  snap.forEach((c) => {
-    const v = c.val() as Omit<MembershipDoc, "id">;
-    if (v?.schoolId === schoolId) out.push({ id: c.key as string, ...v });
-  });
-  return out;
+  const { data, error } = await supabase.from("school_memberships").select("*").eq("school_id", schoolId);
+  if (error) throw error;
+  return (data ?? []).map((r) => rowToDoc(r as Row));
 }
 
 export async function setMembershipStatus(
@@ -61,9 +63,9 @@ export async function setMembershipStatus(
   status: MembershipStatus,
   approvedBy?: string,
 ) {
-  await update(ref(rtdb, `${ROOT}/${id}`), {
-    status,
-    approvedBy: approvedBy ?? null,
-    updatedAt: Date.now(),
-  });
+  const { error } = await supabase
+    .from("school_memberships")
+    .update({ status, approved_by: approvedBy ?? null })
+    .eq("id", id);
+  if (error) throw error;
 }

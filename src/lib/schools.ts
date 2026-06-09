@@ -1,55 +1,48 @@
-import {
-  endAt,
-  get,
-  limitToFirst,
-  orderByChild,
-  push,
-  query as rtdbQuery,
-  ref,
-  set,
-  startAt,
-  update,
-} from "firebase/database";
-import { rtdb } from "@/integrations/firebase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { normalizeName, similarity } from "./normalize";
 import type { SchoolDoc, SchoolStatus } from "./types";
 
-const ROOT = "schools";
+type Row = {
+  id: string;
+  name: string;
+  normalized_name: string;
+  city: string | null;
+  state: string | null;
+  created_by: string;
+  status: SchoolStatus;
+  merged_into: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
-function rowsFromSnap(snap: ReturnType<typeof Object> | unknown): SchoolDoc[] {
-  // helper not used; inlined below
-  return [];
+function rowToDoc(r: Row): SchoolDoc {
+  return {
+    id: r.id,
+    name: r.name,
+    normalizedName: r.normalized_name,
+    city: r.city ?? undefined,
+    state: r.state ?? undefined,
+    createdBy: r.created_by,
+    status: r.status,
+    mergedInto: r.merged_into ?? undefined,
+    createdAt: new Date(r.created_at).getTime(),
+    updatedAt: new Date(r.updated_at).getTime(),
+  };
 }
-void rowsFromSnap;
 
 export async function searchSchoolsByPrefix(term: string, max = 20): Promise<SchoolDoc[]> {
   const norm = normalizeName(term);
-  if (!norm) return listSchools(max);
-  const q = rtdbQuery(
-    ref(rtdb, ROOT),
-    orderByChild("normalizedName"),
-    startAt(norm),
-    endAt(norm + "\uf8ff"),
-    limitToFirst(max),
-  );
-  const snap = await get(q);
-  if (!snap.exists()) return [];
-  const out: SchoolDoc[] = [];
-  snap.forEach((c) => {
-    out.push({ id: c.key as string, ...(c.val() as Omit<SchoolDoc, "id">) });
-  });
-  return out;
+  let q = supabase.from("schools").select("*").order("normalized_name").limit(max);
+  if (norm) q = q.ilike("normalized_name", `${norm}%`);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []).map((r) => rowToDoc(r as Row));
 }
 
 export async function listSchools(max = 50): Promise<SchoolDoc[]> {
-  const q = rtdbQuery(ref(rtdb, ROOT), orderByChild("normalizedName"), limitToFirst(max));
-  const snap = await get(q);
-  if (!snap.exists()) return [];
-  const out: SchoolDoc[] = [];
-  snap.forEach((c) => {
-    out.push({ id: c.key as string, ...(c.val() as Omit<SchoolDoc, "id">) });
-  });
-  return out;
+  const { data, error } = await supabase.from("schools").select("*").order("normalized_name").limit(max);
+  if (error) throw error;
+  return (data ?? []).map((r) => rowToDoc(r as Row));
 }
 
 export async function findSimilarSchools(name: string, threshold = 0.7): Promise<SchoolDoc[]> {
@@ -69,58 +62,42 @@ export async function createSchool(input: {
   createdBy: string;
   isMaster: boolean;
 }): Promise<SchoolDoc> {
-  const now = Date.now();
   const status: SchoolStatus = input.isMaster ? "active" : "pending";
-  const newRef = push(ref(rtdb, ROOT));
-  const payload = {
-    name: input.name.trim(),
-    normalizedName: normalizeName(input.name),
-    city: input.city?.trim() || "",
-    state: input.state?.trim() || "",
-    createdBy: input.createdBy,
-    status,
-    createdAt: now,
-    updatedAt: now,
-  };
-  await set(newRef, payload);
-  return { id: newRef.key as string, ...payload } as SchoolDoc;
+  const { data, error } = await supabase
+    .from("schools")
+    .insert({
+      name: input.name.trim(),
+      normalized_name: normalizeName(input.name),
+      city: input.city?.trim() || null,
+      state: input.state?.trim() || null,
+      created_by: input.createdBy,
+      status,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return rowToDoc(data as Row);
 }
 
 export async function getSchool(id: string): Promise<SchoolDoc | null> {
-  const snap = await get(ref(rtdb, `${ROOT}/${id}`));
-  if (!snap.exists()) return null;
-  return { id, ...(snap.val() as Omit<SchoolDoc, "id">) };
+  const { data } = await supabase.from("schools").select("*").eq("id", id).maybeSingle();
+  return data ? rowToDoc(data as Row) : null;
 }
 
 export async function listAllSchoolsForMaster(): Promise<SchoolDoc[]> {
-  const snap = await get(ref(rtdb, ROOT));
-  if (!snap.exists()) return [];
-  const out: SchoolDoc[] = [];
-  snap.forEach((c) => {
-    out.push({ id: c.key as string, ...(c.val() as Omit<SchoolDoc, "id">) });
-  });
-  return out.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+  const { data, error } = await supabase.from("schools").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((r) => rowToDoc(r as Row));
 }
 
 export async function setSchoolStatus(id: string, status: SchoolStatus) {
-  await update(ref(rtdb, `${ROOT}/${id}`), { status, updatedAt: Date.now() });
+  const { error } = await supabase.from("schools").update({ status }).eq("id", id);
+  if (error) throw error;
 }
 
 export async function mergeSchools(sourceId: string, targetId: string) {
-  const snap = await get(ref(rtdb, "school_memberships"));
-  const updates: Record<string, unknown> = {};
-  if (snap.exists()) {
-    snap.forEach((c) => {
-      const v = c.val() as { schoolId?: string };
-      if (v.schoolId === sourceId) {
-        updates[`school_memberships/${c.key}/schoolId`] = targetId;
-      }
-    });
-  }
-  updates[`${ROOT}/${sourceId}/status`] = "merged_into";
-  updates[`${ROOT}/${sourceId}/mergedInto`] = targetId;
-  updates[`${ROOT}/${sourceId}/updatedAt`] = Date.now();
-  await update(ref(rtdb), updates);
+  await supabase.from("school_memberships").update({ school_id: targetId }).eq("school_id", sourceId);
+  await supabase.from("schools").update({ status: "merged_into", merged_into: targetId }).eq("id", sourceId);
 }
 
 export function groupPossibleDuplicates(schools: SchoolDoc[]): SchoolDoc[][] {

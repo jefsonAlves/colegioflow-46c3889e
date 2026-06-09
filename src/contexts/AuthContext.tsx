@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import type { User } from "firebase/auth";
-import { consumeRedirectResult, watchAuth } from "@/integrations/firebase/auth";
+import type { User } from "@/integrations/firebase/auth";
+import { watchAuth } from "@/integrations/firebase/auth";
 import { ensureUserDoc, getUserDoc } from "@/lib/users";
 import type { UserDoc } from "@/lib/types";
 
@@ -29,21 +29,6 @@ const Ctx = createContext<AuthCtx>({
   retryBoot: async () => {},
 });
 
-function parseError(e: unknown): BootError {
-  const err = e as { code?: string; message?: string };
-  const msg = err?.message ?? "Erro desconhecido.";
-  const code = err?.code;
-  const firestoreMissing =
-    code === "unavailable" ||
-    /Database '\(default\)' not found/i.test(msg) ||
-    /client is offline/i.test(msg);
-  const rulesMissing =
-    code === "PERMISSION_DENIED" ||
-    /permission_denied/i.test(msg) ||
-    /permission denied/i.test(msg);
-  return { code, message: msg, firestoreMissing, rulesMissing };
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
@@ -58,13 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.error("ensureUserDoc failed", e);
       setUserDoc(null);
-      setBootError(parseError(e));
+      setBootError({ message: (e as Error)?.message ?? "Erro ao carregar perfil." });
     }
   }, []);
 
   useEffect(() => {
-    consumeRedirectResult().catch((e) => console.warn("redirect result", e));
-
     const unsub = watchAuth(async (u) => {
       setFirebaseUser(u);
       if (u) {
@@ -85,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUserDoc(d);
       setBootError(null);
     } catch (e) {
-      setBootError(parseError(e));
+      setBootError({ message: (e as Error)?.message ?? "Erro." });
     }
   };
 
