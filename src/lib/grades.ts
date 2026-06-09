@@ -17,41 +17,35 @@ export function calcMedia(g: Pick<GradeEntry, "p1" | "p2" | "atividade">): numbe
   return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
 }
 
-const SUBJECTS = ["p1", "p2", "atividade"] as const;
-
-function rowsToEntry(rows: Record<string, unknown>[]): GradeEntry {
-  const e: GradeEntry = {};
-  for (const r of rows) {
-    const subj = (r.subject as string) ?? "";
-    const v = Number(r.value);
-    if (subj === "p1") e.p1 = v;
-    else if (subj === "p2") e.p2 = v;
-    else if (subj === "atividade") e.atividade = v;
-  }
-  e.media = calcMedia(e);
-  return e;
-}
+// Grades schema stores one row per (student, trimester, subject). We model the
+// classic p1/p2/atividade triplet by using subject = "P1" | "P2" | "ATIVIDADE"
+// per student/bimester, and compute média on the client.
+const SUBJECTS = ["P1", "P2", "ATIVIDADE"] as const;
 
 export async function getGrades(
-  _schoolId: string,
+  schoolId: string,
   classId: string,
   bimestre: number,
 ): Promise<Record<string, GradeEntry>> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("grades")
-    .select("*")
+    .select("student_id, subject, value, recorded_by, created_at")
+    .eq("school_id", schoolId)
     .eq("class_id", classId)
     .eq("trimester", bimestre);
-  const grouped = new Map<string, Record<string, unknown>[]>();
-  for (const r of data ?? []) {
-    const row = r as Record<string, unknown>;
-    const sid = row.student_id as string;
-    const arr = grouped.get(sid) ?? [];
-    arr.push(row);
-    grouped.set(sid, arr);
-  }
+  if (error) throw error;
   const out: Record<string, GradeEntry> = {};
-  for (const [sid, rs] of grouped) out[sid] = rowsToEntry(rs);
+  for (const r of data ?? []) {
+    const sid = r.student_id as string;
+    const e = (out[sid] ??= {});
+    const v = Number(r.value);
+    if (r.subject === "P1") e.p1 = v;
+    else if (r.subject === "P2") e.p2 = v;
+    else if (r.subject === "ATIVIDADE") e.atividade = v;
+    e.by = (r.recorded_by as string) ?? e.by;
+    e.at = r.created_at ? new Date(r.created_at as string).getTime() : e.at;
+  }
+  for (const sid of Object.keys(out)) out[sid].media = calcMedia(out[sid]);
   return out;
 }
 
@@ -62,62 +56,51 @@ export async function setStudentGrade(
   studentId: string,
   entry: GradeEntry,
 ) {
-  const { data: userData } = await supabase.auth.getUser();
-  const uid = userData.user?.id;
-  if (!uid) throw new Error("Não autenticado");
+  const uid = entry.by ?? (await supabase.auth.getUser()).data.user?.id ?? "";
+  await supabase
+    .from("grades")
+    .delete()
+    .eq("school_id", schoolId)
+    .eq("class_id", classId)
+    .eq("student_id", studentId)
+    .eq("trimester", bimestre)
+    .in("subject", SUBJECTS as unknown as string[]);
 
-  const upserts: Record<string, unknown>[] = [];
-  const deletes: string[] = [];
-  for (const k of SUBJECTS) {
-    const v = entry[k];
-    if (v == null) deletes.push(k);
-    else
-      upserts.push({
-        school_id: schoolId,
-        class_id: classId,
-        student_id: studentId,
-        trimester: bimestre,
-        subject: k,
-        value: v,
-        recorded_by: entry.by ?? uid,
-      });
-  }
-  if (upserts.length > 0) {
-    const { error } = await supabase
-      .from("grades")
-      .upsert(upserts as never, { onConflict: "class_id,student_id,trimester,subject" });
-    if (error) throw error;
-  }
-  if (deletes.length > 0) {
-    await supabase
-      .from("grades")
-      .delete()
-      .eq("class_id", classId)
-      .eq("student_id", studentId)
-      .eq("trimester", bimestre)
-      .in("subject", deletes);
-  }
+  const rows: Array<{ school_id: string; class_id: string; student_id: string; trimester: number; subject: string; value: number; recorded_by: string }> = [];
+  const push = (subject: string, val: number | null | undefined) => {
+    if (typeof val === "number" && !Number.isNaN(val)) {
+      rows.push({ school_id: schoolId, class_id: classId, student_id: studentId, trimester: bimestre, subject, value: val, recorded_by: uid });
+    }
+  };
+  push("P1", entry.p1);
+  push("P2", entry.p2);
+  push("ATIVIDADE", entry.atividade);
+  if (rows.length === 0) return;
+  const { error } = await supabase.from("grades").insert(rows);
+  if (error) throw error;
 }
 
 export async function getStudentAllBimesters(
-  _schoolId: string,
+  schoolId: string,
   classId: string,
   studentId: string,
 ): Promise<Record<number, GradeEntry>> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("grades")
-    .select("*")
+    .select("trimester, subject, value")
+    .eq("school_id", schoolId)
     .eq("class_id", classId)
     .eq("student_id", studentId);
-  const grouped = new Map<number, Record<string, unknown>[]>();
-  for (const r of data ?? []) {
-    const row = r as Record<string, unknown>;
-    const t = Number(row.trimester);
-    const arr = grouped.get(t) ?? [];
-    arr.push(row);
-    grouped.set(t, arr);
-  }
+  if (error) throw error;
   const out: Record<number, GradeEntry> = {};
-  for (const [t, rs] of grouped) out[t] = rowsToEntry(rs);
+  for (const r of data ?? []) {
+    const bim = Number(r.trimester);
+    const e = (out[bim] ??= {});
+    const v = Number(r.value);
+    if (r.subject === "P1") e.p1 = v;
+    else if (r.subject === "P2") e.p2 = v;
+    else if (r.subject === "ATIVIDADE") e.atividade = v;
+  }
+  for (const k of Object.keys(out)) out[Number(k)].media = calcMedia(out[Number(k)]);
   return out;
 }

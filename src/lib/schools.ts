@@ -2,18 +2,31 @@ import { supabase } from "@/integrations/supabase/client";
 import { normalizeName, similarity } from "./normalize";
 import type { SchoolDoc, SchoolStatus } from "./types";
 
-function rowToSchool(r: Record<string, unknown>): SchoolDoc {
+type Row = {
+  id: string;
+  name: string;
+  normalized_name: string;
+  city: string | null;
+  state: string | null;
+  created_by: string;
+  status: SchoolStatus;
+  merged_into: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+function rowToDoc(r: Row): SchoolDoc {
   return {
-    id: r.id as string,
-    name: r.name as string,
-    normalizedName: (r.normalized_name as string) ?? "",
-    city: (r.city as string) ?? undefined,
-    state: (r.state as string) ?? undefined,
-    createdBy: r.created_by as string,
-    status: r.status as SchoolStatus,
-    mergedInto: (r.merged_into as string | null) ?? undefined,
-    createdAt: r.created_at ? new Date(r.created_at as string).getTime() : Date.now(),
-    updatedAt: r.updated_at ? new Date(r.updated_at as string).getTime() : Date.now(),
+    id: r.id,
+    name: r.name,
+    normalizedName: r.normalized_name,
+    city: r.city ?? undefined,
+    state: r.state ?? undefined,
+    createdBy: r.created_by,
+    status: r.status,
+    mergedInto: r.merged_into ?? undefined,
+    createdAt: new Date(r.created_at).getTime(),
+    updatedAt: new Date(r.updated_at).getTime(),
   };
 }
 
@@ -21,13 +34,15 @@ export async function searchSchoolsByPrefix(term: string, max = 20): Promise<Sch
   const norm = normalizeName(term);
   let q = supabase.from("schools").select("*").order("normalized_name").limit(max);
   if (norm) q = q.ilike("normalized_name", `${norm}%`);
-  const { data } = await q;
-  return (data ?? []).map((r) => rowToSchool(r as Record<string, unknown>));
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []).map((r) => rowToDoc(r as Row));
 }
 
 export async function listSchools(max = 50): Promise<SchoolDoc[]> {
-  const { data } = await supabase.from("schools").select("*").order("normalized_name").limit(max);
-  return (data ?? []).map((r) => rowToSchool(r as Record<string, unknown>));
+  const { data, error } = await supabase.from("schools").select("*").order("normalized_name").limit(max);
+  if (error) throw error;
+  return (data ?? []).map((r) => rowToDoc(r as Row));
 }
 
 export async function findSimilarSchools(name: string, threshold = 0.7): Promise<SchoolDoc[]> {
@@ -58,20 +73,21 @@ export async function createSchool(input: {
       created_by: input.createdBy,
       status,
     })
-    .select()
+    .select("*")
     .single();
   if (error) throw error;
-  return rowToSchool(data as Record<string, unknown>);
+  return rowToDoc(data as Row);
 }
 
 export async function getSchool(id: string): Promise<SchoolDoc | null> {
   const { data } = await supabase.from("schools").select("*").eq("id", id).maybeSingle();
-  return data ? rowToSchool(data as Record<string, unknown>) : null;
+  return data ? rowToDoc(data as Row) : null;
 }
 
 export async function listAllSchoolsForMaster(): Promise<SchoolDoc[]> {
-  const { data } = await supabase.from("schools").select("*").order("created_at", { ascending: false });
-  return (data ?? []).map((r) => rowToSchool(r as Record<string, unknown>));
+  const { data, error } = await supabase.from("schools").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((r) => rowToDoc(r as Row));
 }
 
 export async function setSchoolStatus(id: string, status: SchoolStatus) {
@@ -81,10 +97,7 @@ export async function setSchoolStatus(id: string, status: SchoolStatus) {
 
 export async function mergeSchools(sourceId: string, targetId: string) {
   await supabase.from("school_memberships").update({ school_id: targetId }).eq("school_id", sourceId);
-  await supabase
-    .from("schools")
-    .update({ status: "merged_into", merged_into: targetId })
-    .eq("id", sourceId);
+  await supabase.from("schools").update({ status: "merged_into", merged_into: targetId }).eq("id", sourceId);
 }
 
 export function groupPossibleDuplicates(schools: SchoolDoc[]): SchoolDoc[][] {

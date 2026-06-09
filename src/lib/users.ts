@@ -1,38 +1,46 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { AuthUser } from "@/integrations/firebase/auth";
+import type { User } from "@/integrations/firebase/auth";
 import { ADMIN_MASTER_EMAIL } from "./constants";
 import type { ProfileType, UserDoc, GlobalRole } from "./types";
 
 const isMasterEmail = (email: string | null | undefined) =>
   (email ?? "").toLowerCase() === ADMIN_MASTER_EMAIL.toLowerCase();
 
+type ProfileRow = {
+  id: string;
+  name: string;
+  email: string;
+  photo_url: string | null;
+  profile_type: ProfileType | null;
+  onboarding_complete: boolean;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 async function fetchRole(uid: string): Promise<GlobalRole> {
-  const { data } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", uid);
-  if (data?.some((r) => r.role === "master")) return "master";
-  return "user";
+  const { data } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+  const roles = (data ?? []).map((r) => r.role as string);
+  return roles.includes("master") ? "master" : "user";
 }
 
-function rowToDoc(row: Record<string, unknown>, role: GlobalRole): UserDoc {
+function rowToDoc(r: ProfileRow, role: GlobalRole): UserDoc {
   return {
-    id: row.id as string,
-    name: (row.name as string) ?? "",
-    email: (row.email as string) ?? "",
-    photoUrl: (row.photo_url as string | null) ?? null,
+    id: r.id,
+    name: r.name ?? "",
+    email: r.email ?? "",
+    photoUrl: r.photo_url,
     globalRole: role,
-    profileType: (row.profile_type as ProfileType | undefined) ?? undefined,
-    onboardingComplete: Boolean(row.onboarding_complete),
-    active: row.active !== false,
-    createdAt: row.created_at ? new Date(row.created_at as string).getTime() : Date.now(),
-    updatedAt: row.updated_at ? new Date(row.updated_at as string).getTime() : Date.now(),
+    profileType: r.profile_type ?? undefined,
+    onboardingComplete: !!r.onboarding_complete,
+    active: r.active !== false,
+    createdAt: new Date(r.created_at).getTime(),
+    updatedAt: new Date(r.updated_at).getTime(),
   };
 }
 
-export async function ensureUserDoc(user: AuthUser): Promise<UserDoc> {
-  // Trigger handle_new_user on auth.users insert already creates rows.
-  // For older accounts (or race), upsert idempotently.
+export async function ensureUserDoc(user: User): Promise<UserDoc> {
+  // The handle_new_user DB trigger should have created the profile; if not, upsert it.
   const { data: existing } = await supabase
     .from("profiles")
     .select("*")
@@ -40,53 +48,54 @@ export async function ensureUserDoc(user: AuthUser): Promise<UserDoc> {
     .maybeSingle();
 
   if (!existing) {
-    await supabase.from("profiles").insert({
-      id: user.uid,
-      name: user.displayName ?? "",
-      email: user.email ?? "",
-      photo_url: user.photoURL,
-      onboarding_complete: false,
-    });
+    const { data: inserted, error } = await supabase
+      .from("profiles")
+      .insert({
+        id: user.uid,
+        name: user.displayName ?? "",
+        email: user.email ?? "",
+        photo_url: user.photoURL,
+        onboarding_complete: false,
+      })
+      .select("*")
+      .single();
+    if (error) throw error;
+
+    if (isMasterEmail(user.email)) {
+      await supabase.from("user_roles").upsert({ user_id: user.uid, role: "master" }, { onConflict: "user_id,role" });
+    } else {
+      await supabase.from("user_roles").upsert({ user_id: user.uid, role: "user" }, { onConflict: "user_id,role" });
+    }
+
+    const role = await fetchRole(user.uid);
+    return rowToDoc(inserted as ProfileRow, role);
   }
 
-  // Ensure role is correct for the master email.
+  // Ensure master role if email matches
   if (isMasterEmail(user.email)) {
-    await supabase
-      .from("user_roles")
-      .upsert({ user_id: user.uid, role: "master" }, { onConflict: "user_id,role" });
-  } else {
-    // ensure at least 'user' role exists
-    await supabase
-      .from("user_roles")
-      .upsert({ user_id: user.uid, role: "user" }, { onConflict: "user_id,role" });
+    await supabase.from("user_roles").upsert({ user_id: user.uid, role: "master" }, { onConflict: "user_id,role" });
   }
-
-  const { data: row } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.uid)
-    .single();
 
   const role = await fetchRole(user.uid);
-  return rowToDoc(row as Record<string, unknown>, role);
-}
-
-export async function updateUserProfile(
-  uid: string,
-  patch: { name?: string; profileType?: ProfileType; onboardingComplete?: boolean; photoUrl?: string | null },
-) {
-  const update: Record<string, unknown> = {};
-  if (patch.name !== undefined) update.name = patch.name;
-  if (patch.profileType !== undefined) update.profile_type = patch.profileType;
-  if (patch.onboardingComplete !== undefined) update.onboarding_complete = patch.onboardingComplete;
-  if (patch.photoUrl !== undefined) update.photo_url = patch.photoUrl;
-  const { error } = await supabase.from("profiles").update(update as never).eq("id", uid);
-  if (error) throw error;
+  return rowToDoc(existing as ProfileRow, role);
 }
 
 export async function getUserDoc(uid: string): Promise<UserDoc | null> {
   const { data } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
   if (!data) return null;
   const role = await fetchRole(uid);
-  return rowToDoc(data as Record<string, unknown>, role);
+  return rowToDoc(data as ProfileRow, role);
+}
+
+export async function updateUserProfile(
+  uid: string,
+  patch: { name?: string; profileType?: ProfileType; onboardingComplete?: boolean; photoUrl?: string | null },
+) {
+  const row: Partial<ProfileRow> = {};
+  if (patch.name !== undefined) row.name = patch.name;
+  if (patch.profileType !== undefined) row.profile_type = patch.profileType;
+  if (patch.onboardingComplete !== undefined) row.onboarding_complete = patch.onboardingComplete;
+  if (patch.photoUrl !== undefined) row.photo_url = patch.photoUrl;
+  const { error } = await supabase.from("profiles").update(row).eq("id", uid);
+  if (error) throw error;
 }

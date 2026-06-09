@@ -9,25 +9,34 @@ export interface ClassDoc {
   createdAt: number;
 }
 
-function rowTo(r: Record<string, unknown>): ClassDoc {
-  return {
-    id: r.id as string,
-    name: r.name as string,
-    year: r.year as number,
-    teacherUid: (r.teacher_uid as string | null) ?? null,
-    createdBy: r.created_by as string,
-    createdAt: r.created_at ? new Date(r.created_at as string).getTime() : Date.now(),
-  };
-}
+type Row = {
+  id: string;
+  school_id: string;
+  name: string;
+  year: number;
+  teacher_uid: string | null;
+  created_by: string;
+  created_at: string;
+};
+
+const toDoc = (r: Row): ClassDoc => ({
+  id: r.id,
+  name: r.name,
+  year: r.year,
+  teacherUid: r.teacher_uid,
+  createdBy: r.created_by,
+  createdAt: new Date(r.created_at).getTime(),
+});
 
 export async function listClasses(schoolId: string): Promise<ClassDoc[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("classes")
     .select("*")
     .eq("school_id", schoolId)
     .order("year")
     .order("name");
-  return (data ?? []).map((r) => rowTo(r as Record<string, unknown>));
+  if (error) throw error;
+  return (data ?? []).map((r) => toDoc(r as Row));
 }
 
 export async function createClass(
@@ -43,25 +52,36 @@ export async function createClass(
       teacher_uid: input.teacherUid ?? null,
       created_by: input.createdBy,
     })
-    .select()
+    .select("*")
     .single();
   if (error) throw error;
-  return rowTo(data as Record<string, unknown>);
+  return toDoc(data as Row);
 }
 
-export async function getClass(_schoolId: string, classId: string): Promise<ClassDoc | null> {
-  const { data } = await supabase.from("classes").select("*").eq("id", classId).maybeSingle();
-  return data ? rowTo(data as Record<string, unknown>) : null;
+export async function getClass(schoolId: string, classId: string): Promise<ClassDoc | null> {
+  const { data } = await supabase
+    .from("classes")
+    .select("*")
+    .eq("school_id", schoolId)
+    .eq("id", classId)
+    .maybeSingle();
+  return data ? toDoc(data as Row) : null;
 }
 
-export async function updateClass(_schoolId: string, classId: string, patch: Partial<Omit<ClassDoc, "id">>) {
-  const u: Record<string, unknown> = {};
-  if (patch.name !== undefined) u.name = patch.name;
-  if (patch.year !== undefined) u.year = patch.year;
-  if (patch.teacherUid !== undefined) u.teacher_uid = patch.teacherUid;
-  await supabase.from("classes").update(u as never).eq("id", classId);
+export async function updateClass(
+  schoolId: string,
+  classId: string,
+  patch: Partial<Omit<ClassDoc, "id">>,
+) {
+  const row: Partial<Row> = {};
+  if (patch.name !== undefined) row.name = patch.name;
+  if (patch.year !== undefined) row.year = patch.year;
+  if (patch.teacherUid !== undefined) row.teacher_uid = patch.teacherUid;
+  const { error } = await supabase.from("classes").update(row).eq("school_id", schoolId).eq("id", classId);
+  if (error) throw error;
 }
 
-export async function deleteClass(_schoolId: string, classId: string) {
-  await supabase.from("classes").delete().eq("id", classId);
+export async function deleteClass(schoolId: string, classId: string) {
+  const { error } = await supabase.from("classes").delete().eq("school_id", schoolId).eq("id", classId);
+  if (error) throw error;
 }

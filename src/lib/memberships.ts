@@ -1,15 +1,25 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { MembershipDoc, MembershipStatus, RoleInSchool } from "./types";
 
-function rowTo(m: Record<string, unknown>): MembershipDoc {
+type Row = {
+  id: string;
+  school_id: string;
+  user_id: string;
+  role_in_school: RoleInSchool;
+  status: MembershipStatus;
+  approved_by: string | null;
+  created_at: string;
+};
+
+function rowToDoc(r: Row): MembershipDoc {
   return {
-    id: m.id as string,
-    schoolId: m.school_id as string,
-    userId: m.user_id as string,
-    roleInSchool: m.role_in_school as RoleInSchool,
-    status: m.status as MembershipStatus,
-    approvedBy: (m.approved_by as string | null) ?? undefined,
-    createdAt: m.created_at ? new Date(m.created_at as string).getTime() : Date.now(),
+    id: r.id,
+    schoolId: r.school_id,
+    userId: r.user_id,
+    roleInSchool: r.role_in_school,
+    status: r.status,
+    approvedBy: r.approved_by ?? undefined,
+    createdAt: new Date(r.created_at).getTime(),
   };
 }
 
@@ -23,33 +33,36 @@ export async function requestMembership(input: {
   const status: MembershipStatus = input.autoApprove ? "approved" : "pending";
   const { data, error } = await supabase
     .from("school_memberships")
-    .upsert(
-      {
-        school_id: input.schoolId,
-        user_id: input.userId,
-        role_in_school: input.roleInSchool,
-        status,
-        approved_by: input.approvedBy ?? null,
-      },
-      { onConflict: "school_id,user_id,role_in_school" },
-    )
-    .select()
+    .insert({
+      school_id: input.schoolId,
+      user_id: input.userId,
+      role_in_school: input.roleInSchool,
+      status,
+      approved_by: input.approvedBy ?? null,
+    })
+    .select("*")
     .single();
   if (error) throw error;
-  return rowTo(data as Record<string, unknown>);
+  return rowToDoc(data as Row);
 }
 
 export async function listMembershipsForUser(userId: string): Promise<MembershipDoc[]> {
-  const { data } = await supabase.from("school_memberships").select("*").eq("user_id", userId);
-  return (data ?? []).map((r) => rowTo(r as Record<string, unknown>));
+  const { data, error } = await supabase.from("school_memberships").select("*").eq("user_id", userId);
+  if (error) throw error;
+  return (data ?? []).map((r) => rowToDoc(r as Row));
 }
 
 export async function listMembershipsForSchool(schoolId: string): Promise<MembershipDoc[]> {
-  const { data } = await supabase.from("school_memberships").select("*").eq("school_id", schoolId);
-  return (data ?? []).map((r) => rowTo(r as Record<string, unknown>));
+  const { data, error } = await supabase.from("school_memberships").select("*").eq("school_id", schoolId);
+  if (error) throw error;
+  return (data ?? []).map((r) => rowToDoc(r as Row));
 }
 
-export async function setMembershipStatus(id: string, status: MembershipStatus, approvedBy?: string) {
+export async function setMembershipStatus(
+  id: string,
+  status: MembershipStatus,
+  approvedBy?: string,
+) {
   const { error } = await supabase
     .from("school_memberships")
     .update({ status, approved_by: approvedBy ?? null })

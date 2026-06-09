@@ -1,3 +1,7 @@
-// Legacy stub — RTDB no longer used.
-export async function readNode(): Promise<unknown> { return null; }
-export async function listTopLevel(): Promise<string[]> { return []; }
+// Legacy shim — kept only so old imports continue to type-check during migration.
+export async function readNode<T = unknown>(_path: string): Promise<T | null> {
+  return null;
+}
+export async function listTopLevel(): Promise<Record<string, number>> {
+  return {};
+}

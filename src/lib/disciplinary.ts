@@ -13,26 +13,40 @@ export interface DisciplinaryDoc {
   createdAt: number;
 }
 
-function rowTo(r: Record<string, unknown>): DisciplinaryDoc {
-  return {
-    id: r.id as string,
-    studentId: r.student_id as string,
-    classId: (r.class_id as string) ?? "",
-    type: ((r.severity as string) ?? "verbal") as DisciplinaryType,
-    description: (r.description as string) ?? "",
-    date: (r.date as string) ?? "",
-    by: r.recorded_by as string,
-    createdAt: r.created_at ? new Date(r.created_at as string).getTime() : Date.now(),
-  };
-}
+type Row = {
+  id: string;
+  school_id: string;
+  class_id: string | null;
+  student_id: string;
+  date: string;
+  severity: string;
+  description: string;
+  recorded_by: string;
+  created_at: string;
+};
+
+const sevToType = (s: string): DisciplinaryType =>
+  s === "escrita" || s === "grave" ? (s as DisciplinaryType) : "verbal";
+
+const toDoc = (r: Row): DisciplinaryDoc => ({
+  id: r.id,
+  studentId: r.student_id,
+  classId: r.class_id ?? "",
+  type: sevToType(r.severity),
+  description: r.description,
+  date: r.date,
+  by: r.recorded_by,
+  createdAt: new Date(r.created_at).getTime(),
+});
 
 export async function listDisciplinary(schoolId: string): Promise<DisciplinaryDoc[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("disciplinary")
     .select("*")
     .eq("school_id", schoolId)
     .order("created_at", { ascending: false });
-  return (data ?? []).map((r) => rowTo(r as Record<string, unknown>));
+  if (error) throw error;
+  return (data ?? []).map((r) => toDoc(r as Row));
 }
 
 export async function createDisciplinary(
@@ -45,13 +59,13 @@ export async function createDisciplinary(
       school_id: schoolId,
       class_id: input.classId || null,
       student_id: input.studentId,
+      date: input.date,
       severity: input.type,
       description: input.description,
-      date: input.date,
       recorded_by: input.by,
     })
-    .select()
+    .select("*")
     .single();
   if (error) throw error;
-  return rowTo(data as Record<string, unknown>);
+  return toDoc(data as Row);
 }

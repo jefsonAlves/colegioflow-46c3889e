@@ -1,28 +1,22 @@
-// Legacy stub — RTDB/Firestore migration tool no longer used. Kept so the
-// Master / Migração page can render without breaking imports.
-
-export interface ScanReport {
-  rtdb: Record<string, unknown>;
-  firestore: Record<string, unknown>;
+// Legacy Firebase migration helpers — disabled after moving to Lovable Cloud (Supabase).
+export interface MigrationReport {
+  scannedCollections: string[];
+  importedUsers: number;
+  importedSchools: number;
+  importedMemberships: number;
+  warnings: string[];
 }
 
-export type Op =
-  | { type: "noop"; reason: string };
-
-export interface ApplyResult {
-  total: number;
-  applied: number;
-  failed: number;
+export async function scanLegacyShape(): Promise<{ collections: string[]; rtdb: Record<string, number> }> {
+  return { collections: [], rtdb: {} };
 }
 
-export async function scanLegacy(): Promise<ScanReport> {
-  return { rtdb: {}, firestore: {} };
-}
-
-export async function planMigration(): Promise<Op[]> {
-  return [];
-}
-
-export async function applyMigration(_ops: Op[]): Promise<ApplyResult> {
-  return { total: 0, applied: 0, failed: 0 };
+export async function runMigration(): Promise<MigrationReport> {
+  return {
+    scannedCollections: [],
+    importedUsers: 0,
+    importedSchools: 0,
+    importedMemberships: 0,
+    warnings: ["Migração desativada — dados agora vivem no Lovable Cloud."],
+  };
 }

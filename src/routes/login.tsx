@@ -25,14 +25,18 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+interface AuthError {
+  code?: string;
+  message?: string;
+}
+
 function translateError(message?: string): string {
-  const m = (message ?? "").toLowerCase();
-  if (m.includes("invalid login") || m.includes("invalid credentials")) return "E-mail ou senha incorretos.";
-  if (m.includes("already registered") || m.includes("already exists")) return "Este e-mail já está cadastrado. Faça login.";
-  if (m.includes("weak password") || m.includes("password should be at least")) return "Senha muito fraca. Use 6+ caracteres.";
-  if (m.includes("network")) return "Sem conexão. Verifique sua internet.";
-  if (m.includes("email not confirmed")) return "Confirme seu e-mail antes de entrar.";
-  return message || "Não foi possível entrar. Tente novamente.";
+  if (!message) return "Não foi possível entrar. Tente novamente.";
+  if (/invalid login/i.test(message)) return "E-mail ou senha incorretos.";
+  if (/already registered|already exists/i.test(message)) return "Este e-mail já está cadastrado. Faça login.";
+  if (/weak.?password|at least 6/i.test(message)) return "Senha muito fraca. Use 6+ caracteres.";
+  if (/network/i.test(message)) return "Sem conexão. Verifique sua internet.";
+  return message;
 }
 
 function LoginPage() {
@@ -55,8 +59,9 @@ function LoginPage() {
       setSubmitting(true);
       await signInWithGoogle();
     } catch (e) {
-      console.error(e);
-      toast.error(translateError((e as Error)?.message));
+      const err = e as AuthError;
+      console.error(err);
+      toast.error(translateError(err.message));
     } finally {
       setSubmitting(false);
     }
@@ -75,8 +80,9 @@ function LoginPage() {
         toast.success("Conta criada! Verifique seu e-mail se necessário.");
       }
     } catch (e) {
-      console.error(e);
-      toast.error(translateError((e as Error)?.message));
+      const err = e as AuthError;
+      console.error(err);
+      toast.error(translateError(err.message));
     } finally {
       setSubmitting(false);
     }
@@ -145,22 +151,12 @@ function LoginPage() {
               </div>
 
               <TabsContent value="signin" className="pt-3">
-                <Button
-                  className="w-full h-12"
-                  variant="outline"
-                  disabled={submitting}
-                  onClick={() => handleEmail("signin")}
-                >
+                <Button className="w-full h-12" variant="outline" disabled={submitting} onClick={() => handleEmail("signin")}>
                   <Mail className="size-4" /> Entrar
                 </Button>
               </TabsContent>
               <TabsContent value="signup" className="pt-3">
-                <Button
-                  className="w-full h-12"
-                  variant="outline"
-                  disabled={submitting}
-                  onClick={() => handleEmail("signup")}
-                >
+                <Button className="w-full h-12" variant="outline" disabled={submitting} onClick={() => handleEmail("signup")}>
                   <Mail className="size-4" /> Criar conta
                 </Button>
               </TabsContent>

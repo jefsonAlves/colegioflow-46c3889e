@@ -1,18 +1,19 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import type { AuthUser } from "@/integrations/firebase/auth";
-import { consumeRedirectResult, watchAuth } from "@/integrations/firebase/auth";
+import type { User } from "@/integrations/firebase/auth";
+import { watchAuth } from "@/integrations/firebase/auth";
 import { ensureUserDoc, getUserDoc } from "@/lib/users";
 import type { UserDoc } from "@/lib/types";
 
 export interface BootError {
   code?: string;
   message: string;
+  firestoreMissing?: boolean;
+  rulesMissing?: boolean;
 }
-
 
 interface AuthCtx {
   loading: boolean;
-  firebaseUser: AuthUser | null;
+  firebaseUser: User | null;
   userDoc: UserDoc | null;
   bootError: BootError | null;
   refresh: () => Promise<void>;
@@ -28,20 +29,13 @@ const Ctx = createContext<AuthCtx>({
   retryBoot: async () => {},
 });
 
-function parseError(e: unknown): BootError {
-  const err = e as { code?: string; message?: string };
-  const msg = err?.message ?? "Erro desconhecido.";
-  const code = err?.code;
-  return { code, message: msg };
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
-  const [firebaseUser, setFirebaseUser] = useState<AuthUser | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
   const [bootError, setBootError] = useState<BootError | null>(null);
 
-  const hydrate = useCallback(async (u: AuthUser) => {
+  const hydrate = useCallback(async (u: User) => {
     setBootError(null);
     try {
       const doc = await ensureUserDoc(u);
@@ -49,13 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.error("ensureUserDoc failed", e);
       setUserDoc(null);
-      setBootError(parseError(e));
+      setBootError({ message: (e as Error)?.message ?? "Erro ao carregar perfil." });
     }
   }, []);
 
   useEffect(() => {
-    consumeRedirectResult().catch((e) => console.warn("redirect result", e));
-
     const unsub = watchAuth(async (u) => {
       setFirebaseUser(u);
       if (u) {
@@ -76,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUserDoc(d);
       setBootError(null);
     } catch (e) {
-      setBootError(parseError(e));
+      setBootError({ message: (e as Error)?.message ?? "Erro." });
     }
   };
 
