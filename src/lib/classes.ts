@@ -1,5 +1,4 @@
-import { get, push, ref, remove, set, update } from "firebase/database";
-import { rtdb } from "@/integrations/firebase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface ClassDoc {
   id: string;
@@ -10,47 +9,59 @@ export interface ClassDoc {
   createdAt: number;
 }
 
+function rowTo(r: Record<string, unknown>): ClassDoc {
+  return {
+    id: r.id as string,
+    name: r.name as string,
+    year: r.year as number,
+    teacherUid: (r.teacher_uid as string | null) ?? null,
+    createdBy: r.created_by as string,
+    createdAt: r.created_at ? new Date(r.created_at as string).getTime() : Date.now(),
+  };
+}
+
 export async function listClasses(schoolId: string): Promise<ClassDoc[]> {
-  const snap = await get(ref(rtdb, `classes/${schoolId}`));
-  if (!snap.exists()) return [];
-  const out: ClassDoc[] = [];
-  snap.forEach((c) => {
-    out.push({ id: c.key as string, ...(c.val() as Omit<ClassDoc, "id">) });
-  });
-  return out.sort((a, b) => (a.year ?? 0) - (b.year ?? 0) || a.name.localeCompare(b.name));
+  const { data } = await supabase
+    .from("classes")
+    .select("*")
+    .eq("school_id", schoolId)
+    .order("year")
+    .order("name");
+  return (data ?? []).map((r) => rowTo(r as Record<string, unknown>));
 }
 
 export async function createClass(
   schoolId: string,
   input: { name: string; year: number; teacherUid?: string | null; createdBy: string },
 ): Promise<ClassDoc> {
-  const now = Date.now();
-  const newRef = push(ref(rtdb, `classes/${schoolId}`));
-  const payload = {
-    name: input.name.trim(),
-    year: input.year,
-    teacherUid: input.teacherUid ?? null,
-    createdBy: input.createdBy,
-    createdAt: now,
-  };
-  await set(newRef, payload);
-  return { id: newRef.key as string, ...payload };
+  const { data, error } = await supabase
+    .from("classes")
+    .insert({
+      school_id: schoolId,
+      name: input.name.trim(),
+      year: input.year,
+      teacher_uid: input.teacherUid ?? null,
+      created_by: input.createdBy,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return rowTo(data as Record<string, unknown>);
 }
 
-export async function getClass(schoolId: string, classId: string): Promise<ClassDoc | null> {
-  const snap = await get(ref(rtdb, `classes/${schoolId}/${classId}`));
-  if (!snap.exists()) return null;
-  return { id: classId, ...(snap.val() as Omit<ClassDoc, "id">) };
+export async function getClass(_schoolId: string, classId: string): Promise<ClassDoc | null> {
+  const { data } = await supabase.from("classes").select("*").eq("id", classId).maybeSingle();
+  return data ? rowTo(data as Record<string, unknown>) : null;
 }
 
-export async function updateClass(
-  schoolId: string,
-  classId: string,
-  patch: Partial<Omit<ClassDoc, "id">>,
-) {
-  await update(ref(rtdb, `classes/${schoolId}/${classId}`), patch);
+export async function updateClass(_schoolId: string, classId: string, patch: Partial<Omit<ClassDoc, "id">>) {
+  const u: Record<string, unknown> = {};
+  if (patch.name !== undefined) u.name = patch.name;
+  if (patch.year !== undefined) u.year = patch.year;
+  if (patch.teacherUid !== undefined) u.teacher_uid = patch.teacherUid;
+  await supabase.from("classes").update(u).eq("id", classId);
 }
 
-export async function deleteClass(schoolId: string, classId: string) {
-  await remove(ref(rtdb, `classes/${schoolId}/${classId}`));
+export async function deleteClass(_schoolId: string, classId: string) {
+  await supabase.from("classes").delete().eq("id", classId);
 }
