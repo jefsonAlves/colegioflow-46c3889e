@@ -404,6 +404,7 @@ export type Database = {
           guardian_name: string | null
           guardian_phone: string | null
           id: string
+          matricula: string | null
           name: string
           notes: string | null
           school_id: string
@@ -416,6 +417,7 @@ export type Database = {
           guardian_name?: string | null
           guardian_phone?: string | null
           id?: string
+          matricula?: string | null
           name: string
           notes?: string | null
           school_id: string
@@ -428,6 +430,7 @@ export type Database = {
           guardian_name?: string | null
           guardian_phone?: string | null
           id?: string
+          matricula?: string | null
           name?: string
           notes?: string | null
           school_id?: string
