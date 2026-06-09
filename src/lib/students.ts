@@ -66,6 +66,25 @@ export async function createStudent(
   return toDoc(data as Row);
 }
 
+export async function createStudentsBulk(
+  schoolId: string,
+  classId: string,
+  names: string[],
+  createdBy?: string,
+): Promise<StudentDoc[]> {
+  if (names.length === 0) return [];
+  const by = createdBy ?? (await supabase.auth.getUser()).data.user?.id ?? "";
+  const rows = names.map((name) => ({
+    school_id: schoolId,
+    class_id: classId,
+    name: name.trim(),
+    created_by: by,
+  }));
+  const { data, error } = await supabase.from("students").insert(rows).select("*");
+  if (error) throw error;
+  return (data ?? []).map((r) => toDoc(r as Row));
+}
+
 export async function updateStudent(
   schoolId: string,
   studentId: string,

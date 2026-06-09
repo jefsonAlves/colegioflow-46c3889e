@@ -1,22 +1,31 @@
-## Adicionar botão "Voltar" nas telas internas
 
-**Problema:** Telas como Frequência, Notas, Boletim, Avisos, Advertências, Turmas, Relatórios, Perfil, Escola, Master e Migração mostram apenas o título no topo, sem um botão para voltar ao início.
+## O que muda
 
-### Mudança
+Dentro do detalhe da turma (modal em `src/routes/app.turmas.tsx`), dois novos recursos:
 
-1. **`src/components/AppShell.tsx`** — adicionar prop opcional `back` (default `true`, exceto na home `/app`). Quando ativa, renderiza um botão chevron-left à esquerda do título no header que executa `router.history.back()` se houver histórico, com fallback para `navigate({ to: "/app" })`.
+### 1. Adicionar vários alunos de uma vez
+- Trocar o `Input` único de "Nome do aluno" por um `Textarea` que aceita uma lista (um nome por linha; também aceita separação por vírgula ou ponto-e-vírgula).
+- Botão **"Adicionar alunos"**:
+  - Divide o texto, faz `trim`, remove vazios, remove duplicados (comparando case-insensitive entre si e contra alunos já existentes da turma).
+  - Ordena alfabeticamente (pt-BR, `localeCompare` com `sensitivity: "base"`).
+  - Insere todos via uma única chamada `supabase.from("students").insert([...])` (mais rápido que um por um).
+  - Mostra toast com o total inserido e quantos foram ignorados por já existirem.
+- A lista de alunos exibida no modal continua usando a numeração existente (1, 2, 3...) — a ordenação alfabética virá naturalmente porque `listStudentsByClass` já faz `.order("name")`.
+- Mantém o input rápido de "um por um" como atalho? **Não** — o `Textarea` cobre os dois casos (digitar 1 nome também funciona). Simplifica a UI.
 
-2. **`src/routes/app.index.tsx`** — passar `back={false}` (é a home, não precisa).
+### 2. Transferir aluno de turma
+- Em cada linha de aluno na lista do modal, adicionar um botão de menu (ícone `MoreVertical`) com:
+  - **Transferir de turma** → abre um pequeno diálogo (`Dialog` shadcn) com um `<select>` listando as outras turmas da escola. Confirma e chama `updateStudent(schoolId, studentId, { classId: novaTurma })` (função já existe em `src/lib/students.ts`).
+  - Após sucesso: `toast.success`, invalida `["students", schoolId, cls.id]` e `["students", schoolId, novaTurma]`.
+- RLS atual já permite a edição pelos membros da escola (mesma política dos outros updates).
 
-3. Demais rotas continuam sem alterações — herdam o botão automaticamente.
+## Arquivos afetados
 
-### Detalhes técnicos
+- `src/routes/app.turmas.tsx` — trocar input por textarea, função de bulk insert + ordenação, menu de ações por aluno, diálogo de transferência.
+- (opcional) `src/lib/students.ts` — adicionar helper `createStudentsBulk(schoolId, classId, names[])` para encapsular o insert em lote. Recomendo criar para manter o componente enxuto.
 
-- Usar `useRouter()` de `@tanstack/react-router` para acessar `router.history.length` e `router.history.back()`.
-- Ícone `ChevronLeft` do `lucide-react`, botão `ghost` tamanho `icon`, aria-label "Voltar".
-- Layout do header: `[Voltar] [Título ............] [right?]` mantendo `max-w-md`.
+## Fora de escopo
 
-### Fora do escopo
-
-- Não mexer no `BottomNav` nem em RLS/backend.
-- Não alterar o comportamento da home `/app`.
+- Importar de planilha/CSV (o textarea cobre o caso de colar de uma planilha — cada linha vira um aluno).
+- Edição em lote de outros campos (responsável, telefone).
+- Mudanças no `AppShell`, RLS, ou backend além do helper opcional.
