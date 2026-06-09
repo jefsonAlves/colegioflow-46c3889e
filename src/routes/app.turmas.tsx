@@ -270,3 +270,35 @@ function ClassDetail({
     </div>
   );
 }
+
+function TeachToggle({ cls, schoolId }: { cls: ClassDoc; schoolId: string }) {
+  const { firebaseUser } = useAuth();
+  const qc = useQueryClient();
+  const teachersQ = useQuery({
+    queryKey: ["class-teachers", cls.id],
+    queryFn: () => listClassTeachers(cls.id),
+  });
+  if (!firebaseUser) return null;
+  const teaching = (teachersQ.data ?? []).some((t) => t.userId === firebaseUser.uid);
+  const onToggle = async () => {
+    try {
+      if (teaching) {
+        await untaughtClass({ classId: cls.id, userId: firebaseUser.uid });
+      } else {
+        await teachClass({ classId: cls.id, schoolId, userId: firebaseUser.uid });
+      }
+      qc.invalidateQueries({ queryKey: ["class-teachers", cls.id] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao atualizar.");
+    }
+  };
+  return (
+    <div className="flex items-center justify-between rounded-lg border p-2.5 text-sm">
+      <span>Eu leciono nesta turma</span>
+      <Button size="sm" variant={teaching ? "default" : "outline"} onClick={onToggle}>
+        {teaching ? "Sim" : "Marcar"}
+      </Button>
+    </div>
+  );
+}
