@@ -1,102 +1,97 @@
-## Visão geral
+## Objetivo
 
-Reorganizar o ColégioFlow para suportar quatro papéis claros (master, secretaria/admin da escola, professor, pai) com fluxos de cadastro controlados, e implementar as funcionalidades pedagógicas pedidas (notas fracionárias, marcadores de necessidades, advertências em tempo real, agenda de aulas/reuniões, importação de alunos por lista).
+Ajustar o fluxo de escolas, papéis e dar ao Master (jefson.ti@gmail.com) uma ferramenta para importar dados externos (alunos, frequências, notas) e compartilhar alunos entre professores da mesma série.
 
-Antes de codar, preciso confirmar alguns pontos abaixo — eles mudam bastante a modelagem.
+## 1. Escola criada pelo professor fica ATIVA automaticamente
 
----
+Hoje: escola criada por não-master entra como `pending`.
+Novo:
+- Toda escola criada entra como `active`, independente de quem criou.
+- O criador (professor) recebe automaticamente uma membership `school_admin` com status `approved` (vira admin da escola).
+- Apenas o Master pode rebaixar/remover esse admin (nenhum outro school_admin pode revogar).
 
-## 1. Correção do fluxo de acesso (bugs atuais)
+Mudanças:
+- `src/lib/schools.ts` → `createSchool` sempre grava `status: 'active'`.
+- `createSchool` passa a também criar a membership `school_admin/approved` do criador na mesma chamada (RPC ou duas inserts).
+- Migration: política em `school_memberships` que impede `UPDATE/DELETE` de membership `school_admin` por outro school_admin — só Master ou o próprio usuário pode alterar. (`USING is_master(auth.uid()) OR user_id = auth.uid()` para delete; para downgrade de role, idem.)
 
-- Revisar `AuthContext` + `_authenticated` para eliminar o loop de login (hoje o `ensureUserDoc` pode falhar silenciosamente e travar o boot).
-- Garantir que `jefson.ti@gmail.com` sempre entre como `master` (trigger já existe; validar e cobrir caso de já existir conta antiga).
-- Tela `/login` apenas com Google (remover qualquer auto-sign-up de pais).
+## 2. Aceite de novos administradores da escola
 
-## 2. Papéis e cadastro
+- Professor pede vínculo como `school_admin` → fica `pending`.
+- Qualquer school_admin já aprovado pode aprovar (fluxo atual já permite via RLS).
+- Só o Master pode desqualificar (revogar) um school_admin existente — ver política acima.
 
-Papéis no sistema:
-- **master** — só `jefson.ti@gmail.com`.
-- **school_admin / secretaria** — quem cria a escola vira admin dela.
-- **teacher** — entra via Google, pede vínculo a uma escola existente (aprovação do admin) **ou** cria uma escola nova informando só o nome (vira admin daquela escola se for a primeira).
-- **parent** — **não pode se cadastrar sozinho**. Só entra por link/convite gerado pela secretaria, que define e-mail e senha inicial; o pai troca depois.
+UI:
+- `src/routes/app.escola.tsx` (tela do admin da escola): lista pendentes, botão Aprovar/Rejeitar. Para admins existentes, mostrar botão "Remover" apenas se `userDoc.globalRole === 'master'`.
 
-Regras:
-- Login com Google segue aberto, mas só cria perfil "pendente" se o e-mail não estiver pré-autorizado como pai.
-- Pais podem ter vários filhos, na mesma escola ou em escolas diferentes (tabela `parent_students` N:N).
-- Secretaria pode restringir quem cadastra turmas/alunos/transferências (flag por escola: "apenas secretaria" vs "professores também").
+## 3. Ambiente completo do admin da escola
 
-## 3. Turmas, alunos e transferências
+Garantir que o admin da escola tenha acesso real a todas as funcionalidades já existentes:
+- `/app/escola` (gestão da escola, membros, aprovações)
+- `/app/turmas`, `/app/notas`, `/app/frequencia`, `/app/boletim`, `/app/advertencias`, `/app/avisos`, `/app/relatorios`
 
-- Turma guarda **série/ano**, **dias da semana de aula** e **professor(es) responsáveis**.
-- Cadastro de alunos em lote: colar lista de nomes (um por linha) → sistema ordena alfabeticamente e cria.
-- Cada aluno pode receber **marcadores de necessidades** (TEA, DI, TDAH, etc.) com sigla curta — visíveis para professores e pais autorizados.
-- Transferência interna de aluno entre turmas:
-  - Se a escola permite, professor faz direto.
-  - Se restrito, gera pedido para a secretaria aprovar.
+Hoje várias destas telas mostram "ComingSoon" ou estão vazias. Vamos ativar pelo menos:
+- Turmas: listar/criar/editar turmas da escola, vincular alunos e professores.
+- Membros (em `/app/escola`): listar professores, aprovar pendentes, ver papéis.
+- Demais telas: garantir que o menu não fique morto — onde já há lógica, conectar; onde não, deixar placeholder funcional ligado às tabelas existentes.
 
-## 4. Notas
+(Sem expandir escopo das features de pais/atividades/calendário deste plano — esses ficam para iteração seguinte conforme combinado antes.)
 
-- Professor cria **atividades por data** (não só P1/P2/atividade fixa).
-- Nota aceita fracionário (`7.8`, `9.5`) — input numérico com `step=0.1`, validação 0–10.
-- Média do bimestre/trimestre calculada por média ponderada das atividades (peso configurável por atividade, default 1).
-- Boletim do aluno mostra atividades + média + parecer.
+## 4. Ambiente Master: importação de banco externo (API key)
 
-## 5. Frequência, advertências e relatos
+Nova aba em `/app/master`: "Importar dados externos".
 
-- Frequência usa os **dias de aula da turma** para montar o calendário automático.
-- Relatos/ocorrências comuns: visíveis para os pais cadastrados em tempo real (Realtime do Supabase).
-- **Advertência**: ao salvar, dispara notificação imediata (in-app + e-mail) para os pais cadastrados, com data, hora e motivo. Pais não cadastrados não recebem nada.
+Fluxo:
+1. Master cola um endpoint base + API key de um sistema externo (ex.: outro sistema da escola, planilha publicada como API, etc.).
+2. Master escolhe a escola e turma de destino (ou cria nova).
+3. Sistema busca: alunos, frequências, notas.
+4. Faz upsert por `(school_id, external_id)` em `students`, `attendance`, `grades`.
+5. Mostra preview antes de gravar; relatório do que foi criado/atualizado/ignorado.
 
-## 6. Agenda / calendário do professor
+Implementação:
+- Secret novo: o Master grava a API key via UI → enviada para uma **server function** protegida (`requireSupabaseAuth` + checagem `is_master`). Nunca expor a key no cliente.
+- Server function `importExternal.functions.ts`:
+  - lê `process.env.EXTERNAL_IMPORT_BASE_URL` e a key passada pelo Master (ou armazenada via secret se for fixa);
+  - faz `fetch` no endpoint;
+  - usa `supabaseAdmin` para upsert.
+- Migration: adicionar coluna `external_id text` (nullable, único por escola) em `students`, `attendance`, `grades` para permitir upsert idempotente.
+- UI: formulário com campos (Base URL, API key, escola alvo, turma/série), botão "Pré-visualizar" e "Importar".
 
-- Cada turma define dias da semana de aula → gera ocorrências no calendário.
-- Em cada aula o professor registra: conteúdo aplicado, planejamento, observações.
-- Pais autorizados visualizam o que foi dado em cada aula do(s) filho(s).
+Pergunta pendente: o endpoint externo é um sistema específico (qual?) ou genérico/configurável? Por padrão vou implementar genérico — JSON com forma documentada na própria tela.
 
-## 7. Reuniões
+## 5. Compartilhar alunos com professores da mesma série
 
-- Pai cadastrado pode **solicitar reunião** escolhendo data/horário.
-- Solicitação fica pendente até **professor + direção** aceitarem; pai vê o status em tempo real.
+Hoje cada `student` pertence a uma `class` (turma). Para compartilhar:
+- Nova tabela `class_teachers (class_id, user_id, role, created_at)` ligando professores a turmas.
+- Quando um professor (incluindo o Master enquanto professor) der aula para uma turma, ele se vincula como teacher daquela turma e ganha acesso de leitura aos alunos/notas/frequências daquela turma via RLS:
+  - Policy `students SELECT`: school member OR `EXISTS class_teachers WHERE class_id = students.class_id AND user_id = auth.uid()`.
+- "Mesma série": dois professores que lecionam turmas com o mesmo `grade_level` (campo `series`/`year` em `classes`) podem ver a lista de nomes dos alunos das outras turmas da mesma série na mesma escola (apenas nomes — sem notas/frequência), via uma view `same_grade_students` ou RLS adicional restrita a colunas (`GRANT SELECT(id, name, class_id) ...`).
 
-## 8. Notificações em tempo real
+UI:
+- Em `/app/turmas`, professor pode marcar "leciono nesta turma" → cria `class_teachers`.
+- Em uma nova aba "Colegas de série", lista alunos das outras turmas da mesma série/escola (read-only, só nome).
 
-- Tabela `notifications` + canal Realtime por `user_id`.
-- Eventos: advertência criada, relato novo, resposta de reunião, transferência aprovada.
-- E-mail só para advertências (via Lovable Emails — exige configurar domínio depois).
+## Resumo técnico das mudanças
 
----
+```text
+DB migration:
+  - schools: createSchool default status='active'
+  - school_memberships: policy bloqueando alteração de school_admin por não-Master
+  - students/attendance/grades: + external_id (text, indexed)
+  - nova tabela class_teachers (+ RLS + GRANTs)
+  - RLS students: liberar SELECT para class_teachers
+  - (opcional) view same_grade_students
 
-## Mudanças técnicas (resumo)
+Código:
+  - src/lib/schools.ts: createSchool ativa + cria membership admin
+  - src/routes/app.escola.tsx: aprovações + remoção de admin só pelo Master
+  - src/routes/app.master.tsx: nova aba "Importar dados"
+  - src/lib/import.functions.ts: server fn protegida com requireSupabaseAuth + is_master
+  - src/routes/app.turmas.tsx: gestão de class_teachers + aba "Colegas de série"
+```
 
-Banco (nova migração):
-- `parent_students` (N:N pais ↔ alunos)
-- `parent_invites` (e-mail + senha inicial criada pela secretaria, status, token)
-- `student_tags` (TEA, TDAH, DI, …)
-- `class_schedule` (dias da semana por turma)
-- `lessons` (uma por dia de aula efetivo: conteúdo, planejamento, obs)
-- `activities` + `activity_grades` (substitui o esquema P1/P2/ATIVIDADE atual; mantém compat lendo o legado)
-- `incidents` (relatos) e `warnings` (advertências, com flag de notificado)
-- `meeting_requests` (pai → professor+direção, com dupla aprovação)
-- `notifications`
-- Flag `restrict_management_to_admin` em `schools`
-- Todas com RLS por escola + papel, seguindo o padrão `is_school_member` / `is_school_admin` / `is_master`.
+## Perguntas antes de implementar
 
-Front:
-- Onboarding diferenciado por papel.
-- Tela de gestão de pais (secretaria): convidar, definir senha inicial, vincular filhos.
-- Importador de alunos em lote.
-- UI de atividades + notas fracionárias.
-- Calendário semanal do professor com registro de aula.
-- Centro de notificações + toasts em tempo real.
-- Tela de reuniões com aprovação dupla.
-
----
-
-## Preciso confirmar antes de implementar
-
-1. **Bimestre vs trimestre**: o esquema atual usa `trimester`. Manter trimestre ou trocar para bimestre (4 períodos)? Você cita "bimestre" no fluxo.
-2. **Senha inicial de pais**: a secretaria define **uma senha única para todos os pais daquela escola** (e cada pai troca depois), ou **uma senha por pai** no momento do convite? Sua mensagem sugere "senha universal como deseja" — quero confirmar se é uma só por escola.
-3. **Aprovação de reunião**: precisa de **professor + direção** ambos aceitarem, ou basta um dos dois?
-4. **Notificação de advertência por e-mail**: posso configurar o envio por e-mail agora (vai pedir cadastro de domínio próprio) ou por enquanto só notificação in-app + Realtime?
-
-Assim que você responder, eu detalho a migração SQL e começo a implementar.
+1. O sistema externo a importar é um específico (me passe a URL/documentação) ou implemento um importador genérico de JSON com schema documentado na tela?
+2. "Compartilhar com professores da mesma série": eles devem ver só o **nome** dos alunos, ou também notas/frequência?
+3. Quando o Master remover um school_admin, ele deve virar `teacher` aprovado, ou ser totalmente desvinculado da escola?
