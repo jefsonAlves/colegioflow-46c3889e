@@ -21,7 +21,8 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-30 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-      <ul className="mx-auto max-w-md grid grid-cols-{n} px-2 pb-[env(safe-area-inset-bottom)]"
+      <ul
+        className="mx-auto max-w-md grid px-2 pb-[env(safe-area-inset-bottom)]"
         style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0,1fr))` }}
       >
         {items.map((it) => {

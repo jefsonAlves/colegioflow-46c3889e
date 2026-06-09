@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { listMembershipsForUser } from "@/lib/memberships";
 import { getSchool } from "@/lib/schools";
 import { Loading, EmptyState } from "@/components/States";
-import type { MembershipDoc, SchoolDoc } from "@/lib/types";
+import type { SchoolDoc } from "@/lib/types";
 import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/app/")({
