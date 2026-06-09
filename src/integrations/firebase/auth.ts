@@ -51,10 +51,16 @@ export async function signOut() {
 }
 
 export function watchAuth(cb: (u: User | null) => void): () => void {
-  // Fire immediately with current session
-  supabase.auth.getSession().then(({ data }) => cb(toUser(data.session?.user ?? null)));
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-    cb(toUser(session?.user ?? null));
+  // onAuthStateChange fires INITIAL_SESSION on subscribe, so no manual getSession needed.
+  let lastUid: string | null | undefined = undefined;
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    // Ignore TOKEN_REFRESHED to avoid re-hydrating the profile on token rotation.
+    if (event === "TOKEN_REFRESHED") return;
+    const user = toUser(session?.user ?? null);
+    const uid = user?.uid ?? null;
+    if (uid === lastUid && event !== "USER_UPDATED") return;
+    lastUid = uid;
+    cb(user);
   });
   return () => data.subscription.unsubscribe();
 }
