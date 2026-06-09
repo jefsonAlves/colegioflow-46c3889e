@@ -1,15 +1,10 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import { Construction, ArrowLeft } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-interface Props {
-  title: string;
-  description: string;
-}
-
-export function ComingSoon({ title, description }: Props) {
+export function ComingSoon({ title, description }: { title: string; description: string }) {
   const router = useRouter();
   return (
     <AppShell title={title}>
@@ -30,9 +25,3 @@ export function ComingSoon({ title, description }: Props) {
     </AppShell>
   );
 }
-
-// Dummy route export so this file is ignored by file-based routing
-// (placed under components instead would be cleaner; keeping here is harmless)
-export const Route = createFileRoute("/app/_coming-soon-helper" as never)({
-  component: () => null,
-});

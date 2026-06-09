@@ -14,9 +14,16 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppTurmasRouteImport } from './routes/app.turmas'
+import { Route as AppRelatoriosRouteImport } from './routes/app.relatorios'
 import { Route as AppPerfilRouteImport } from './routes/app.perfil'
+import { Route as AppNotasRouteImport } from './routes/app.notas'
 import { Route as AppMasterRouteImport } from './routes/app.master'
+import { Route as AppFrequenciaRouteImport } from './routes/app.frequencia'
 import { Route as AppEscolaRouteImport } from './routes/app.escola'
+import { Route as AppBoletimRouteImport } from './routes/app.boletim'
+import { Route as AppAvisosRouteImport } from './routes/app.avisos'
+import { Route as AppAdvertenciasRouteImport } from './routes/app.advertencias'
 import { Route as AppMasterMigracaoRouteImport } from './routes/app.master.migracao'
 
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -44,9 +51,24 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTurmasRoute = AppTurmasRouteImport.update({
+  id: '/turmas',
+  path: '/turmas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPerfilRoute = AppPerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotasRoute = AppNotasRouteImport.update({
+  id: '/notas',
+  path: '/notas',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMasterRoute = AppMasterRouteImport.update({
@@ -54,9 +76,29 @@ const AppMasterRoute = AppMasterRouteImport.update({
   path: '/master',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFrequenciaRoute = AppFrequenciaRouteImport.update({
+  id: '/frequencia',
+  path: '/frequencia',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEscolaRoute = AppEscolaRouteImport.update({
   id: '/escola',
   path: '/escola',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBoletimRoute = AppBoletimRouteImport.update({
+  id: '/boletim',
+  path: '/boletim',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAvisosRoute = AppAvisosRouteImport.update({
+  id: '/avisos',
+  path: '/avisos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdvertenciasRoute = AppAdvertenciasRouteImport.update({
+  id: '/advertencias',
+  path: '/advertencias',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMasterMigracaoRoute = AppMasterMigracaoRouteImport.update({
@@ -70,9 +112,16 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/app/advertencias': typeof AppAdvertenciasRoute
+  '/app/avisos': typeof AppAvisosRoute
+  '/app/boletim': typeof AppBoletimRoute
   '/app/escola': typeof AppEscolaRoute
+  '/app/frequencia': typeof AppFrequenciaRoute
   '/app/master': typeof AppMasterRouteWithChildren
+  '/app/notas': typeof AppNotasRoute
   '/app/perfil': typeof AppPerfilRoute
+  '/app/relatorios': typeof AppRelatoriosRoute
+  '/app/turmas': typeof AppTurmasRoute
   '/app/': typeof AppIndexRoute
   '/app/master/migracao': typeof AppMasterMigracaoRoute
 }
@@ -80,9 +129,16 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/app/advertencias': typeof AppAdvertenciasRoute
+  '/app/avisos': typeof AppAvisosRoute
+  '/app/boletim': typeof AppBoletimRoute
   '/app/escola': typeof AppEscolaRoute
+  '/app/frequencia': typeof AppFrequenciaRoute
   '/app/master': typeof AppMasterRouteWithChildren
+  '/app/notas': typeof AppNotasRoute
   '/app/perfil': typeof AppPerfilRoute
+  '/app/relatorios': typeof AppRelatoriosRoute
+  '/app/turmas': typeof AppTurmasRoute
   '/app': typeof AppIndexRoute
   '/app/master/migracao': typeof AppMasterMigracaoRoute
 }
@@ -92,9 +148,16 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/app/advertencias': typeof AppAdvertenciasRoute
+  '/app/avisos': typeof AppAvisosRoute
+  '/app/boletim': typeof AppBoletimRoute
   '/app/escola': typeof AppEscolaRoute
+  '/app/frequencia': typeof AppFrequenciaRoute
   '/app/master': typeof AppMasterRouteWithChildren
+  '/app/notas': typeof AppNotasRoute
   '/app/perfil': typeof AppPerfilRoute
+  '/app/relatorios': typeof AppRelatoriosRoute
+  '/app/turmas': typeof AppTurmasRoute
   '/app/': typeof AppIndexRoute
   '/app/master/migracao': typeof AppMasterMigracaoRoute
 }
@@ -105,9 +168,16 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/onboarding'
+    | '/app/advertencias'
+    | '/app/avisos'
+    | '/app/boletim'
     | '/app/escola'
+    | '/app/frequencia'
     | '/app/master'
+    | '/app/notas'
     | '/app/perfil'
+    | '/app/relatorios'
+    | '/app/turmas'
     | '/app/'
     | '/app/master/migracao'
   fileRoutesByTo: FileRoutesByTo
@@ -115,9 +185,16 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/onboarding'
+    | '/app/advertencias'
+    | '/app/avisos'
+    | '/app/boletim'
     | '/app/escola'
+    | '/app/frequencia'
     | '/app/master'
+    | '/app/notas'
     | '/app/perfil'
+    | '/app/relatorios'
+    | '/app/turmas'
     | '/app'
     | '/app/master/migracao'
   id:
@@ -126,9 +203,16 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/onboarding'
+    | '/app/advertencias'
+    | '/app/avisos'
+    | '/app/boletim'
     | '/app/escola'
+    | '/app/frequencia'
     | '/app/master'
+    | '/app/notas'
     | '/app/perfil'
+    | '/app/relatorios'
+    | '/app/turmas'
     | '/app/'
     | '/app/master/migracao'
   fileRoutesById: FileRoutesById
@@ -177,11 +261,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/turmas': {
+      id: '/app/turmas'
+      path: '/turmas'
+      fullPath: '/app/turmas'
+      preLoaderRoute: typeof AppTurmasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/relatorios': {
+      id: '/app/relatorios'
+      path: '/relatorios'
+      fullPath: '/app/relatorios'
+      preLoaderRoute: typeof AppRelatoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/perfil': {
       id: '/app/perfil'
       path: '/perfil'
       fullPath: '/app/perfil'
       preLoaderRoute: typeof AppPerfilRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/notas': {
+      id: '/app/notas'
+      path: '/notas'
+      fullPath: '/app/notas'
+      preLoaderRoute: typeof AppNotasRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/master': {
@@ -191,11 +296,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMasterRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/frequencia': {
+      id: '/app/frequencia'
+      path: '/frequencia'
+      fullPath: '/app/frequencia'
+      preLoaderRoute: typeof AppFrequenciaRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/escola': {
       id: '/app/escola'
       path: '/escola'
       fullPath: '/app/escola'
       preLoaderRoute: typeof AppEscolaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/boletim': {
+      id: '/app/boletim'
+      path: '/boletim'
+      fullPath: '/app/boletim'
+      preLoaderRoute: typeof AppBoletimRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/avisos': {
+      id: '/app/avisos'
+      path: '/avisos'
+      fullPath: '/app/avisos'
+      preLoaderRoute: typeof AppAvisosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/advertencias': {
+      id: '/app/advertencias'
+      path: '/advertencias'
+      fullPath: '/app/advertencias'
+      preLoaderRoute: typeof AppAdvertenciasRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/master/migracao': {
@@ -221,16 +354,30 @@ const AppMasterRouteWithChildren = AppMasterRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppAdvertenciasRoute: typeof AppAdvertenciasRoute
+  AppAvisosRoute: typeof AppAvisosRoute
+  AppBoletimRoute: typeof AppBoletimRoute
   AppEscolaRoute: typeof AppEscolaRoute
+  AppFrequenciaRoute: typeof AppFrequenciaRoute
   AppMasterRoute: typeof AppMasterRouteWithChildren
+  AppNotasRoute: typeof AppNotasRoute
   AppPerfilRoute: typeof AppPerfilRoute
+  AppRelatoriosRoute: typeof AppRelatoriosRoute
+  AppTurmasRoute: typeof AppTurmasRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAdvertenciasRoute: AppAdvertenciasRoute,
+  AppAvisosRoute: AppAvisosRoute,
+  AppBoletimRoute: AppBoletimRoute,
   AppEscolaRoute: AppEscolaRoute,
+  AppFrequenciaRoute: AppFrequenciaRoute,
   AppMasterRoute: AppMasterRouteWithChildren,
+  AppNotasRoute: AppNotasRoute,
   AppPerfilRoute: AppPerfilRoute,
+  AppRelatoriosRoute: AppRelatoriosRoute,
+  AppTurmasRoute: AppTurmasRoute,
   AppIndexRoute: AppIndexRoute,
 }
 
@@ -245,3 +392,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
