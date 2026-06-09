@@ -29,7 +29,7 @@ type ExternalGrade = {
   student_matricula?: string;
   subject: string;
   value: number;
-  period?: string;
+  trimester?: number;
 };
 type ExternalPayload = {
   students?: ExternalStudent[];
@@ -42,6 +42,7 @@ type ExistingStudent = {
   name: string;
   matricula: string | null;
   external_id: string | null;
+  class_id: string | null;
 };
 
 const norm = (s: string) =>
@@ -60,25 +61,24 @@ async function fetchExternal(baseUrl: string, apiKey: string): Promise<ExternalP
   return (await res.json()) as ExternalPayload;
 }
 
-async function assertMaster(supabase: ReturnType<typeof import("@supabase/supabase-js").createClient>, userId: string) {
-  const { data: roles } = await (supabase as any)
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
+async function assertMaster(supabase: unknown, userId: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const { data: roles } = await sb.from("user_roles").select("role").eq("user_id", userId);
   const isMaster = (roles ?? []).some((r: { role: string }) => r.role === "master");
   if (!isMaster) throw new Error("Apenas o administrador master pode importar dados.");
 }
 
 type Classification = {
-  toLink: Array<{ external: ExternalStudent; existing: ExistingStudent; matchedBy: "matricula" | "external_id" | "name" }>;
+  toLink: Array<{
+    external: ExternalStudent;
+    existing: ExistingStudent;
+    matchedBy: "matricula" | "external_id" | "name";
+  }>;
   toCreate: ExternalStudent[];
-  resolveById: Map<string, ExistingStudent | null>; // key = external_id || matricula || name
 };
 
-function classifyStudents(
-  payload: ExternalStudent[],
-  existing: ExistingStudent[],
-): Classification {
+function classifyStudents(payload: ExternalStudent[], existing: ExistingStudent[]): Classification {
   const byMatricula = new Map<string, ExistingStudent>();
   const byExternal = new Map<string, ExistingStudent>();
   const byName = new Map<string, ExistingStudent>();
@@ -89,7 +89,6 @@ function classifyStudents(
   }
   const toLink: Classification["toLink"] = [];
   const toCreate: ExternalStudent[] = [];
-  const resolveById = new Map<string, ExistingStudent | null>();
   for (const s of payload) {
     let match: ExistingStudent | undefined;
     let matchedBy: "matricula" | "external_id" | "name" | undefined;
@@ -103,38 +102,29 @@ function classifyStudents(
       match = byName.get(norm(s.name));
       matchedBy = "name";
     }
-    const key = s.external_id || s.matricula || norm(s.name);
-    if (match && matchedBy) {
-      toLink.push({ external: s, existing: match, matchedBy });
-      resolveById.set(key, match);
-    } else {
-      toCreate.push(s);
-      resolveById.set(key, null);
-    }
+    if (match && matchedBy) toLink.push({ external: s, existing: match, matchedBy });
+    else toCreate.push(s);
   }
-  return { toLink, toCreate, resolveById };
+  return { toLink, toCreate };
 }
 
 function resolveStudentRef(
   ref: { student_external_id?: string; student_matricula?: string },
   existing: ExistingStudent[],
-  newlyKeyed: Map<string, string>, // key -> new student id (filled after insert; empty in dry-run)
-): { id: string | null; key: string | null } {
-  if (ref.student_external_id) {
-    const found = existing.find((e) => e.external_id === ref.student_external_id);
-    if (found) return { id: found.id, key: ref.student_external_id };
-    if (newlyKeyed.has(ref.student_external_id))
-      return { id: newlyKeyed.get(ref.student_external_id)!, key: ref.student_external_id };
-    return { id: null, key: ref.student_external_id };
-  }
-  if (ref.student_matricula) {
-    const found = existing.find((e) => e.matricula === ref.student_matricula);
-    if (found) return { id: found.id, key: ref.student_matricula };
-    if (newlyKeyed.has(ref.student_matricula))
-      return { id: newlyKeyed.get(ref.student_matricula)!, key: ref.student_matricula };
-    return { id: null, key: ref.student_matricula };
-  }
-  return { id: null, key: null };
+  newlyById: Map<string, string>,
+): ExistingStudent | { id: string; class_id: string | null } | null {
+  const findKey = (k?: string) => {
+    if (!k) return null;
+    const found = existing.find((e) => e.external_id === k || e.matricula === k);
+    if (found) return found;
+    if (newlyById.has(k)) {
+      const id = newlyById.get(k)!;
+      const created = existing.find((e) => e.id === id);
+      if (created) return created;
+    }
+    return null;
+  };
+  return findKey(ref.student_external_id) ?? findKey(ref.student_matricula);
 }
 
 export const previewExternalData = createServerFn({ method: "POST" })
@@ -145,29 +135,31 @@ export const previewExternalData = createServerFn({ method: "POST" })
     const payload = await fetchExternal(data.baseUrl, data.apiKey);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: existingRows } = await supabaseAdmin
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = supabaseAdmin as any;
+    const { data: existingRows } = await admin
       .from("students")
-      .select("id, name, matricula, external_id")
+      .select("id, name, matricula, external_id, class_id")
       .eq("school_id", data.schoolId);
     const existing = (existingRows ?? []) as ExistingStudent[];
 
     const cls = classifyStudents(payload.students ?? [], existing);
 
-    const attRefs = (payload.attendance ?? []).map((a) => {
-      const r = resolveStudentRef(a, existing, new Map());
-      // For preview, also consider students that WILL be created (matching by external_id/matricula)
-      const willCreate = !r.id && r.key
-        ? cls.toCreate.some((s) => (s.external_id ?? s.matricula) === r.key)
-        : false;
-      return { resolved: !!r.id, willCreate, orphan: !r.id && !willCreate };
-    });
-    const grdRefs = (payload.grades ?? []).map((g) => {
-      const r = resolveStudentRef(g, existing, new Map());
-      const willCreate = !r.id && r.key
-        ? cls.toCreate.some((s) => (s.external_id ?? s.matricula) === r.key)
-        : false;
-      return { resolved: !!r.id, willCreate, orphan: !r.id && !willCreate };
-    });
+    const studentKeysWillBeCreated = new Set(
+      cls.toCreate.map((s) => s.external_id ?? s.matricula).filter(Boolean) as string[],
+    );
+
+    const evalRef = (r: { student_external_id?: string; student_matricula?: string }) => {
+      const k = r.student_external_id ?? r.student_matricula;
+      const found = resolveStudentRef(r, existing, new Map());
+      return {
+        resolved: !!found,
+        willResolve: !found && !!k && studentKeysWillBeCreated.has(k),
+        orphan: !found && !(k && studentKeysWillBeCreated.has(k)),
+      };
+    };
+    const attRefs = (payload.attendance ?? []).map(evalRef);
+    const grdRefs = (payload.grades ?? []).map(evalRef);
 
     return {
       students: {
@@ -182,13 +174,13 @@ export const previewExternalData = createServerFn({ method: "POST" })
       attendance: {
         total: attRefs.length,
         resolved: attRefs.filter((r) => r.resolved).length,
-        willResolve: attRefs.filter((r) => r.willCreate).length,
+        willResolve: attRefs.filter((r) => r.willResolve).length,
         orphan: attRefs.filter((r) => r.orphan).length,
       },
       grades: {
         total: grdRefs.length,
         resolved: grdRefs.filter((r) => r.resolved).length,
-        willResolve: grdRefs.filter((r) => r.willCreate).length,
+        willResolve: grdRefs.filter((r) => r.willResolve).length,
         orphan: grdRefs.filter((r) => r.orphan).length,
       },
     };
@@ -201,93 +193,96 @@ export const importExternalData = createServerFn({ method: "POST" })
     await assertMaster(context.supabase, context.userId);
     const payload = await fetchExternal(data.baseUrl, data.apiKey);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = supabaseAdmin as any;
 
-    const { data: existingRows } = await supabaseAdmin
+    const { data: existingRows } = await admin
       .from("students")
-      .select("id, name, matricula, external_id")
+      .select("id, name, matricula, external_id, class_id")
       .eq("school_id", data.schoolId);
-    let existing = ((existingRows ?? []) as ExistingStudent[]).slice();
+    const existing = ((existingRows ?? []) as ExistingStudent[]).slice();
 
     const cls = classifyStudents(payload.students ?? [], existing);
-    const newlyKeyed = new Map<string, string>();
+    const newlyById = new Map<string, string>(); // key -> new student id
     const report = {
       students: { linked: 0, created: 0 },
       attendance: { inserted: 0, orphan: 0 },
       grades: { inserted: 0, orphan: 0 },
     };
 
-    // Link existing: fill missing matricula/external_id, set class_id if not set
     for (const link of cls.toLink) {
       const patch: Record<string, unknown> = {};
       if (link.external.matricula && !link.existing.matricula) patch.matricula = link.external.matricula;
       if (link.external.external_id && !link.existing.external_id) patch.external_id = link.external.external_id;
-      if (data.classId) patch.class_id = data.classId;
+      if (data.classId && !link.existing.class_id) patch.class_id = data.classId;
       if (Object.keys(patch).length > 0) {
-        await supabaseAdmin.from("students").update(patch).eq("id", link.existing.id);
+        await admin.from("students").update(patch).eq("id", link.existing.id);
       }
       report.students.linked++;
-      const key = link.external.external_id || link.external.matricula;
-      if (key) newlyKeyed.set(key, link.existing.id);
+      const k = link.external.external_id || link.external.matricula;
+      if (k) newlyById.set(k, link.existing.id);
     }
 
-    // Create new
     for (const s of cls.toCreate) {
-      const { data: ins } = await supabaseAdmin
+      const insertRow: Record<string, unknown> = {
+        school_id: data.schoolId,
+        class_id: data.classId ?? null,
+        name: s.name,
+        guardian_name: s.guardian_name ?? null,
+        guardian_phone: s.guardian_phone ?? null,
+        matricula: s.matricula ?? null,
+        external_id: s.external_id ?? null,
+        created_by: context.userId,
+      };
+      const { data: ins } = await admin
         .from("students")
-        .insert({
-          school_id: data.schoolId,
-          class_id: data.classId ?? null,
-          name: s.name,
-          guardian_name: s.guardian_name ?? null,
-          guardian_phone: s.guardian_phone ?? null,
-          matricula: s.matricula ?? null,
-          external_id: s.external_id ?? null,
-          created_by: context.userId,
-        })
-        .select("id, name, matricula, external_id")
+        .insert(insertRow)
+        .select("id, name, matricula, external_id, class_id")
         .single();
       if (ins) {
         existing.push(ins as ExistingStudent);
         report.students.created++;
-        const key = s.external_id || s.matricula;
-        if (key) newlyKeyed.set(key, (ins as { id: string }).id);
+        const k = s.external_id || s.matricula;
+        if (k) newlyById.set(k, (ins as { id: string }).id);
       }
     }
 
-    // Attendance
     for (const a of payload.attendance ?? []) {
-      const r = resolveStudentRef(a, existing, newlyKeyed);
-      if (!r.id) {
+      const ref = resolveStudentRef(a, existing, newlyById);
+      if (!ref || !ref.class_id) {
         report.attendance.orphan++;
         continue;
       }
-      await supabaseAdmin.from("attendance").insert({
+      const row: Record<string, unknown> = {
         school_id: data.schoolId,
-        student_id: r.id,
+        class_id: ref.class_id,
+        student_id: ref.id,
         date: a.date,
         present: a.present,
         external_id: a.external_id ?? null,
-        created_by: context.userId,
-      });
+        recorded_by: context.userId,
+      };
+      await admin.from("attendance").insert(row);
       report.attendance.inserted++;
     }
 
-    // Grades
     for (const g of payload.grades ?? []) {
-      const r = resolveStudentRef(g, existing, newlyKeyed);
-      if (!r.id) {
+      const ref = resolveStudentRef(g, existing, newlyById);
+      if (!ref || !ref.class_id) {
         report.grades.orphan++;
         continue;
       }
-      await supabaseAdmin.from("grades").insert({
+      const row: Record<string, unknown> = {
         school_id: data.schoolId,
-        student_id: r.id,
+        class_id: ref.class_id,
+        student_id: ref.id,
         subject: g.subject,
         value: g.value,
-        period: g.period ?? null,
+        trimester: g.trimester ?? 1,
         external_id: g.external_id ?? null,
-        created_by: context.userId,
-      });
+        recorded_by: context.userId,
+      };
+      await admin.from("grades").insert(row);
       report.grades.inserted++;
     }
 
