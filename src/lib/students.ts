@@ -19,7 +19,7 @@ type Row = {
   guardian_name: string | null;
   guardian_phone: string | null;
   notes: string | null;
-  special_needs: boolean | null;
+  special_needs: boolean;
   special_needs_note: string | null;
   created_by: string;
   created_at: string;
