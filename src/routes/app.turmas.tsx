@@ -33,6 +33,7 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
   const qc = useQueryClient();
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newGrade, setNewGrade] = useState("");
   const [newYear, setNewYear] = useState<number>(new Date().getFullYear());
   const [openClass, setOpenClass] = useState<ClassDoc | null>(null);
 
@@ -41,8 +42,8 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
     queryFn: () => listClasses(schoolId),
   });
 
-  const canCreate =
-    userDoc?.profileType === "school_admin" || userDoc?.globalRole === "master";
+  // Any school member can create classes (RLS enforces it).
+  const canCreate = !!userDoc && userDoc.globalRole !== undefined;
 
   const save = async () => {
     if (!firebaseUser) return;
@@ -54,12 +55,14 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
       await createClass(schoolId, {
         name: newName,
         year: newYear,
+        gradeLevel: newGrade.trim() || null,
         teacherUid: userDoc?.profileType === "teacher" ? firebaseUser.uid : null,
         createdBy: firebaseUser.uid,
       });
       toast.success("Turma criada!");
       setCreating(false);
       setNewName("");
+      setNewGrade("");
       qc.invalidateQueries({ queryKey: ["classes", schoolId] });
     } catch (e) {
       console.error(e);
