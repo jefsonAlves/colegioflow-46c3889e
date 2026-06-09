@@ -221,6 +221,9 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                   </>
                 )}
               </Button>
+              <p className="text-[11px] text-muted-foreground text-center">
+                Alunos sem marcação serão salvos como Presente.
+              </p>
 
               {attendanceQ.data && Object.keys(attendanceQ.data).length > 0 && (
                 <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
