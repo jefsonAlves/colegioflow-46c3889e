@@ -63,7 +63,12 @@ function Onboarding() {
       navigate({ to: "/app" });
     } catch (e) {
       console.error(e);
-      toast.error("Erro ao salvar cadastro.");
+      const code = (e as { code?: string })?.code;
+      if (code === "unavailable") {
+        toast.error("Banco de dados indisponível. Peça ao admin para ativar o Firestore.");
+      } else {
+        toast.error("Erro ao salvar cadastro.");
+      }
     } finally {
       setSaving(false);
     }
@@ -173,7 +178,12 @@ function Onboarding() {
                 navigate({ to: "/app" });
               } catch (e) {
                 console.error(e);
-                toast.error("Erro ao vincular escola.");
+                const code = (e as { code?: string })?.code;
+                if (code === "unavailable") {
+                  toast.error("Banco de dados indisponível. Peça ao admin para ativar o Firestore.");
+                } else {
+                  toast.error("Erro ao vincular escola.");
+                }
               } finally {
                 setSaving(false);
               }
