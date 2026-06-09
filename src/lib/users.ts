@@ -3,6 +3,7 @@ import type { User } from "firebase/auth";
 import { db } from "@/integrations/firebase/client";
 import { ADMIN_MASTER_EMAIL } from "./constants";
 import type { ProfileType, UserDoc } from "./types";
+import { tryHydrateLegacyUser } from "./migration";
 
 export async function ensureUserDoc(user: User): Promise<UserDoc> {
   const ref = doc(db, "users", user.uid);
@@ -10,13 +11,16 @@ export async function ensureUserDoc(user: User): Promise<UserDoc> {
   const now = Date.now();
   if (!snap.exists()) {
     const isMaster = (user.email ?? "").toLowerCase() === ADMIN_MASTER_EMAIL.toLowerCase();
+    // Try to hydrate from legacy app (RTDB / old Firestore collections)
+    const legacy = await tryHydrateLegacyUser(user.uid, user.email ?? "").catch(() => null);
     const data: UserDoc = {
       id: user.uid,
-      name: user.displayName ?? "",
+      name: legacy?.name || user.displayName || "",
       email: user.email ?? "",
-      photoUrl: user.photoURL ?? null,
+      photoUrl: legacy?.photoUrl ?? user.photoURL ?? null,
       globalRole: isMaster ? "master" : "user",
-      onboardingComplete: false,
+      profileType: legacy?.profileType,
+      onboardingComplete: Boolean(legacy?.onboardingComplete),
       active: true,
       createdAt: now,
       updatedAt: now,
@@ -39,3 +43,4 @@ export async function getUserDoc(uid: string): Promise<UserDoc | null> {
   if (!snap.exists()) return null;
   return { id: snap.id, ...(snap.data() as Omit<UserDoc, "id">) };
 }
+

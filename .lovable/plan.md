@@ -1,101 +1,82 @@
-## Colégio em Movimento — Fase 1
+## Objetivo
 
-Foco: base sólida de autenticação, identidade do usuário, modelagem de escolas e perfis. Sem chamada/notas/relatórios ainda — esses entram nas fases seguintes sobre essa base.
+O projeto Firebase `projetojefson` já tem dados em **Realtime Database (RTDB)** e **Firestore** do app antigo (Kotlin/Compose). Vamos:
+1. Habilitar leitura do RTDB no cliente.
+2. Inspecionar o que existe nos dois bancos.
+3. Migrar para o modelo novo (`users`, `schools`, `school_memberships`) preservando os `uid` originais.
+4. Garantir que o login Google de um usuário antigo caia direto no dashboard certo (sem refazer onboarding).
+5. Completar pontos que faltaram na Fase 1.
 
-### Stack
-- React + Vite + TS + Tailwind (já no template)
-- TanStack Router (roteamento existente)
-- **Firebase Web SDK**: Auth (Google) + Firestore
-- Mobile-first puro (Capacitor depois)
-- Paleta azul/verde/branco; cards grandes; bottom nav
+## O que falta na Fase 1 atual (revisão)
 
-### Configuração Firebase
-- Hardcode do `firebaseConfig` fornecido em `src/integrations/firebase/client.ts` (apiKey Web é publishable, ok no código).
-- Admin Master: email fixo `jefson.ti@gmail.com` em constante `ADMIN_MASTER_EMAIL` — usuário recebe `globalRole = "master"` no primeiro login.
-- Ação manual sua no Firebase Console (vou listar nas instruções finais):
-  1. Authentication → Sign-in method → ativar Google.
-  2. Authentication → Settings → adicionar o domínio do preview Lovable em "Authorized domains".
-  3. Firestore Database → criar banco (modo produção).
-  4. Colar as regras de segurança que vou fornecer.
+- `client.ts` não inicializa o **Realtime Database** (apesar do `databaseURL` estar no config).
+- Não há rotina de **discovery** dos dados antigos — precisamos mapear antes de migrar.
+- `ensureUserDoc` cria um `UserDoc` novo sempre que o `uid` não existe em `users/`, ignorando registros antigos do mesmo usuário (em `professores/`, `usuarios/`, etc.).
+- Não há **página `/app/master/migracao`** para o Admin Master rodar/auditar a migração com segurança (dry-run + commit).
+- Falta arquivo **`firestore.rules`** versionado no repo (hoje as regras só vivem no console).
+- Falta **índice composto** para `school_memberships` (`schoolId + status`) — usado nos dashboards.
+- `onboarding` não verifica se o e-mail já tem `membership` pré-criada pela migração; deveria pular o passo 3 nesse caso.
 
-### Estrutura de dados (Firestore — Fase 1)
-Coleções:
-- `users/{uid}`: name, email, photoUrl, globalRole (`master|user`), onboardingComplete, createdAt, updatedAt, active
-- `schools/{id}`: name, normalizedName (lowercase sem acento), city?, state?, createdBy, status (`active|pending|blocked`), createdAt, updatedAt
-- `school_memberships/{id}`: schoolId, userId, roleInSchool (`school_admin|teacher|coordinator`), status (`pending|approved|rejected|blocked`), approvedBy?, createdAt
-- `audit_logs/{id}`: userId, action, entityType, entityId, before?, after?, createdAt
+## Plano de execução
 
-Demais coleções (turmas/alunos/chamada/notas/relatórios/avisos) ficam para próximas fases.
+### 1. Cliente Firebase
+- Adicionar `getDatabase` em `src/integrations/firebase/client.ts` exportando `rtdb`.
+- Criar `src/integrations/firebase/rtdb.ts` com helpers `readNode(path)` e `listNode(path)`.
 
-### Regras de segurança (resumo)
-- `users`: leitura/escrita do próprio doc; master lê tudo.
-- `schools`: leitura autenticada; criação por qualquer autenticado (status=`pending` se criada por não-master, `active` se master); update somente master ou school_admin da escola.
-- `school_memberships`: usuário lê suas próprias; school_admin lê as da sua escola; master lê tudo; criação pelo próprio usuário (status=`pending`); aprovação por master ou school_admin.
-- `audit_logs`: escrita por server-side trusted apenas (na Fase 1 escrevemos do client com regra restrita; logs sensíveis vão para fases com Functions).
+### 2. Discovery (passo manual assistido)
+- Criar página **`/app/master/migracao`** (visível só para `globalRole = master`) com:
+  - Botão **"Escanear bancos"** → lê `ref(rtdb, "/")` raiz (top-level keys + contagem) e lista todas as coleções de Firestore conhecidas (`escolas`, `professores`, `alunos`, `turmas`, `chamadas`, `notas`, `avisos`, `usuarios`, e os nomes novos).
+  - Mostra resultado em JSON expansível, para você confirmar a estrutura real antes de migrar.
+- Sem isso não dá pra escrever a migração "às cegas" — você não enviou o schema antigo no chat.
 
-### Fluxo de telas (Fase 1)
+### 3. Mapeamento (a confirmar após o scan)
+Heurísticas iniciais (ajustáveis depois do scan):
 
-1. **`/login`** — botão "Entrar com Google", logo/identidade "Colégio em Movimento".
-2. **`/onboarding`** (após primeiro login se `onboardingComplete=false`):
-   - Passo 1: Nome completo
-   - Passo 2: Tipo de perfil (Professor / Admin da Escola / Pai-Responsável)
-   - Passo 3: Vincular escola
-     - Campo de busca com debounce sobre `schools.normalizedName` (prefix match)
-     - Lista resultados com cidade/estado
-     - Botão "Solicitar vínculo" → cria `school_memberships` com status `pending`
-     - Se nenhum resultado satisfatório → "Criar nova escola"
-       - Antes de criar: busca por similaridade (Levenshtein client-side sobre os top 20 nomes parecidos) e mostra "Estas escolas parecem similares, é uma delas?"
-       - Confirmação cria `schools` (pending) + membership como `school_admin` pending
-   - Pai/Responsável: pula seleção de escola (vínculo será via filhos em fase futura) — finaliza onboarding.
-4. **`/app`** (área autenticada com bottom nav) — roteia por perfil:
-   - **Dashboard Professor**: lista de escolas vinculadas (com status do vínculo), seletor de escola ativa (persistido), placeholders dos blocos de Turmas/Chamada/Notas/Relatórios/Avisos com aviso "Em breve nas próximas fases".
-   - **Dashboard Admin Escola**: card da escola, lista de professores pendentes (aprovar/rejeitar), contagem de membros. Demais blocos como placeholders.
-   - **Dashboard Admin Master**: total de escolas, escolas pendentes (aprovar/bloquear), usuários ativos, possíveis duplicatas (agrupamento por `normalizedName` similar), unir escolas duplicadas (merge: move memberships para escola alvo, marca origem como `merged_into`).
-   - **Dashboard Pais**: placeholder "Aguardando vínculo com aluno — disponível na próxima fase".
-5. **`/perfil`** — dados do usuário, trocar nome/tipo, sair.
-
-### Arquitetura de código
+```text
+antigo               → novo
+─────────────────────────────────────────────
+usuarios/{uid}       → users/{uid}
+  nome,email,foto      name,email,photoUrl
+  tipo (prof/adm/pai)  profileType
+escolas/{id}         → schools/{id}
+  nome,cidade,uf       name,city,state
+                       + normalizedName (gerado)
+                       + status="active"
+professores/{uid}    → school_memberships/{auto}
+  escolaId,uid         schoolId,userId
+                       roleInSchool="teacher", status="approved"
+admins/{uid}         → school_memberships (role="school_admin")
+turmas, alunos,      → mantidos como estão (Fase 2 cuida)
+chamadas, notas,
+avisos
 ```
-src/
-  integrations/firebase/
-    client.ts          # initializeApp, getAuth, getFirestore
-    auth.ts            # signInWithGoogle, signOut, onAuthStateChange
-  lib/
-    schools.ts         # search, create-with-dedup, similarity, merge
-    memberships.ts     # request, approve, reject
-    users.ts           # ensureUserDoc, updateProfile
-    normalize.ts       # normalizeName, levenshtein
-    constants.ts       # ADMIN_MASTER_EMAIL
-  contexts/
-    AuthContext.tsx    # user + userDoc + role helpers
-  components/
-    AppShell.tsx       # bottom nav, header
-    EmptyState.tsx, Loading.tsx, ErrorState.tsx
-    SchoolSearch.tsx, SchoolCard.tsx
-  routes/
-    index.tsx              # redireciona /login ou /app
-    login.tsx              # público
-    onboarding.tsx         # autenticado, sem onboarding
-    _app/                  # layout autenticado (gate)
-      route.tsx
-      index.tsx            # roteia para dashboard certo
-      perfil.tsx
-      master.tsx           # admin master
-      escola.tsx           # admin escola
-```
-Gate de auth: TanStack Router `beforeLoad` em `_app/route.tsx` que checa Firebase Auth state e onboardingComplete; redireciona conforme.
 
-### Estados de UI
-Todas as telas com lista terão: loading skeleton, empty state ilustrado, erro com retry, sucesso via toast.
+Regras de merge:
+- **Preservar `uid`**: `users/{uid}` reusa o uid do Auth Google. Se já existir, fazemos `merge` (não sobrescreve campos preenchidos).
+- **Deduplicar escolas** por `normalizedName + cidade`. Quando colidir, mantém a mais antiga e marca a outra como `merged_into`.
+- **Memberships idempotentes**: chave lógica `(schoolId, userId, roleInSchool)` — se já existe `approved`, ignora.
+- **Onboarding skip**: se após migração `users/{uid}.onboardingComplete = true` e há `memberships` aprovados, login já vai pro `/app`.
 
-### O que NÃO entra nesta fase
-Turmas, alunos, chamada, notas, fechamento de bimestre, relatórios diários, avisos, vínculo pai-aluno, exportação PDF, Capacitor. Cada um vira uma fase própria depois, reaproveitando esta base.
+### 4. Script de migração (dry-run obrigatório)
+- `src/lib/migration.ts`:
+  - `scanLegacy()` → retorna contagem por nó/coleção.
+  - `planMigration()` → produz array de operações `{type, target, payload, reason}` sem escrever.
+  - `applyMigration(ops)` → executa em lotes de 400 com `writeBatch`, gravando log em `migration_runs/{runId}`.
+- Na página `/app/master/migracao`: botões **Dry-run** (mostra plano) e **Executar** (confirmação dupla).
 
-### Entregáveis ao final
-- App funcional com login Google real.
-- Onboarding com criação/busca/dedup de escolas.
-- 3 dashboards (Master, Escola, Professor) operacionais para o que existe.
-- Aprovação de vínculos e merge de escolas duplicadas pelo Master.
-- Instruções passo-a-passo de configuração no Firebase Console + regras de segurança prontas para colar.
+### 5. Ajuste de `ensureUserDoc`
+- Antes de criar `users/{uid}`, verificar se existe `usuarios/{uid}` (RTDB) ou docs em `professores`/`admins` com mesmo email — se sim, hidratar `UserDoc` com nome/profileType/onboardingComplete=true.
 
-Próxima fase sugerida após validar: **Turmas + Alunos + Chamada** (núcleo do dia-a-dia do professor).
+### 6. Regras de segurança versionadas
+- Criar `firestore.rules` no repo (cópia do que está no console, ajustada).
+- Adicionar `database.rules.json` para RTDB: somente Admin Master lê/escreve durante a migração; demais negados (dados serão consumidos via Firestore após migrar).
+
+### 7. Índices
+- Adicionar `firestore.indexes.json` com índice composto `school_memberships (schoolId ASC, status ASC)`.
+
+## Escopo fora deste plano
+- Telas de Turmas/Alunos/Chamada/Notas/Relatórios/Avisos (Fase 2+).
+- Migração efetiva de `chamadas`/`notas`/`avisos` (só estrutura de `schools` + `users` + `memberships` agora; o resto migra junto da Fase correspondente para evitar trabalho perdido se o schema novo mudar).
+
+## Próximo passo após aprovação
+Implemento itens 1, 2, 5, 6, 7 e a página `/app/master/migracao` com o **scan**. Aí você roda o scan, me cola o JSON do resultado e eu finalizo o `planMigration`/`applyMigration` (item 4) com o mapeamento real.
