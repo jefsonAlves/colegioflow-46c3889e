@@ -59,7 +59,7 @@ export async function updateClass(_schoolId: string, classId: string, patch: Par
   if (patch.name !== undefined) u.name = patch.name;
   if (patch.year !== undefined) u.year = patch.year;
   if (patch.teacherUid !== undefined) u.teacher_uid = patch.teacherUid;
-  await supabase.from("classes").update(u).eq("id", classId);
+  await supabase.from("classes").update(u as never).eq("id", classId);
 }
 
 export async function deleteClass(_schoolId: string, classId: string) {

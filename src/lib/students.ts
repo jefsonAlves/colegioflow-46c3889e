@@ -59,5 +59,5 @@ export async function updateStudent(_schoolId: string, studentId: string, patch:
   const u: Record<string, unknown> = {};
   if (patch.name !== undefined) u.name = patch.name;
   if (patch.classId !== undefined) u.class_id = patch.classId;
-  await supabase.from("students").update(u).eq("id", studentId);
+  await supabase.from("students").update(u as never).eq("id", studentId);
 }

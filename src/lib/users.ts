@@ -80,7 +80,7 @@ export async function updateUserProfile(
   if (patch.profileType !== undefined) update.profile_type = patch.profileType;
   if (patch.onboardingComplete !== undefined) update.onboarding_complete = patch.onboardingComplete;
   if (patch.photoUrl !== undefined) update.photo_url = patch.photoUrl;
-  const { error } = await supabase.from("profiles").update(update).eq("id", uid);
+  const { error } = await supabase.from("profiles").update(update as never).eq("id", uid);
   if (error) throw error;
 }
 

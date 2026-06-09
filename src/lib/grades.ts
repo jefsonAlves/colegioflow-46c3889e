@@ -85,7 +85,7 @@ export async function setStudentGrade(
   if (upserts.length > 0) {
     const { error } = await supabase
       .from("grades")
-      .upsert(upserts, { onConflict: "class_id,student_id,trimester,subject" });
+      .upsert(upserts as never, { onConflict: "class_id,student_id,trimester,subject" });
     if (error) throw error;
   }
   if (deletes.length > 0) {
