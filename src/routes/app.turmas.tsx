@@ -695,6 +695,14 @@ function SchedulesSection({
       {canEdit && adding && (
         <div className="space-y-2 pt-1">
           <div className="space-y-1.5">
+            <Label className="text-xs">Matéria</Label>
+            <Input
+              placeholder="Ex.: Matemática"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
             <Label className="text-xs">Dia da semana</Label>
             <select
               className="w-full h-9 rounded-md border bg-background px-2 text-sm"
