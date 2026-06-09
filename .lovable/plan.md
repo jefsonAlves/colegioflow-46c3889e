@@ -1,49 +1,69 @@
-## Diagnóstico do login
+## O que vou implementar
 
-O erro `auth/unauthorized-domain` significa que o Firebase Auth recusa abrir o popup do Google porque o domínio onde o app está rodando (`aab0ba7b-01cb-4d73-ad19-ea15974c09e5.lovableproject.com`) **não está** na whitelist do projeto `projetojefson`. Os domínios autorizados hoje são:
+### 1. Nova tela inicial `/app` (substitui o placeholder)
+`src/routes/app.index.tsx` vira um dashboard mobile-first com:
+- Saudação "Olá, {primeiro nome}" + subtítulo por perfil (Professor / Admin / Família).
+- **Grid 2×3 com 6 cards grandes** (124px alt., ícone em badge colorida, título + descrição curta), cada um navegando via `<Link>`:
+  - Frequência → `/app/frequencia`
+  - Notas → `/app/notas`
+  - Turmas → `/app/turmas`
+  - Boletim → `/app/boletim`
+  - Advertências → `/app/advertencias`
+  - Relatórios → `/app/relatorios`
+- Card largo extra: **Avisos** → `/app/avisos`.
+- Para `school_admin`: card extra **Minha escola** → `/app/escola`.
+- Paleta azul/verde/branco usando tokens `primary`/`secondary`/`accent` já no design system.
 
-```
-projetojefson.firebaseapp.com, projetojefson.web.app, localhost, + alguns vercel/run.app de outros projetos
-```
+### 2. Esqueleto das 7 áreas (rotas vazias navegáveis)
+Crio 7 arquivos de rota `src/routes/app.{frequencia,notas,turmas,boletim,advertencias,relatorios,avisos}.tsx`, todos com `AppShell` + `EmptyState` PT-BR ("Em construção — disponível em breve") + botão "Voltar". Isso garante que **clicar em qualquer card já navega sem 404**. O CRUD completo de cada área entra nas próximas fases.
 
-Solução completa = **ação no Firebase Console** (você) + **melhorias de UX no app** (eu).
+### 3. Robustez do boot (resolve o travamento atual)
+O log mostra que o Firestore `(default)` não existe → `ensureUserDoc` lança `unavailable` → `userDoc` fica null → `/app` trava em spinner para sempre.
 
-## Ação obrigatória sua (não dá pra fazer por código)
+`src/contexts/AuthContext.tsx`:
+- Adicionar estado `bootError: { code, message, firestoreMissing }`.
+- Detectar `code === "unavailable"` ou mensagem "Database '(default)' not found" / "client is offline" e marcar `firestoreMissing = true`.
+- Expor `retryBoot()` para re-hidratar sem precisar dar logout.
 
-No Firebase Console → **Authentication → Settings → Authorized domains**, adicionar:
+`src/routes/app.tsx` (layout):
+- Se `bootError`, em vez de spinner infinito, renderizar **card de diagnóstico** em PT-BR explicando que o Firestore precisa ser ativado, com:
+  - Instruções passo a passo (Console → Firestore Database → Criar banco → modo Produção → região).
+  - Link direto para `https://console.firebase.google.com/project/projetojefson/firestore`.
+  - Botões **Tentar novamente** (chama `retryBoot`) e **Sair** (`signOut` + volta pro `/login`).
+- Trocar mensagem de loading para "Carregando seu perfil..." em vez de spinner mudo.
 
-1. `aab0ba7b-01cb-4d73-ad19-ea15974c09e5.lovableproject.com` (preview atual)
-2. `*.lovableproject.com` (não é aceito wildcard, então repita para cada preview que aparecer)
-3. `project--aab0ba7b-01cb-4d73-ad19-ea15974c09e5.lovable.app` (URL estável de produção)
-4. `project--aab0ba7b-01cb-4d73-ad19-ea15974c09e5-dev.lovable.app` (URL estável de preview)
-5. Eventual domínio customizado quando publicar.
+### 4. Onboarding mais resiliente
+`src/routes/onboarding.tsx`: capturar erro de `updateUserProfile`/`requestMembership` e mostrar toast PT-BR específico quando for erro de Firestore indisponível ("Banco de dados indisponível — peça ao admin para ativar o Firestore"), em vez de só "Erro ao salvar".
 
-E em **Authentication → Sign-in method**, garantir que **Google** está habilitado.
+### 5. Pequenos ajustes
+- `AppShell`: nenhum cambio de estrutura, mas confirmar que o card de "Minha escola" e os cards de ação ficam bem em 360–430px (testar no preview 458px atual).
+- Manter o BottomNav existente (Início / Escola / Master / Perfil).
 
-## Melhorias de código que vou fazer
+## Arquivos
 
-### 1. Login mais robusto e auto-diagnóstico
-- Em `login.tsx`, detectar `auth/unauthorized-domain` e renderizar um card explicando exatamente qual domínio precisa ser adicionado, com botão "Copiar domínio" (`window.location.hostname`) e link direto pro Console.
-- Tratar `auth/popup-blocked` e `auth/popup-closed-by-user` → fallback automático para `signInWithRedirect`.
-- Tratar `auth/network-request-failed` com mensagem amigável.
+**Criar (8):**
+- `src/routes/app.frequencia.tsx`
+- `src/routes/app.notas.tsx`
+- `src/routes/app.turmas.tsx`
+- `src/routes/app.boletim.tsx`
+- `src/routes/app.advertencias.tsx`
+- `src/routes/app.relatorios.tsx`
+- `src/routes/app.avisos.tsx`
 
-### 2. Fallback de autenticação
-- Adicionar **login com e-mail + senha** ao lado do "Entrar com Google" (recomendação Lovable: padrão é Google + email/senha). Útil enquanto o domínio não estiver autorizado e como segundo método pros pais.
-- Tela mínima: tabs "Entrar" / "Criar conta", com `signInWithEmailAndPassword` / `createUserWithEmailAndPassword`. O `ensureUserDoc` já cuida do resto.
+**Substituir (3):**
+- `src/routes/app.index.tsx` — novo dashboard de 6 cards.
+- `src/contexts/AuthContext.tsx` — adicionar `bootError` + `retryBoot`.
+- `src/routes/app.tsx` — card de diagnóstico quando `bootError`.
 
-### 3. Captura do retorno do redirect
-- No `AuthContext`, chamar `getRedirectResult(auth)` no boot para finalizar o fluxo quando o usuário voltar do redirect.
+**Editar (1):**
+- `src/routes/onboarding.tsx` — toasts PT-BR específicos para erro de Firestore.
 
-### 4. Encaminhamento ao cadastro quando não identificado
-- Já está implementado: `onboarding.tsx` carrega quando `userDoc.onboardingComplete === false`. Vou só reforçar o redirecionamento em `app/index.tsx` e em `_app` para o caso de o usuário entrar direto numa URL protegida sem onboarding completo.
+`src/routeTree.gen.ts` é regenerado automaticamente pelo plugin do TanStack Router — não edito à mão.
 
-### 5. Mensagens em PT-BR e estados de erro
-- Toasts e cards de erro em português, com sugestão de ação.
-
-## Fora deste escopo (continua nas próximas fases)
-- Turmas, alunos, chamada, notas, fechamento bimestre, relatórios, avisos.
+## Fora desta fase
+- CRUD real de turmas / alunos / chamada / notas / boletim / advertência / relatórios (cada um é uma fase grande, vem depois).
 - Capacitor/Android.
-- A migração do RTDB → Firestore (continua acessível em **Master → Migração**, já entregue).
+- Rodar migração RTDB → Firestore (já existe em **Master → Migração**, só rodar depois que o Firestore for ativado).
 
-## Próximo passo após sua aprovação
-Eu implemento as 5 melhorias acima. Você adiciona os domínios no Firebase Console (1 minuto). Depois disso o "Entrar com Google" abre normalmente; se algo ainda falhar, a própria tela vai mostrar o motivo e o que fazer.
+## Pré-requisito (ação sua, 1 minuto)
+Ativar o **Cloud Firestore** no projeto `projetojefson` (Console → Firestore Database → Criar banco → Produção → região). Sem isso, mesmo com o código pronto, o app vai mostrar o card de diagnóstico que vou criar — porque o banco realmente não existe ainda. O card já vai te guiar caso esqueça.
