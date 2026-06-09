@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -511,22 +511,14 @@ function SpecialNeedsDialog({
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Reset when opening a new student
-  const openId = student?.id ?? null;
-  // Use openId in a ref-like pattern via useState init isn't great; use simple effect via inline init key
-  // Simpler: set on render when ids differ.
-  // We track last seen id in a ref-free way by reading student each open via key prop on parent.
+  useEffect(() => {
+    if (student) {
+      setNeeds(student.specialNeeds);
+      setNote(student.specialNeedsNote ?? "");
+    }
+  }, [student]);
 
-  // Effect-less: set values when dialog opens by recomputing on student change.
-  // Use a small inline init effect:
-  if (student && (openId as string) !== _lastOpenId.current) {
-    _lastOpenId.current = openId;
-    setNeeds(student.specialNeeds);
-    setNote(student.specialNeedsNote ?? "");
-  }
-  if (!student && _lastOpenId.current !== null) {
-    _lastOpenId.current = null;
-  }
+
 
   const save = async () => {
     if (!student) return;
