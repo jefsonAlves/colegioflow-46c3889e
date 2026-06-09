@@ -8,17 +8,23 @@ export interface AttendanceEntry {
   at?: number;
 }
 
+async function currentUid(): Promise<string> {
+  return (await supabase.auth.getUser()).data.user?.id ?? "";
+}
+
 export async function getAttendance(
   schoolId: string,
   classId: string,
   dateISO: string,
 ): Promise<Record<string, AttendanceEntry>> {
+  const uid = await currentUid();
   const { data, error } = await supabase
     .from("attendance")
     .select("student_id, status, recorded_by, created_at")
     .eq("school_id", schoolId)
     .eq("class_id", classId)
-    .eq("date", dateISO);
+    .eq("date", dateISO)
+    .eq("recorded_by", uid);
   if (error) throw error;
   const out: Record<string, AttendanceEntry> = {};
   for (const r of data ?? []) {
@@ -37,7 +43,7 @@ export async function setAttendance(
   dateISO: string,
   map: Record<string, AttendanceEntry>,
 ) {
-  const uid = (await supabase.auth.getUser()).data.user?.id ?? "";
+  const uid = await currentUid();
   const rows = Object.entries(map).map(([studentId, e]) => ({
     school_id: schoolId,
     class_id: classId,
@@ -45,11 +51,17 @@ export async function setAttendance(
     date: dateISO,
     status: e.status,
     present: e.status === "P",
-    recorded_by: e.by ?? uid,
+    recorded_by: uid,
   }));
   if (rows.length === 0) return;
-  // Replace any existing entries for that day/class
-  await supabase.from("attendance").delete().eq("school_id", schoolId).eq("class_id", classId).eq("date", dateISO);
+  // Replace this teacher's existing entries for that day/class
+  await supabase
+    .from("attendance")
+    .delete()
+    .eq("school_id", schoolId)
+    .eq("class_id", classId)
+    .eq("date", dateISO)
+    .eq("recorded_by", uid);
   const { error } = await supabase.from("attendance").insert(rows);
   if (error) throw error;
 }
@@ -58,11 +70,14 @@ export async function getClassAttendanceAll(
   schoolId: string,
   classId: string,
 ): Promise<Record<string, Record<string, AttendanceEntry>>> {
+  const uid = await currentUid();
   const { data, error } = await supabase
     .from("attendance")
     .select("student_id, status, recorded_by, created_at, date")
     .eq("school_id", schoolId)
-    .eq("class_id", classId);
+    .eq("class_id", classId)
+    .eq("recorded_by", uid);
+
   if (error) throw error;
   const out: Record<string, Record<string, AttendanceEntry>> = {};
   for (const r of data ?? []) {

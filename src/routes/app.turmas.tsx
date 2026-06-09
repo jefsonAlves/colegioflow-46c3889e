@@ -602,11 +602,16 @@ function SchedulesSection({
   const [weekday, setWeekday] = useState(1);
   const [start, setStart] = useState("07:30");
   const [end, setEnd] = useState("08:20");
+  const [subject, setSubject] = useState("");
   const [saving, setSaving] = useState(false);
 
   const add = async () => {
     if (end <= start) {
       toast.error("Horário de fim deve ser após o início.");
+      return;
+    }
+    if (subject.trim().length < 2) {
+      toast.error("Informe a matéria.");
       return;
     }
     setSaving(true);
@@ -617,10 +622,12 @@ function SchedulesSection({
         weekday,
         startTime: start,
         endTime: end,
+        subject: subject.trim(),
       });
       qc.invalidateQueries({ queryKey: ["class-schedules", cls.id] });
       qc.invalidateQueries({ queryKey: ["class-schedules-school", schoolId] });
       setAdding(false);
+      setSubject("");
       toast.success("Horário adicionado.");
     } catch (e) {
       console.error(e);
@@ -647,7 +654,7 @@ function SchedulesSection({
     <div className="rounded-lg border p-3 space-y-2">
       <div className="flex items-center gap-2">
         <CalendarDays className="size-4 text-primary" />
-        <span className="text-sm font-medium">Horários da turma</span>
+        <span className="text-sm font-medium">Meus horários nesta turma</span>
       </div>
       {items.length === 0 ? (
         <p className="text-xs text-muted-foreground">Nenhum horário cadastrado.</p>
@@ -658,11 +665,14 @@ function SchedulesSection({
               key={s.id}
               className="flex items-center gap-2 text-sm rounded-md bg-muted/30 px-2 py-1.5"
             >
-              <Clock className="size-3.5 text-muted-foreground" />
-              <span className="font-medium w-10">{WEEKDAY_LABELS[s.weekday]}</span>
-              <span className="text-muted-foreground">
-                {s.startTime} – {s.endTime}
+              <Clock className="size-3.5 text-muted-foreground shrink-0" />
+              <span className="font-medium w-10 shrink-0">{WEEKDAY_LABELS[s.weekday]}</span>
+              <span className="text-muted-foreground tabular-nums shrink-0">
+                {s.startTime}–{s.endTime}
               </span>
+              {s.subject && (
+                <span className="truncate text-xs font-medium ml-1">· {s.subject}</span>
+              )}
               {canEdit && (
                 <Button
                   size="sm"
@@ -684,6 +694,14 @@ function SchedulesSection({
       )}
       {canEdit && adding && (
         <div className="space-y-2 pt-1">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Matéria</Label>
+            <Input
+              placeholder="Ex.: Matemática"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+            />
+          </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Dia da semana</Label>
             <select

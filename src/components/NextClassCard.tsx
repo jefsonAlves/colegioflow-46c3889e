@@ -145,7 +145,12 @@ export function NextClassCard({ schoolId }: { schoolId: string }) {
         </div>
 
         <div>
-          <div className="font-bold text-base leading-tight">{cls.name}</div>
+          <div className="font-bold text-base leading-tight">
+            {cls.name}
+            {featured.sched.subject && (
+              <span className="text-muted-foreground font-normal"> · {featured.sched.subject}</span>
+            )}
+          </div>
           <div className="text-xs text-muted-foreground">{statusText}</div>
         </div>
 
@@ -185,7 +190,10 @@ export function NextClassCard({ schoolId }: { schoolId: string }) {
               return (
                 <li key={s.id} className="flex items-center gap-2 text-xs py-1">
                   <span className="font-medium w-12 tabular-nums">{s.startTime}</span>
-                  <span className="flex-1 truncate">{c?.name ?? "Turma"}</span>
+                  <span className="flex-1 truncate">
+                    {c?.name ?? "Turma"}
+                    {s.subject && <span className="text-muted-foreground"> · {s.subject}</span>}
+                  </span>
                   <Link to="/app/frequencia" search={{ classId: s.classId }}>
                     <Button size="sm" variant="ghost" className="h-6 px-2 text-xs">
                       Chamada
