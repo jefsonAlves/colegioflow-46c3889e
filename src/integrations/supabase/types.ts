@@ -14,6 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcement_reads: {
+        Row: {
+          announcement_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_reads_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      announcements: {
+        Row: {
+          audience: Database["public"]["Enums"]["announcement_audience"]
+          author_id: string
+          body: string
+          class_id: string | null
+          created_at: string
+          id: string
+          school_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audience?: Database["public"]["Enums"]["announcement_audience"]
+          author_id: string
+          body: string
+          class_id?: string | null
+          created_at?: string
+          id?: string
+          school_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: Database["public"]["Enums"]["announcement_audience"]
+          author_id?: string
+          body?: string
+          class_id?: string | null
+          created_at?: string
+          id?: string
+          school_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "announcements_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance: {
         Row: {
           class_id: string
@@ -379,6 +456,48 @@ export type Database = {
           },
         ]
       }
+      parent_links: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          parent_user_id: string
+          school_id: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          parent_user_id: string
+          school_id: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          parent_user_id?: string
+          school_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_links_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_links_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           active: boolean
@@ -611,6 +730,7 @@ export type Database = {
       }
     }
     Enums: {
+      announcement_audience: "parents" | "teachers" | "all"
       global_role: "master" | "user"
       membership_status: "pending" | "approved" | "rejected" | "blocked"
       profile_type: "teacher" | "school_admin" | "parent"
@@ -743,6 +863,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      announcement_audience: ["parents", "teachers", "all"],
       global_role: ["master", "user"],
       membership_status: ["pending", "approved", "rejected", "blocked"],
       profile_type: ["teacher", "school_admin", "parent"],

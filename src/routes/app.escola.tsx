@@ -1,15 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Check, X } from "lucide-react";
+import { Building2, Check, X, UserPlus, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { listMembershipsForUser, listMembershipsForSchool, setMembershipStatus } from "@/lib/memberships";
 import { getSchool } from "@/lib/schools";
 import { getUserDoc } from "@/lib/users";
 import { Loading, EmptyState } from "@/components/States";
+import { listStudents } from "@/lib/students";
+import {
+  createParentLink,
+  deleteParentLink,
+  findUserByEmail,
+  listSchoolParentLinks,
+} from "@/lib/parentLinks";
 import type { MembershipDoc, SchoolDoc, UserDoc } from "@/lib/types";
 
 export const Route = createFileRoute("/app/escola")({
@@ -172,7 +182,150 @@ function SchoolAdminCard({ school, onChanged }: { school: SchoolDoc; onChanged: 
           </div>
         )}
       </section>
+
+      <ParentLinksSection schoolId={school.id} />
     </div>
+  );
+}
+
+function ParentLinksSection({ schoolId }: { schoolId: string }) {
+  const qc = useQueryClient();
+  const linksQ = useQuery({
+    queryKey: ["parent-links", schoolId],
+    queryFn: () => listSchoolParentLinks(schoolId),
+  });
+  const studentsQ = useQuery({
+    queryKey: ["students-all", schoolId],
+    queryFn: () => listStudents(schoolId),
+  });
+  const [email, setEmail] = useState("");
+  const [foundUser, setFoundUser] = useState<{ id: string; name: string | null; email: string } | null>(null);
+  const [studentId, setStudentId] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const search = async () => {
+    if (!email.trim()) return;
+    setSearching(true);
+    setFoundUser(null);
+    try {
+      const u = await findUserByEmail(email);
+      if (!u) toast.error("Nenhum usuário encontrado com esse e-mail.");
+      setFoundUser(u);
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro na busca.");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const link = async () => {
+    if (!foundUser || !studentId) return;
+    setSaving(true);
+    try {
+      await createParentLink({ schoolId, parentUserId: foundUser.id, studentId });
+      toast.success("Responsável vinculado!");
+      setEmail("");
+      setFoundUser(null);
+      setStudentId("");
+      qc.invalidateQueries({ queryKey: ["parent-links", schoolId] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao vincular (talvez já exista).");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const unlink = async (id: string) => {
+    if (!confirm("Remover este vínculo?")) return;
+    try {
+      await deleteParentLink(id);
+      qc.invalidateQueries({ queryKey: ["parent-links", schoolId] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao remover.");
+    }
+  };
+
+  const studentMap = Object.fromEntries((studentsQ.data ?? []).map((s) => [s.id, s.name]));
+  const links = linksQ.data ?? [];
+
+  return (
+    <section>
+      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+        Responsáveis vinculados
+      </h3>
+      <Card>
+        <CardContent className="pt-4 pb-4 space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">E-mail do responsável (já cadastrado no app)</Label>
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                placeholder="responsavel@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Button onClick={search} disabled={searching} variant="outline">
+                Buscar
+              </Button>
+            </div>
+          </div>
+          {foundUser && (
+            <div className="space-y-2 rounded-lg border p-3 bg-muted/30">
+              <div className="text-sm">
+                <div className="font-medium">{foundUser.name ?? "Sem nome"}</div>
+                <div className="text-xs text-muted-foreground">{foundUser.email}</div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Vincular ao aluno</Label>
+                <select
+                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={studentId}
+                  onChange={(e) => setStudentId(e.target.value)}
+                >
+                  <option value="">Selecione...</option>
+                  {(studentsQ.data ?? []).map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Button onClick={link} disabled={!studentId || saving} className="w-full">
+                <UserPlus className="size-4" /> {saving ? "Vinculando..." : "Vincular"}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {links.length > 0 && (
+        <ul className="space-y-1 mt-2">
+          {links.map((l) => (
+            <li
+              key={l.id}
+              className="flex items-center gap-2 rounded-lg border p-2.5 text-sm bg-card"
+            >
+              <Link2 className="size-3.5 text-muted-foreground" />
+              <span className="flex-1 truncate">
+                {studentMap[l.studentId] ?? "Aluno"}
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="size-7 p-0 text-destructive"
+                onClick={() => unlink(l.id)}
+              >
+                <X className="size-4" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
