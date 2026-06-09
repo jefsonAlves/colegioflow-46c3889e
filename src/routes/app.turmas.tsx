@@ -2,18 +2,32 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Users, X } from "lucide-react";
+import { Plus, Users, X, MoreVertical, ArrowRightLeft } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loading, EmptyState } from "@/components/States";
 import { useAuth } from "@/contexts/AuthContext";
 import { createClass, listClasses } from "@/lib/classes";
-import { createStudent, listStudentsByClass } from "@/lib/students";
+import { createStudentsBulk, listStudentsByClass, updateStudent, type StudentDoc } from "@/lib/students";
 import { listClassTeachers, teachClass, untaughtClass } from "@/lib/classTeachers";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import type { ClassDoc } from "@/lib/classes";
 
 export const Route = createFileRoute("/app/turmas")({
