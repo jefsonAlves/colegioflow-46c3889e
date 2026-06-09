@@ -208,23 +208,77 @@ function ClassDetail({
     queryKey: ["students", schoolId, cls.id],
     queryFn: () => listStudentsByClass(schoolId, cls.id),
   });
-  const [newStudent, setNewStudent] = useState("");
+  const classesQ = useQuery({
+    queryKey: ["classes", schoolId],
+    queryFn: () => listClasses(schoolId),
+  });
+  const [bulkText, setBulkText] = useState("");
   const [adding, setAdding] = useState(false);
+  const [transferStudent, setTransferStudent] = useState<StudentDoc | null>(null);
 
-  const addStudent = async () => {
-    if (newStudent.trim().length < 2) return;
+  const addStudents = async () => {
+    const raw = bulkText
+      .split(/[\n,;]+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length >= 2);
+    if (raw.length === 0) {
+      toast.error("Digite ao menos um nome.");
+      return;
+    }
+    // dedupe within input (case-insensitive)
+    const seen = new Set<string>();
+    const unique: string[] = [];
+    for (const n of raw) {
+      const k = n.toLocaleLowerCase("pt-BR");
+      if (!seen.has(k)) {
+        seen.add(k);
+        unique.push(n);
+      }
+    }
+    // dedupe vs existing
+    const existing = new Set(
+      (studentsQ.data ?? []).map((s) => s.name.toLocaleLowerCase("pt-BR")),
+    );
+    const toInsert = unique.filter((n) => !existing.has(n.toLocaleLowerCase("pt-BR")));
+    const skipped = unique.length - toInsert.length;
+    if (toInsert.length === 0) {
+      toast.error("Todos os nomes já existem na turma.");
+      return;
+    }
+    // sort alphabetically pt-BR
+    toInsert.sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
     setAdding(true);
     try {
-      await createStudent(schoolId, { name: newStudent, classId: cls.id });
-      setNewStudent("");
+      await createStudentsBulk(schoolId, cls.id, toInsert);
+      setBulkText("");
       qc.invalidateQueries({ queryKey: ["students", schoolId, cls.id] });
+      toast.success(
+        `${toInsert.length} aluno(s) adicionado(s)${skipped > 0 ? ` · ${skipped} ignorado(s)` : ""}.`,
+      );
     } catch (e) {
       console.error(e);
-      toast.error("Erro ao adicionar aluno.");
+      toast.error("Erro ao adicionar alunos.");
     } finally {
       setAdding(false);
     }
   };
+
+  const doTransfer = async (newClassId: string) => {
+    if (!transferStudent) return;
+    const fromId = cls.id;
+    try {
+      await updateStudent(schoolId, transferStudent.id, { classId: newClassId });
+      toast.success("Aluno transferido!");
+      qc.invalidateQueries({ queryKey: ["students", schoolId, fromId] });
+      qc.invalidateQueries({ queryKey: ["students", schoolId, newClassId] });
+      setTransferStudent(null);
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao transferir aluno.");
+    }
+  };
+
+  const otherClasses = (classesQ.data ?? []).filter((c) => c.id !== cls.id);
 
   return (
     <div className="fixed inset-0 z-40 bg-black/50 flex items-end justify-center" onClick={onClose}>
@@ -246,17 +300,19 @@ function ClassDetail({
 
         <TeachToggle cls={cls} schoolId={schoolId} />
 
-
         {canEdit && (
-          <div className="flex gap-2">
-            <Input
-              placeholder="Nome do aluno"
-              value={newStudent}
-              onChange={(e) => setNewStudent(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addStudent()}
+          <div className="space-y-2">
+            <Label className="text-xs">
+              Adicionar alunos (um por linha, ou separados por vírgula)
+            </Label>
+            <Textarea
+              placeholder={"Maria Silva\nJoão Souza\nAna Lima"}
+              value={bulkText}
+              onChange={(e) => setBulkText(e.target.value)}
+              rows={4}
             />
-            <Button onClick={addStudent} disabled={adding}>
-              <Plus className="size-4" />
+            <Button onClick={addStudents} disabled={adding} className="w-full">
+              <Plus className="size-4" /> {adding ? "Adicionando..." : "Adicionar alunos"}
             </Button>
           </div>
         )}
@@ -276,11 +332,64 @@ function ClassDetail({
               >
                 <span className="text-xs text-muted-foreground w-6">{i + 1}</span>
                 <span className="flex-1">{s.name}</span>
+                {canEdit && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" variant="ghost" className="size-7 p-0">
+                        <MoreVertical className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => setTransferStudent(s)}
+                        disabled={otherClasses.length === 0}
+                      >
+                        <ArrowRightLeft className="size-4" /> Transferir de turma
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </li>
             ))}
           </ul>
         )}
       </div>
+
+      <Dialog open={!!transferStudent} onOpenChange={(o) => !o && setTransferStudent(null)}>
+        <DialogContent onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>Transferir {transferStudent?.name}</DialogTitle>
+          </DialogHeader>
+          {otherClasses.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Nenhuma outra turma disponível.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              <Label>Selecione a turma de destino</Label>
+              <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                {otherClasses.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => doTransfer(c.id)}
+                    className="w-full text-left rounded-lg border p-3 text-sm hover:bg-accent active:scale-[0.99]"
+                  >
+                    <div className="font-medium">{c.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {c.gradeLevel ? `${c.gradeLevel} · ` : ""}{c.year}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTransferStudent(null)}>
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
