@@ -18,9 +18,9 @@ export async function listDisciplinary(schoolId: string): Promise<DisciplinaryDo
   const snap = await get(ref(rtdb, `disciplinary/${schoolId}`));
   if (!snap.exists()) return [];
   const out: DisciplinaryDoc[] = [];
-  snap.forEach((c) =>
-    out.push({ id: c.key as string, ...(c.val() as Omit<DisciplinaryDoc, "id">) }),
-  );
+  snap.forEach((c) => {
+    out.push({ id: c.key as string, ...(c.val() as Omit<DisciplinaryDoc, "id">) });
+  });
   return out.sort((a, b) => b.createdAt - a.createdAt);
 }
 

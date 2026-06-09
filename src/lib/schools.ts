@@ -46,7 +46,9 @@ export async function listSchools(max = 50): Promise<SchoolDoc[]> {
   const snap = await get(q);
   if (!snap.exists()) return [];
   const out: SchoolDoc[] = [];
-  snap.forEach((c) => out.push({ id: c.key as string, ...(c.val() as Omit<SchoolDoc, "id">) }));
+  snap.forEach((c) => {
+    out.push({ id: c.key as string, ...(c.val() as Omit<SchoolDoc, "id">) });
+  });
   return out;
 }
 
@@ -94,7 +96,9 @@ export async function listAllSchoolsForMaster(): Promise<SchoolDoc[]> {
   const snap = await get(ref(rtdb, ROOT));
   if (!snap.exists()) return [];
   const out: SchoolDoc[] = [];
-  snap.forEach((c) => out.push({ id: c.key as string, ...(c.val() as Omit<SchoolDoc, "id">) }));
+  snap.forEach((c) => {
+    out.push({ id: c.key as string, ...(c.val() as Omit<SchoolDoc, "id">) });
+  });
   return out.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
 }
 

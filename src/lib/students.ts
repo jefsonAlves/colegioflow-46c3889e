@@ -14,7 +14,9 @@ export async function listStudents(schoolId: string): Promise<StudentDoc[]> {
   const snap = await get(ref(rtdb, `students/${schoolId}`));
   if (!snap.exists()) return [];
   const out: StudentDoc[] = [];
-  snap.forEach((c) => out.push({ id: c.key as string, ...(c.val() as Omit<StudentDoc, "id">) }));
+  snap.forEach((c) => {
+    out.push({ id: c.key as string, ...(c.val() as Omit<StudentDoc, "id">) });
+  });
   return out;
 }
 

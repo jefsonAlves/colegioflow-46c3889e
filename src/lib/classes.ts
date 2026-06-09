@@ -14,7 +14,9 @@ export async function listClasses(schoolId: string): Promise<ClassDoc[]> {
   const snap = await get(ref(rtdb, `classes/${schoolId}`));
   if (!snap.exists()) return [];
   const out: ClassDoc[] = [];
-  snap.forEach((c) => out.push({ id: c.key as string, ...(c.val() as Omit<ClassDoc, "id">) }));
+  snap.forEach((c) => {
+    out.push({ id: c.key as string, ...(c.val() as Omit<ClassDoc, "id">) });
+  });
   return out.sort((a, b) => (a.year ?? 0) - (b.year ?? 0) || a.name.localeCompare(b.name));
 }
 
