@@ -1,18 +1,21 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Building2, Edit3, LogOut, Save, X } from "lucide-react";
+import { Building2, Edit3, LogOut, Save, X, GraduationCap } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { signOut } from "@/integrations/firebase/auth";
 import { updateUserProfile } from "@/lib/users";
 import { listMembershipsForUser, requestMembership } from "@/lib/memberships";
 import { getSchool } from "@/lib/schools";
+import { listClasses } from "@/lib/classes";
+import { listMyTaughtClasses, teachClass, untaughtClass } from "@/lib/classTeachers";
 import { SchoolPicker } from "@/components/SchoolPicker";
 import type { ProfileType, RoleInSchool, SchoolDoc } from "@/lib/types";
 
@@ -267,9 +270,107 @@ function PerfilPage() {
         )}
       </section>
 
+      {userDoc.profileType === "teacher" && memberships.some((m) => m.status === "approved") && (
+        <MyTaughtClassesSection
+          schools={memberships
+            .filter((m) => m.status === "approved")
+            .map((m) => m.schoolId)}
+        />
+      )}
+
       <Button variant="outline" className="w-full h-12" onClick={handleLogout}>
         <LogOut className="size-4" /> Sair
       </Button>
     </AppShell>
+  );
+}
+
+function MyTaughtClassesSection({ schools }: { schools: string[] }) {
+  const { firebaseUser } = useAuth();
+  const qc = useQueryClient();
+
+  const allClassesQ = useQuery({
+    queryKey: ["all-classes-for-teacher", schools.join(",")],
+    queryFn: async () => {
+      const lists = await Promise.all(schools.map((sid) => listClasses(sid).then((cs) => cs.map((c) => ({ ...c, schoolId: sid })))));
+      return lists.flat();
+    },
+    enabled: schools.length > 0,
+  });
+
+  const taughtQ = useQuery({
+    queryKey: ["my-taught-classes", firebaseUser?.uid],
+    queryFn: () => listMyTaughtClasses(firebaseUser!.uid),
+    enabled: !!firebaseUser,
+  });
+
+  const taughtIds = new Set((taughtQ.data ?? []).map((t) => t.classId));
+
+  const toggle = async (classId: string, schoolId: string, on: boolean) => {
+    if (!firebaseUser) return;
+    try {
+      if (on) {
+        await teachClass({ classId, schoolId, userId: firebaseUser.uid });
+      } else {
+        await untaughtClass({ classId, userId: firebaseUser.uid });
+      }
+      qc.invalidateQueries({ queryKey: ["my-taught-classes", firebaseUser.uid] });
+      qc.invalidateQueries({ queryKey: ["class-teachers", classId] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao atualizar.");
+    }
+  };
+
+  const classes = allClassesQ.data ?? [];
+
+  return (
+    <section className="space-y-2">
+      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+        Minhas turmas
+      </h2>
+      <Card>
+        <CardContent className="pt-4 pb-4 space-y-2">
+          <p className="text-xs text-muted-foreground">
+            Marque as turmas em que você dá aula. Depois cadastre matéria e horário em cada
+            turma.
+          </p>
+          {classes.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-2">
+              Nenhuma turma cadastrada na escola ainda.
+            </p>
+          ) : (
+            <ul className="space-y-1.5">
+              {classes.map((c) => {
+                const on = taughtIds.has(c.id);
+                return (
+                  <li
+                    key={c.id}
+                    className="flex items-center gap-2 rounded-lg border p-2.5 text-sm"
+                  >
+                    <GraduationCap className="size-4 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{c.name}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {c.gradeLevel ? `${c.gradeLevel} · ` : ""}{c.year}
+                      </div>
+                    </div>
+                    <Switch
+                      checked={on}
+                      onCheckedChange={(v) => toggle(c.id, c.schoolId, v)}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <Link to="/app/turmas" className="block">
+            <Button variant="outline" size="sm" className="w-full mt-1">
+              Cadastrar matéria e horários
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+    </section>
   );
 }
