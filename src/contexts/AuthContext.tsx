@@ -8,6 +8,7 @@ export interface BootError {
   code?: string;
   message: string;
   firestoreMissing?: boolean;
+  rulesMissing?: boolean;
 }
 
 interface AuthCtx {
@@ -31,11 +32,16 @@ const Ctx = createContext<AuthCtx>({
 function parseError(e: unknown): BootError {
   const err = e as { code?: string; message?: string };
   const msg = err?.message ?? "Erro desconhecido.";
+  const code = err?.code;
   const firestoreMissing =
-    err?.code === "unavailable" ||
+    code === "unavailable" ||
     /Database '\(default\)' not found/i.test(msg) ||
     /client is offline/i.test(msg);
-  return { code: err?.code, message: msg, firestoreMissing };
+  const rulesMissing =
+    code === "PERMISSION_DENIED" ||
+    /permission_denied/i.test(msg) ||
+    /permission denied/i.test(msg);
+  return { code, message: msg, firestoreMissing, rulesMissing };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
