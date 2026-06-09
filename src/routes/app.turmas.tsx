@@ -13,6 +13,7 @@ import { Loading, EmptyState } from "@/components/States";
 import { useAuth } from "@/contexts/AuthContext";
 import { createClass, listClasses } from "@/lib/classes";
 import { createStudent, listStudentsByClass } from "@/lib/students";
+import { listClassTeachers, teachClass, untaughtClass } from "@/lib/classTeachers";
 import type { ClassDoc } from "@/lib/classes";
 
 export const Route = createFileRoute("/app/turmas")({
