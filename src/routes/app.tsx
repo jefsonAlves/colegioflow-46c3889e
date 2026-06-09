@@ -1,11 +1,12 @@
 import { Outlet, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { AlertTriangle, ExternalLink, LogOut, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertTriangle, Check, Copy, ExternalLink, LogOut, RefreshCw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loading } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { signOut } from "@/integrations/firebase/auth";
+import { RTDB_RULES_JSON } from "@/lib/rtdb-rules";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
