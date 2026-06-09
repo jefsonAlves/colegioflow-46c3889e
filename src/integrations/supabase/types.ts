@@ -20,9 +20,10 @@ export type Database = {
           created_at: string
           date: string
           id: string
-          present: boolean
+          present: boolean | null
           recorded_by: string
           school_id: string
+          status: string
           student_id: string
         }
         Insert: {
@@ -30,9 +31,10 @@ export type Database = {
           created_at?: string
           date: string
           id?: string
-          present: boolean
+          present?: boolean | null
           recorded_by: string
           school_id: string
+          status?: string
           student_id: string
         }
         Update: {
@@ -40,9 +42,10 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
-          present?: boolean
+          present?: boolean | null
           recorded_by?: string
           school_id?: string
+          status?: string
           student_id?: string
         }
         Relationships: [
