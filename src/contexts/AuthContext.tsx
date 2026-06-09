@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import type { User } from "firebase/auth";
+import type { AuthUser } from "@/integrations/firebase/auth";
 import { consumeRedirectResult, watchAuth } from "@/integrations/firebase/auth";
 import { ensureUserDoc, getUserDoc } from "@/lib/users";
 import type { UserDoc } from "@/lib/types";
@@ -13,7 +13,7 @@ export interface BootError {
 
 interface AuthCtx {
   loading: boolean;
-  firebaseUser: User | null;
+  firebaseUser: AuthUser | null;
   userDoc: UserDoc | null;
   bootError: BootError | null;
   refresh: () => Promise<void>;
@@ -33,24 +33,16 @@ function parseError(e: unknown): BootError {
   const err = e as { code?: string; message?: string };
   const msg = err?.message ?? "Erro desconhecido.";
   const code = err?.code;
-  const firestoreMissing =
-    code === "unavailable" ||
-    /Database '\(default\)' not found/i.test(msg) ||
-    /client is offline/i.test(msg);
-  const rulesMissing =
-    code === "PERMISSION_DENIED" ||
-    /permission_denied/i.test(msg) ||
-    /permission denied/i.test(msg);
-  return { code, message: msg, firestoreMissing, rulesMissing };
+  return { code, message: msg };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
-  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<AuthUser | null>(null);
   const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
   const [bootError, setBootError] = useState<BootError | null>(null);
 
-  const hydrate = useCallback(async (u: User) => {
+  const hydrate = useCallback(async (u: AuthUser) => {
     setBootError(null);
     try {
       const doc = await ensureUserDoc(u);
