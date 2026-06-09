@@ -30,26 +30,17 @@ interface AuthError {
   message?: string;
 }
 
-function translateError(code?: string): string {
+function translateError(code?: string, message?: string): string {
+  if (message && /invalid login/i.test(message)) return "E-mail ou senha incorretos.";
+  if (message && /already registered/i.test(message)) return "Este e-mail já está cadastrado. Faça login.";
+  if (message && /weak.password/i.test(message)) return "Senha muito fraca. Use 6+ caracteres.";
   switch (code) {
-    case "auth/unauthorized-domain":
-      return "Este domínio não está autorizado no Firebase Console.";
     case "auth/invalid-email":
       return "E-mail inválido.";
-    case "auth/user-not-found":
-    case "auth/wrong-password":
-    case "auth/invalid-credential":
-      return "E-mail ou senha incorretos.";
-    case "auth/email-already-in-use":
-      return "Este e-mail já está cadastrado. Faça login.";
-    case "auth/weak-password":
-      return "Senha muito fraca. Use 6+ caracteres.";
     case "auth/network-request-failed":
       return "Sem conexão. Verifique sua internet.";
-    case "auth/popup-blocked":
-      return "Popup bloqueado pelo navegador.";
     default:
-      return "Não foi possível entrar. Tente novamente.";
+      return message || "Não foi possível entrar. Tente novamente.";
   }
 }
 
@@ -57,7 +48,6 @@ function LoginPage() {
   const { loading, firebaseUser, userDoc } = useAuth();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
-  const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -70,18 +60,13 @@ function LoginPage() {
   }, [loading, firebaseUser, userDoc, navigate]);
 
   const handleGoogle = async () => {
-    setUnauthorizedDomain(null);
     try {
       setSubmitting(true);
       await signInWithGoogle();
     } catch (e) {
       const err = e as AuthError;
       console.error(err);
-      if (err.code === "auth/unauthorized-domain") {
-        setUnauthorizedDomain(window.location.hostname);
-      } else {
-        toast.error(translateError(err.code));
-      }
+      toast.error(translateError(err.code, err.message));
     } finally {
       setSubmitting(false);
     }
@@ -99,7 +84,7 @@ function LoginPage() {
     } catch (e) {
       const err = e as AuthError;
       console.error(err);
-      toast.error(translateError(err.code));
+      toast.error(translateError(err.code, err.message));
     } finally {
       setSubmitting(false);
     }
