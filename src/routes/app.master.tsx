@@ -31,7 +31,16 @@ import {
   getSchool,
 } from "@/lib/schools";
 import { Loading, EmptyState } from "@/components/States";
-import { importExternalData, previewExternalData } from "@/lib/import.functions";
+import {
+  deleteImportSource,
+  importExternalData,
+  listImportSources,
+  previewExternalData,
+  previewImportSource,
+  runImportSource,
+  upsertImportSource,
+  type ImportSourceRow,
+} from "@/lib/import.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { setMembershipStatus } from "@/lib/memberships";
 import { getUserDoc } from "@/lib/users";
