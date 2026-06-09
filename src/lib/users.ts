@@ -40,44 +40,38 @@ function rowToDoc(r: ProfileRow, role: GlobalRole): UserDoc {
 }
 
 export async function ensureUserDoc(user: User): Promise<UserDoc> {
-  // The handle_new_user DB trigger should have created the profile; if not, upsert it.
-  const { data: existing } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.uid)
-    .maybeSingle();
-
-  if (!existing) {
-    const { data: inserted, error } = await supabase
+  // The handle_new_user DB trigger creates the profile + role on first sign-in.
+  // We just read it; if the trigger hasn't run yet (race), we retry briefly.
+  void isMasterEmail; // silence unused warning, keep helper for future use
+  for (let i = 0; i < 5; i++) {
+    const { data: existing, error } = await supabase
       .from("profiles")
-      .insert({
-        id: user.uid,
-        name: user.displayName ?? "",
-        email: user.email ?? "",
-        photo_url: user.photoURL,
-        onboarding_complete: false,
-      })
       .select("*")
-      .single();
+      .eq("id", user.uid)
+      .maybeSingle();
     if (error) throw error;
-
-    if (isMasterEmail(user.email)) {
-      await supabase.from("user_roles").upsert({ user_id: user.uid, role: "master" }, { onConflict: "user_id,role" });
-    } else {
-      await supabase.from("user_roles").upsert({ user_id: user.uid, role: "user" }, { onConflict: "user_id,role" });
+    if (existing) {
+      const role = await fetchRole(user.uid);
+      return rowToDoc(existing as ProfileRow, role);
     }
-
-    const role = await fetchRole(user.uid);
-    return rowToDoc(inserted as ProfileRow, role);
+    await new Promise((r) => setTimeout(r, 200));
   }
 
-  // Ensure master role if email matches
-  if (isMasterEmail(user.email)) {
-    await supabase.from("user_roles").upsert({ user_id: user.uid, role: "master" }, { onConflict: "user_id,role" });
-  }
-
+  // Trigger didn't create it — fall back to client insert (RLS allows self).
+  const { data: inserted, error: insErr } = await supabase
+    .from("profiles")
+    .insert({
+      id: user.uid,
+      name: user.displayName ?? "",
+      email: user.email ?? "",
+      photo_url: user.photoURL,
+      onboarding_complete: false,
+    })
+    .select("*")
+    .single();
+  if (insErr) throw insErr;
   const role = await fetchRole(user.uid);
-  return rowToDoc(existing as ProfileRow, role);
+  return rowToDoc(inserted as ProfileRow, role);
 }
 
 export async function getUserDoc(uid: string): Promise<UserDoc | null> {
