@@ -6,6 +6,8 @@ export interface StudentDoc {
   classId: string;
   parentUid?: string | null;
   active: boolean;
+  specialNeeds: boolean;
+  specialNeedsNote: string | null;
   createdAt: number;
 }
 
@@ -17,6 +19,8 @@ type Row = {
   guardian_name: string | null;
   guardian_phone: string | null;
   notes: string | null;
+  special_needs: boolean;
+  special_needs_note: string | null;
   created_by: string;
   created_at: string;
 };
@@ -27,6 +31,8 @@ const toDoc = (r: Row): StudentDoc => ({
   classId: r.class_id ?? "",
   parentUid: null,
   active: true,
+  specialNeeds: !!r.special_needs,
+  specialNeedsNote: r.special_needs_note ?? null,
   createdAt: new Date(r.created_at).getTime(),
 });
 
@@ -93,6 +99,17 @@ export async function updateStudent(
   const row: Partial<Row> = {};
   if (patch.name !== undefined) row.name = patch.name;
   if (patch.classId !== undefined) row.class_id = patch.classId;
+  if (patch.specialNeeds !== undefined) row.special_needs = patch.specialNeeds;
+  if (patch.specialNeedsNote !== undefined) row.special_needs_note = patch.specialNeedsNote;
   const { error } = await supabase.from("students").update(row).eq("school_id", schoolId).eq("id", studentId);
+  if (error) throw error;
+}
+
+export async function deleteStudent(schoolId: string, studentId: string): Promise<void> {
+  const { error } = await supabase
+    .from("students")
+    .delete()
+    .eq("school_id", schoolId)
+    .eq("id", studentId);
   if (error) throw error;
 }

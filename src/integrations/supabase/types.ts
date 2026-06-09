@@ -75,6 +75,54 @@ export type Database = {
           },
         ]
       }
+      class_schedules: {
+        Row: {
+          class_id: string
+          created_at: string
+          created_by: string
+          end_time: string
+          id: string
+          school_id: string
+          start_time: string
+          weekday: number
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          created_by: string
+          end_time: string
+          id?: string
+          school_id: string
+          start_time: string
+          weekday: number
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          created_by?: string
+          end_time?: string
+          id?: string
+          school_id?: string
+          start_time?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_schedules_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_schedules_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       class_teachers: {
         Row: {
           class_id: string
@@ -465,6 +513,8 @@ export type Database = {
           name: string
           notes: string | null
           school_id: string
+          special_needs: boolean
+          special_needs_note: string | null
         }
         Insert: {
           class_id?: string | null
@@ -478,6 +528,8 @@ export type Database = {
           name: string
           notes?: string | null
           school_id: string
+          special_needs?: boolean
+          special_needs_note?: string | null
         }
         Update: {
           class_id?: string | null
@@ -491,6 +543,8 @@ export type Database = {
           name?: string
           notes?: string | null
           school_id?: string
+          special_needs?: boolean
+          special_needs_note?: string | null
         }
         Relationships: [
           {

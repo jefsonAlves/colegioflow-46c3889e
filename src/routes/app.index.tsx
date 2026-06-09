@@ -13,6 +13,8 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
+import { NextClassCard } from "@/components/NextClassCard";
+import { SchoolGate } from "@/components/SchoolGate";
 import { useAuth } from "@/contexts/AuthContext";
 
 export const Route = createFileRoute("/app/")({
@@ -65,6 +67,8 @@ function AppHome() {
         </p>
         <h2 className="text-xl font-bold">O que você quer fazer hoje?</h2>
       </section>
+
+      <SchoolGate>{({ schoolId }) => <NextClassCard schoolId={schoolId} />}</SchoolGate>
 
       <section className="grid grid-cols-2 gap-3">
         {ACTIONS.map((a) => {

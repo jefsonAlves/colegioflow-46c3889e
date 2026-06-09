@@ -1,8 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Users, X, MoreVertical, ArrowRightLeft } from "lucide-react";
+import {
+  Plus,
+  Users,
+  X,
+  MoreVertical,
+  ArrowRightLeft,
+  Trash2,
+  Heart,
+  Clock,
+  CalendarDays,
+} from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,11 +20,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Loading, EmptyState } from "@/components/States";
 import { useAuth } from "@/contexts/AuthContext";
 import { createClass, listClasses } from "@/lib/classes";
-import { createStudentsBulk, listStudentsByClass, updateStudent, type StudentDoc } from "@/lib/students";
+import {
+  createStudentsBulk,
+  deleteStudent,
+  listStudentsByClass,
+  updateStudent,
+  type StudentDoc,
+} from "@/lib/students";
 import { listClassTeachers, teachClass, untaughtClass } from "@/lib/classTeachers";
+import {
+  createSchedule,
+  deleteSchedule,
+  listSchedulesByClass,
+  WEEKDAY_LABELS,
+} from "@/lib/classSchedules";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +51,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { ClassDoc } from "@/lib/classes";
 
 export const Route = createFileRoute("/app/turmas")({
@@ -56,7 +89,6 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
     queryFn: () => listClasses(schoolId),
   });
 
-  // Any school member can create classes (RLS enforces it).
   const canCreate = !!userDoc && userDoc.globalRole !== undefined;
 
   const save = async () => {
@@ -215,6 +247,8 @@ function ClassDetail({
   const [bulkText, setBulkText] = useState("");
   const [adding, setAdding] = useState(false);
   const [transferStudent, setTransferStudent] = useState<StudentDoc | null>(null);
+  const [deletingStudent, setDeletingStudent] = useState<StudentDoc | null>(null);
+  const [editingNeeds, setEditingNeeds] = useState<StudentDoc | null>(null);
 
   const addStudents = async () => {
     const raw = bulkText
@@ -225,7 +259,6 @@ function ClassDetail({
       toast.error("Digite ao menos um nome.");
       return;
     }
-    // dedupe within input (case-insensitive)
     const seen = new Set<string>();
     const unique: string[] = [];
     for (const n of raw) {
@@ -235,7 +268,6 @@ function ClassDetail({
         unique.push(n);
       }
     }
-    // dedupe vs existing
     const existing = new Set(
       (studentsQ.data ?? []).map((s) => s.name.toLocaleLowerCase("pt-BR")),
     );
@@ -245,7 +277,6 @@ function ClassDetail({
       toast.error("Todos os nomes já existem na turma.");
       return;
     }
-    // sort alphabetically pt-BR
     toInsert.sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
     setAdding(true);
     try {
@@ -278,6 +309,19 @@ function ClassDetail({
     }
   };
 
+  const doDelete = async () => {
+    if (!deletingStudent) return;
+    try {
+      await deleteStudent(schoolId, deletingStudent.id);
+      toast.success("Aluno removido.");
+      qc.invalidateQueries({ queryKey: ["students", schoolId, cls.id] });
+      setDeletingStudent(null);
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao remover aluno.");
+    }
+  };
+
   const otherClasses = (classesQ.data ?? []).filter((c) => c.id !== cls.id);
 
   return (
@@ -299,6 +343,8 @@ function ClassDetail({
         </div>
 
         <TeachToggle cls={cls} schoolId={schoolId} />
+
+        <SchedulesSection cls={cls} schoolId={schoolId} canEdit={canEdit} />
 
         {canEdit && (
           <div className="space-y-2">
@@ -331,7 +377,22 @@ function ClassDetail({
                 className="flex items-center gap-3 rounded-lg border p-2.5 text-sm"
               >
                 <span className="text-xs text-muted-foreground w-6">{i + 1}</span>
-                <span className="flex-1">{s.name}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate">{s.name}</span>
+                    {s.specialNeeds && (
+                      <Heart
+                        className="size-3.5 text-primary shrink-0"
+                        aria-label={s.specialNeedsNote ?? "Necessidade especial"}
+                      />
+                    )}
+                  </div>
+                  {s.specialNeeds && s.specialNeedsNote && (
+                    <div className="text-[11px] text-muted-foreground truncate">
+                      {s.specialNeedsNote}
+                    </div>
+                  )}
+                </div>
                 {canEdit && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -340,11 +401,20 @@ function ClassDetail({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setEditingNeeds(s)}>
+                        <Heart className="size-4" /> Necessidades especiais
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setTransferStudent(s)}
                         disabled={otherClasses.length === 0}
                       >
                         <ArrowRightLeft className="size-4" /> Transferir de turma
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setDeletingStudent(s)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="size-4" /> Excluir aluno
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -390,6 +460,269 @@ function ClassDetail({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SpecialNeedsDialog
+        student={editingNeeds}
+        schoolId={schoolId}
+        classId={cls.id}
+        onClose={() => setEditingNeeds(null)}
+      />
+
+      <AlertDialog
+        open={!!deletingStudent}
+        onOpenChange={(o) => !o && setDeletingStudent(null)}
+      >
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir aluno?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletingStudent?.name} será removido permanentemente, junto com chamadas,
+              notas e advertências relacionadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={doDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+function SpecialNeedsDialog({
+  student,
+  schoolId,
+  classId,
+  onClose,
+}: {
+  student: StudentDoc | null;
+  schoolId: string;
+  classId: string;
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const [needs, setNeeds] = useState(false);
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (student) {
+      setNeeds(student.specialNeeds);
+      setNote(student.specialNeedsNote ?? "");
+    }
+  }, [student]);
+
+
+
+  const save = async () => {
+    if (!student) return;
+    setSaving(true);
+    try {
+      await updateStudent(schoolId, student.id, {
+        specialNeeds: needs,
+        specialNeedsNote: needs ? (note.trim() || null) : null,
+      });
+      qc.invalidateQueries({ queryKey: ["students", schoolId, classId] });
+      toast.success("Atualizado.");
+      onClose();
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao salvar.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!student} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent onClick={(e) => e.stopPropagation()}>
+        <DialogHeader>
+          <DialogTitle>Necessidades especiais</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <div className="text-sm font-medium">{student?.name}</div>
+              <div className="text-xs text-muted-foreground">
+                Marcar deficiência ou transtorno
+              </div>
+            </div>
+            <Switch checked={needs} onCheckedChange={setNeeds} />
+          </div>
+          {needs && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">
+                Condição / observação (ex.: TEA, TDAH, dislexia)
+              </Label>
+              <Textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Descrição breve"
+                rows={3}
+              />
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button onClick={save} disabled={saving}>
+            {saving ? "Salvando..." : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+
+function SchedulesSection({
+  cls,
+  schoolId,
+  canEdit,
+}: {
+  cls: ClassDoc;
+  schoolId: string;
+  canEdit: boolean;
+}) {
+  const qc = useQueryClient();
+  const schedulesQ = useQuery({
+    queryKey: ["class-schedules", cls.id],
+    queryFn: () => listSchedulesByClass(cls.id),
+  });
+  const [adding, setAdding] = useState(false);
+  const [weekday, setWeekday] = useState(1);
+  const [start, setStart] = useState("07:30");
+  const [end, setEnd] = useState("08:20");
+  const [saving, setSaving] = useState(false);
+
+  const add = async () => {
+    if (end <= start) {
+      toast.error("Horário de fim deve ser após o início.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await createSchedule({
+        schoolId,
+        classId: cls.id,
+        weekday,
+        startTime: start,
+        endTime: end,
+      });
+      qc.invalidateQueries({ queryKey: ["class-schedules", cls.id] });
+      qc.invalidateQueries({ queryKey: ["class-schedules-school", schoolId] });
+      setAdding(false);
+      toast.success("Horário adicionado.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao adicionar horário.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (id: string) => {
+    try {
+      await deleteSchedule(id);
+      qc.invalidateQueries({ queryKey: ["class-schedules", cls.id] });
+      qc.invalidateQueries({ queryKey: ["class-schedules-school", schoolId] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao remover.");
+    }
+  };
+
+  const items = schedulesQ.data ?? [];
+
+  return (
+    <div className="rounded-lg border p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <CalendarDays className="size-4 text-primary" />
+        <span className="text-sm font-medium">Horários da turma</span>
+      </div>
+      {items.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Nenhum horário cadastrado.</p>
+      ) : (
+        <ul className="space-y-1">
+          {items.map((s) => (
+            <li
+              key={s.id}
+              className="flex items-center gap-2 text-sm rounded-md bg-muted/30 px-2 py-1.5"
+            >
+              <Clock className="size-3.5 text-muted-foreground" />
+              <span className="font-medium w-10">{WEEKDAY_LABELS[s.weekday]}</span>
+              <span className="text-muted-foreground">
+                {s.startTime} – {s.endTime}
+              </span>
+              {canEdit && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="ml-auto size-7 p-0 text-destructive"
+                  onClick={() => remove(s.id)}
+                >
+                  <X className="size-3.5" />
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {canEdit && !adding && (
+        <Button size="sm" variant="outline" className="w-full" onClick={() => setAdding(true)}>
+          <Plus className="size-4" /> Adicionar horário
+        </Button>
+      )}
+      {canEdit && adding && (
+        <div className="space-y-2 pt-1">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Dia da semana</Label>
+            <select
+              className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+              value={weekday}
+              onChange={(e) => setWeekday(Number(e.target.value))}
+            >
+              {WEEKDAY_LABELS.map((l, i) => (
+                <option key={i} value={i}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Início</Label>
+              <Input type="time" value={start} onChange={(e) => setStart(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Fim</Label>
+              <Input type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1"
+              onClick={() => setAdding(false)}
+            >
+              Cancelar
+            </Button>
+            <Button size="sm" className="flex-1" onClick={add} disabled={saving}>
+              {saving ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
