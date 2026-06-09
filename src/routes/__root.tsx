@@ -83,6 +83,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Colégio" },
+      { title: "Colégio em Movimento" },
       { name: "description", content: "Colégio Conectado is a mobile-first school management app for administrators, teachers, and parents." },
       { name: "author", content: "Lovable" },
       { property: "og:title", content: "Lovable App" },
