@@ -145,7 +145,12 @@ export function NextClassCard({ schoolId }: { schoolId: string }) {
         </div>
 
         <div>
-          <div className="font-bold text-base leading-tight">{cls.name}</div>
+          <div className="font-bold text-base leading-tight">
+            {cls.name}
+            {featured.sched.subject && (
+              <span className="text-muted-foreground font-normal"> · {featured.sched.subject}</span>
+            )}
+          </div>
           <div className="text-xs text-muted-foreground">{statusText}</div>
         </div>
 
