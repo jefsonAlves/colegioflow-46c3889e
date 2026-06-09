@@ -53,16 +53,40 @@ export function AppShell({
   title,
   children,
   right,
+  back = true,
 }: {
   title: string;
   children: React.ReactNode;
   right?: React.ReactNode;
+  back?: boolean;
 }) {
+  const router = useRouter();
+  const navigate = useNavigate();
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.history.back();
+    } else {
+      navigate({ to: "/app" });
+    }
+  };
   return (
     <div className="min-h-screen bg-muted/30 pb-24">
       <header className="sticky top-0 z-20 bg-card border-b">
-        <div className="mx-auto max-w-md px-4 h-14 flex items-center justify-between">
-          <h1 className="text-base font-semibold truncate">{title}</h1>
+        <div className="mx-auto max-w-md px-2 h-14 flex items-center gap-1">
+          {back ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Voltar"
+              onClick={handleBack}
+              className="shrink-0"
+            >
+              <ChevronLeft className="size-5" />
+            </Button>
+          ) : (
+            <div className="w-2" />
+          )}
+          <h1 className="text-base font-semibold truncate flex-1">{title}</h1>
           {right}
         </div>
       </header>
