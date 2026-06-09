@@ -1,18 +1,8 @@
-import {
-  addDoc,
-  collection,
-  doc,
-  getDocs,
-  limit,
-  query,
-  serverTimestamp,
-  updateDoc,
-  where,
-} from "firebase/firestore";
-import { db } from "@/integrations/firebase/client";
+import { get, push, ref, set, update } from "firebase/database";
+import { rtdb } from "@/integrations/firebase/client";
 import type { MembershipDoc, MembershipStatus, RoleInSchool } from "./types";
 
-const COLL = collection(db, "school_memberships");
+const ROOT = "school_memberships";
 
 export async function requestMembership(input: {
   schoolId: string;
@@ -22,34 +12,48 @@ export async function requestMembership(input: {
   approvedBy?: string;
 }): Promise<MembershipDoc> {
   const status: MembershipStatus = input.autoApprove ? "approved" : "pending";
+  const now = Date.now();
+  const newRef = push(ref(rtdb, ROOT));
   const payload = {
     schoolId: input.schoolId,
     userId: input.userId,
     roleInSchool: input.roleInSchool,
     status,
     approvedBy: input.approvedBy ?? null,
-    createdAt: serverTimestamp(),
+    createdAt: now,
   };
-  const ref = await addDoc(COLL, payload);
+  await set(newRef, payload);
   return {
-    id: ref.id,
+    id: newRef.key as string,
     schoolId: input.schoolId,
     userId: input.userId,
     roleInSchool: input.roleInSchool,
     status,
     approvedBy: input.approvedBy,
-    createdAt: Date.now(),
+    createdAt: now,
   };
 }
 
 export async function listMembershipsForUser(userId: string): Promise<MembershipDoc[]> {
-  const snap = await getDocs(query(COLL, where("userId", "==", userId), limit(100)));
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<MembershipDoc, "id">) }));
+  const snap = await get(ref(rtdb, ROOT));
+  if (!snap.exists()) return [];
+  const out: MembershipDoc[] = [];
+  snap.forEach((c) => {
+    const v = c.val() as Omit<MembershipDoc, "id">;
+    if (v?.userId === userId) out.push({ id: c.key as string, ...v });
+  });
+  return out;
 }
 
 export async function listMembershipsForSchool(schoolId: string): Promise<MembershipDoc[]> {
-  const snap = await getDocs(query(COLL, where("schoolId", "==", schoolId), limit(200)));
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<MembershipDoc, "id">) }));
+  const snap = await get(ref(rtdb, ROOT));
+  if (!snap.exists()) return [];
+  const out: MembershipDoc[] = [];
+  snap.forEach((c) => {
+    const v = c.val() as Omit<MembershipDoc, "id">;
+    if (v?.schoolId === schoolId) out.push({ id: c.key as string, ...v });
+  });
+  return out;
 }
 
 export async function setMembershipStatus(
@@ -57,9 +61,9 @@ export async function setMembershipStatus(
   status: MembershipStatus,
   approvedBy?: string,
 ) {
-  await updateDoc(doc(db, "school_memberships", id), {
+  await update(ref(rtdb, `${ROOT}/${id}`), {
     status,
     approvedBy: approvedBy ?? null,
-    updatedAt: serverTimestamp(),
+    updatedAt: Date.now(),
   });
 }
