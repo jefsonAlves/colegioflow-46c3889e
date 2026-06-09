@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() { return request.auth != null; }
+    function isSelf(uid) { return isSignedIn() && request.auth.uid == uid; }
+    function isMaster() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.globalRole == 'master';
+    }
+
+    // Users: read/write own profile; master reads all
+    match /users/{uid} {
+      allow read: if isSelf(uid) || isMaster();
+      allow create: if isSelf(uid);
+      allow update: if isSelf(uid) || isMaster();
+      allow delete: if isMaster();
+    }
+
+    // Schools: anyone signed in can read active/pending (for search);
+    // master writes any; school_admin updates own school
+    match /schools/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isMaster();
+    }
+
+    // Memberships
+    match /school_memberships/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isMaster();
+    }
+
+    // Migration runs (audit) — master only
+    match /migration_runs/{id} {
+      allow read, write: if isMaster();
+    }
+
+    // Legacy collections — read-only for signed users during transition;
+    // writes only via migration (master) for safety
+    match /{legacy=**} {
+      allow read: if isSignedIn();
+      allow write: if isMaster();
+    }
+  }
+}

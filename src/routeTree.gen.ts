@@ -17,6 +17,7 @@ import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppPerfilRouteImport } from './routes/app.perfil'
 import { Route as AppMasterRouteImport } from './routes/app.master'
 import { Route as AppEscolaRouteImport } from './routes/app.escola'
+import { Route as AppMasterMigracaoRouteImport } from './routes/app.master.migracao'
 
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
@@ -58,6 +59,11 @@ const AppEscolaRoute = AppEscolaRouteImport.update({
   path: '/escola',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMasterMigracaoRoute = AppMasterMigracaoRouteImport.update({
+  id: '/migracao',
+  path: '/migracao',
+  getParentRoute: () => AppMasterRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -65,18 +71,20 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/app/escola': typeof AppEscolaRoute
-  '/app/master': typeof AppMasterRoute
+  '/app/master': typeof AppMasterRouteWithChildren
   '/app/perfil': typeof AppPerfilRoute
   '/app/': typeof AppIndexRoute
+  '/app/master/migracao': typeof AppMasterMigracaoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/app/escola': typeof AppEscolaRoute
-  '/app/master': typeof AppMasterRoute
+  '/app/master': typeof AppMasterRouteWithChildren
   '/app/perfil': typeof AppPerfilRoute
   '/app': typeof AppIndexRoute
+  '/app/master/migracao': typeof AppMasterMigracaoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -85,9 +93,10 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/app/escola': typeof AppEscolaRoute
-  '/app/master': typeof AppMasterRoute
+  '/app/master': typeof AppMasterRouteWithChildren
   '/app/perfil': typeof AppPerfilRoute
   '/app/': typeof AppIndexRoute
+  '/app/master/migracao': typeof AppMasterMigracaoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
     | '/app/master'
     | '/app/perfil'
     | '/app/'
+    | '/app/master/migracao'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/app/master'
     | '/app/perfil'
     | '/app'
+    | '/app/master/migracao'
   id:
     | '__root__'
     | '/'
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/app/master'
     | '/app/perfil'
     | '/app/'
+    | '/app/master/migracao'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -186,19 +198,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEscolaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/master/migracao': {
+      id: '/app/master/migracao'
+      path: '/migracao'
+      fullPath: '/app/master/migracao'
+      preLoaderRoute: typeof AppMasterMigracaoRouteImport
+      parentRoute: typeof AppMasterRoute
+    }
   }
 }
 
+interface AppMasterRouteChildren {
+  AppMasterMigracaoRoute: typeof AppMasterMigracaoRoute
+}
+
+const AppMasterRouteChildren: AppMasterRouteChildren = {
+  AppMasterMigracaoRoute: AppMasterMigracaoRoute,
+}
+
+const AppMasterRouteWithChildren = AppMasterRoute._addFileChildren(
+  AppMasterRouteChildren,
+)
+
 interface AppRouteChildren {
   AppEscolaRoute: typeof AppEscolaRoute
-  AppMasterRoute: typeof AppMasterRoute
+  AppMasterRoute: typeof AppMasterRouteWithChildren
   AppPerfilRoute: typeof AppPerfilRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppEscolaRoute: AppEscolaRoute,
-  AppMasterRoute: AppMasterRoute,
+  AppMasterRoute: AppMasterRouteWithChildren,
   AppPerfilRoute: AppPerfilRoute,
   AppIndexRoute: AppIndexRoute,
 }
@@ -214,3 +245,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
