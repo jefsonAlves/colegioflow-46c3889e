@@ -1,82 +1,49 @@
-## Objetivo
+## Diagnóstico do login
 
-O projeto Firebase `projetojefson` já tem dados em **Realtime Database (RTDB)** e **Firestore** do app antigo (Kotlin/Compose). Vamos:
-1. Habilitar leitura do RTDB no cliente.
-2. Inspecionar o que existe nos dois bancos.
-3. Migrar para o modelo novo (`users`, `schools`, `school_memberships`) preservando os `uid` originais.
-4. Garantir que o login Google de um usuário antigo caia direto no dashboard certo (sem refazer onboarding).
-5. Completar pontos que faltaram na Fase 1.
+O erro `auth/unauthorized-domain` significa que o Firebase Auth recusa abrir o popup do Google porque o domínio onde o app está rodando (`aab0ba7b-01cb-4d73-ad19-ea15974c09e5.lovableproject.com`) **não está** na whitelist do projeto `projetojefson`. Os domínios autorizados hoje são:
 
-## O que falta na Fase 1 atual (revisão)
-
-- `client.ts` não inicializa o **Realtime Database** (apesar do `databaseURL` estar no config).
-- Não há rotina de **discovery** dos dados antigos — precisamos mapear antes de migrar.
-- `ensureUserDoc` cria um `UserDoc` novo sempre que o `uid` não existe em `users/`, ignorando registros antigos do mesmo usuário (em `professores/`, `usuarios/`, etc.).
-- Não há **página `/app/master/migracao`** para o Admin Master rodar/auditar a migração com segurança (dry-run + commit).
-- Falta arquivo **`firestore.rules`** versionado no repo (hoje as regras só vivem no console).
-- Falta **índice composto** para `school_memberships` (`schoolId + status`) — usado nos dashboards.
-- `onboarding` não verifica se o e-mail já tem `membership` pré-criada pela migração; deveria pular o passo 3 nesse caso.
-
-## Plano de execução
-
-### 1. Cliente Firebase
-- Adicionar `getDatabase` em `src/integrations/firebase/client.ts` exportando `rtdb`.
-- Criar `src/integrations/firebase/rtdb.ts` com helpers `readNode(path)` e `listNode(path)`.
-
-### 2. Discovery (passo manual assistido)
-- Criar página **`/app/master/migracao`** (visível só para `globalRole = master`) com:
-  - Botão **"Escanear bancos"** → lê `ref(rtdb, "/")` raiz (top-level keys + contagem) e lista todas as coleções de Firestore conhecidas (`escolas`, `professores`, `alunos`, `turmas`, `chamadas`, `notas`, `avisos`, `usuarios`, e os nomes novos).
-  - Mostra resultado em JSON expansível, para você confirmar a estrutura real antes de migrar.
-- Sem isso não dá pra escrever a migração "às cegas" — você não enviou o schema antigo no chat.
-
-### 3. Mapeamento (a confirmar após o scan)
-Heurísticas iniciais (ajustáveis depois do scan):
-
-```text
-antigo               → novo
-─────────────────────────────────────────────
-usuarios/{uid}       → users/{uid}
-  nome,email,foto      name,email,photoUrl
-  tipo (prof/adm/pai)  profileType
-escolas/{id}         → schools/{id}
-  nome,cidade,uf       name,city,state
-                       + normalizedName (gerado)
-                       + status="active"
-professores/{uid}    → school_memberships/{auto}
-  escolaId,uid         schoolId,userId
-                       roleInSchool="teacher", status="approved"
-admins/{uid}         → school_memberships (role="school_admin")
-turmas, alunos,      → mantidos como estão (Fase 2 cuida)
-chamadas, notas,
-avisos
+```
+projetojefson.firebaseapp.com, projetojefson.web.app, localhost, + alguns vercel/run.app de outros projetos
 ```
 
-Regras de merge:
-- **Preservar `uid`**: `users/{uid}` reusa o uid do Auth Google. Se já existir, fazemos `merge` (não sobrescreve campos preenchidos).
-- **Deduplicar escolas** por `normalizedName + cidade`. Quando colidir, mantém a mais antiga e marca a outra como `merged_into`.
-- **Memberships idempotentes**: chave lógica `(schoolId, userId, roleInSchool)` — se já existe `approved`, ignora.
-- **Onboarding skip**: se após migração `users/{uid}.onboardingComplete = true` e há `memberships` aprovados, login já vai pro `/app`.
+Solução completa = **ação no Firebase Console** (você) + **melhorias de UX no app** (eu).
 
-### 4. Script de migração (dry-run obrigatório)
-- `src/lib/migration.ts`:
-  - `scanLegacy()` → retorna contagem por nó/coleção.
-  - `planMigration()` → produz array de operações `{type, target, payload, reason}` sem escrever.
-  - `applyMigration(ops)` → executa em lotes de 400 com `writeBatch`, gravando log em `migration_runs/{runId}`.
-- Na página `/app/master/migracao`: botões **Dry-run** (mostra plano) e **Executar** (confirmação dupla).
+## Ação obrigatória sua (não dá pra fazer por código)
 
-### 5. Ajuste de `ensureUserDoc`
-- Antes de criar `users/{uid}`, verificar se existe `usuarios/{uid}` (RTDB) ou docs em `professores`/`admins` com mesmo email — se sim, hidratar `UserDoc` com nome/profileType/onboardingComplete=true.
+No Firebase Console → **Authentication → Settings → Authorized domains**, adicionar:
 
-### 6. Regras de segurança versionadas
-- Criar `firestore.rules` no repo (cópia do que está no console, ajustada).
-- Adicionar `database.rules.json` para RTDB: somente Admin Master lê/escreve durante a migração; demais negados (dados serão consumidos via Firestore após migrar).
+1. `aab0ba7b-01cb-4d73-ad19-ea15974c09e5.lovableproject.com` (preview atual)
+2. `*.lovableproject.com` (não é aceito wildcard, então repita para cada preview que aparecer)
+3. `project--aab0ba7b-01cb-4d73-ad19-ea15974c09e5.lovable.app` (URL estável de produção)
+4. `project--aab0ba7b-01cb-4d73-ad19-ea15974c09e5-dev.lovable.app` (URL estável de preview)
+5. Eventual domínio customizado quando publicar.
 
-### 7. Índices
-- Adicionar `firestore.indexes.json` com índice composto `school_memberships (schoolId ASC, status ASC)`.
+E em **Authentication → Sign-in method**, garantir que **Google** está habilitado.
 
-## Escopo fora deste plano
-- Telas de Turmas/Alunos/Chamada/Notas/Relatórios/Avisos (Fase 2+).
-- Migração efetiva de `chamadas`/`notas`/`avisos` (só estrutura de `schools` + `users` + `memberships` agora; o resto migra junto da Fase correspondente para evitar trabalho perdido se o schema novo mudar).
+## Melhorias de código que vou fazer
 
-## Próximo passo após aprovação
-Implemento itens 1, 2, 5, 6, 7 e a página `/app/master/migracao` com o **scan**. Aí você roda o scan, me cola o JSON do resultado e eu finalizo o `planMigration`/`applyMigration` (item 4) com o mapeamento real.
+### 1. Login mais robusto e auto-diagnóstico
+- Em `login.tsx`, detectar `auth/unauthorized-domain` e renderizar um card explicando exatamente qual domínio precisa ser adicionado, com botão "Copiar domínio" (`window.location.hostname`) e link direto pro Console.
+- Tratar `auth/popup-blocked` e `auth/popup-closed-by-user` → fallback automático para `signInWithRedirect`.
+- Tratar `auth/network-request-failed` com mensagem amigável.
+
+### 2. Fallback de autenticação
+- Adicionar **login com e-mail + senha** ao lado do "Entrar com Google" (recomendação Lovable: padrão é Google + email/senha). Útil enquanto o domínio não estiver autorizado e como segundo método pros pais.
+- Tela mínima: tabs "Entrar" / "Criar conta", com `signInWithEmailAndPassword` / `createUserWithEmailAndPassword`. O `ensureUserDoc` já cuida do resto.
+
+### 3. Captura do retorno do redirect
+- No `AuthContext`, chamar `getRedirectResult(auth)` no boot para finalizar o fluxo quando o usuário voltar do redirect.
+
+### 4. Encaminhamento ao cadastro quando não identificado
+- Já está implementado: `onboarding.tsx` carrega quando `userDoc.onboardingComplete === false`. Vou só reforçar o redirecionamento em `app/index.tsx` e em `_app` para o caso de o usuário entrar direto numa URL protegida sem onboarding completo.
+
+### 5. Mensagens em PT-BR e estados de erro
+- Toasts e cards de erro em português, com sugestão de ação.
+
+## Fora deste escopo (continua nas próximas fases)
+- Turmas, alunos, chamada, notas, fechamento bimestre, relatórios, avisos.
+- Capacitor/Android.
+- A migração do RTDB → Firestore (continua acessível em **Master → Migração**, já entregue).
+
+## Próximo passo após sua aprovação
+Eu implemento as 5 melhorias acima. Você adiciona os domínios no Firebase Console (1 minuto). Depois disso o "Entrar com Google" abre normalmente; se algo ainda falhar, a própria tela vai mostrar o motivo e o que fazer.
