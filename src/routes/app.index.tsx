@@ -54,7 +54,7 @@ function AppHome() {
   const firstName = userDoc.name?.split(" ")[0] ?? "";
 
   return (
-    <AppShell title={`Olá, ${firstName}`}>
+    <AppShell title={`Olá, ${firstName}`} back={false}>
       <section className="space-y-1">
         <p className="text-sm text-muted-foreground">
           {userDoc.profileType === "school_admin"
