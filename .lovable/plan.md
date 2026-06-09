@@ -1,33 +1,39 @@
-# Corrigir "Permission denied" ao acessar /app/*
+Vou refazer a base para usar Lovable Cloud, remover a dependência do Firebase no app e corrigir o loop de login.
 
-## Causa
+## Plano
 
-O erro `Permission denied` vem do **Realtime Database**, não do app. O arquivo `database.rules.json` no repositório está correto, mas o Firebase **não publica regras automaticamente** — elas precisam ser coladas manualmente no Console (aba *Rules* do Realtime Database). Como o banco ainda está em modo *Locked* (padrão), toda leitura/escrita em `users/{uid}` é bloqueada, e o boot do AuthContext falha.
+1. **Ativar Lovable Cloud e autenticação Google/Gmail**
+   - Usar a autenticação nativa do Lovable Cloud.
+   - Manter login por Google/Gmail e, se fizer sentido, também e-mail/senha.
+   - Remover mensagens e fluxos que pedem domínio autorizado no Firebase.
 
-## O que vou alterar (somente UI de diagnóstico + detecção do erro)
+2. **Criar o novo banco de dados no Lovable Cloud**
+   - Criar tabelas para: perfis, papéis globais, escolas, vínculos escolares, turmas, alunos, frequência, notas e advertências.
+   - Configurar regras de acesso para usuários autenticados.
+   - Guardar o papel `master` em tabela separada de papéis, não dentro do perfil.
 
-### 1. `src/contexts/AuthContext.tsx`
-- Estender `parseError` para detectar também erros de RTDB:
-  - `code === "PERMISSION_DENIED"` ou mensagem contendo `permission_denied` / `Permission denied` → novo flag `rulesMissing: true`.
-- Manter `firestoreMissing` por compatibilidade.
+3. **Definir somente o e-mail Jefson como master**
+   - Usar o e-mail já presente no projeto: `jefson.ti@gmail.com`.
+   - Ao entrar/criar conta com esse e-mail, o sistema garante papel `master` automaticamente.
+   - Demais usuários entram como usuário comum até serem vinculados a escola/perfil.
 
-### 2. `src/routes/app.tsx`
-- Quando `bootError.rulesMissing` for `true`, trocar a mensagem genérica por um card explicando:
-  - "As regras do Realtime Database ainda não foram publicadas."
-  - Passos numerados: abrir Console → Realtime Database → aba *Rules* → colar o JSON → publicar.
-  - Bloco `<pre>` com o conteúdo exato de `database.rules.json` e botão **Copiar regras**.
-  - Botão **Abrir Console do Realtime Database** apontando para `https://console.firebase.google.com/project/projetojefson/database/projetojefson-default-rtdb/rules`.
-  - Botões existentes **Tentar novamente** e **Sair**.
+4. **Corrigir o loop do login**
+   - Substituir o `AuthContext` atual baseado em Firebase por sessão do Lovable Cloud.
+   - Criar automaticamente o perfil do usuário após login.
+   - Se faltar nome, tipo de perfil ou escola, mandar para onboarding/perfil sem travar em “Carregando”.
+   - Se já estiver completo, entrar direto em `/app`.
 
-### 3. `src/lib/rtdb-rules.ts` (novo)
-- Exportar uma constante `RTDB_RULES_JSON` com o mesmo conteúdo de `database.rules.json` (string), usada pelo card de diagnóstico para o "Copiar regras".
+5. **Refazer onboarding e tela de perfil**
+   - Salvar nome, tipo de perfil e escola no Lovable Cloud.
+   - Manter tela de revisão/edição para corrigir nome, perfil e escola.
+   - Permitir completar dados pendentes sem bloquear o acesso indefinidamente.
 
-## Fora de escopo
-- Não alterar lógica de leitura/escrita, rotas, ou modelo de dados.
-- Não criar novos domínios no Firebase.
-- Não mexer em `database.rules.json` (já está correto).
+6. **Conectar as telas aos dados reais do Lovable Cloud**
+   - Migrar Frequência, Notas, Turmas, Boletim, Advertências, Relatórios, Escola e Master para ler/gravar no novo banco.
+   - Remover chamadas a Realtime Database, Firestore e regras Firebase.
+   - Atualizar estados vazios para refletirem dados reais da escola ativa.
 
-## Como o usuário resolve depois do deploy
-1. Abrir o link no card → Console do Realtime Database, aba *Rules*.
-2. Clicar em **Copiar regras** no app, colar no editor do Firebase, **Publicar**.
-3. Voltar ao app e clicar **Tentar novamente** — perfil carrega e o dashboard aparece.
+7. **Limpeza final**
+   - Remover integrações Firebase, regras RTDB e dependência `firebase` se não forem mais usadas.
+   - Atualizar textos da interface para não orientar mais o usuário a abrir Firebase Console.
+   - Validar o fluxo: login Google/Gmail → perfil criado → master reconhecido → acesso ao app sem loop.
