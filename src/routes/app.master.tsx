@@ -1,15 +1,24 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Check, Database, Merge, X } from "lucide-react";
-
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { Building2, Check, Database, Download, Merge, X } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
-import { groupPossibleDuplicates, listAllSchoolsForMaster, mergeSchools, setSchoolStatus } from "@/lib/schools";
+import {
+  groupPossibleDuplicates,
+  listAllSchoolsForMaster,
+  mergeSchools,
+  setSchoolStatus,
+} from "@/lib/schools";
 import { Loading, EmptyState } from "@/components/States";
+import { importExternalData } from "@/lib/import.functions";
 import type { SchoolDoc } from "@/lib/types";
 
 export const Route = createFileRoute("/app/master")({
@@ -77,6 +86,8 @@ function MasterPage() {
           </CardContent>
         </Card>
       </Link>
+
+      <ImportExternalCard schools={active} />
 
       <div className="grid grid-cols-3 gap-3">
         <Stat label="Ativas" value={active.length} />
@@ -170,6 +181,97 @@ function MasterPage() {
         </div>
       </Section>
     </AppShell>
+  );
+}
+
+function ImportExternalCard({ schools }: { schools: SchoolDoc[] }) {
+  const [open, setOpen] = useState(false);
+  const [baseUrl, setBaseUrl] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [schoolId, setSchoolId] = useState("");
+  const [report, setReport] = useState<string | null>(null);
+  const runImport = useServerFn(importExternalData);
+
+  const mut = useMutation({
+    mutationFn: async (dryRun: boolean) => {
+      if (!schoolId) throw new Error("Selecione uma escola de destino.");
+      return runImport({ data: { baseUrl, apiKey, schoolId, dryRun } });
+    },
+    onSuccess: (res) => {
+      setReport(JSON.stringify(res.report, null, 2));
+      toast.success(res.dryRun ? "Pré-visualização gerada." : "Importação concluída.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Card className="border-primary/30">
+      <CardContent className="pt-4 pb-4 space-y-3">
+        <button
+          className="w-full flex items-center gap-3 text-left"
+          onClick={() => setOpen((v) => !v)}
+        >
+          <Download className="size-5 text-primary" />
+          <div className="flex-1">
+            <div className="font-medium">Importar dados externos</div>
+            <div className="text-xs text-muted-foreground">
+              Trazer alunos, frequências e notas de outro sistema via API
+            </div>
+          </div>
+        </button>
+
+        {open && (
+          <div className="space-y-3 pt-2 border-t">
+            <div className="space-y-1.5">
+              <Label>Endpoint (URL JSON)</Label>
+              <Input
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                placeholder="https://api.exemplo.com/exportar"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>API Key (Bearer)</Label>
+              <Input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk_..."
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Escola de destino</Label>
+              <select
+                value={schoolId}
+                onChange={(e) => setSchoolId(e.target.value)}
+                className="w-full border rounded-md h-10 px-3 bg-background"
+              >
+                <option value="">— escolha —</option>
+                {schools.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Formato esperado: <code>{`{ students:[{external_id,name,...}], attendance:[...], grades:[...] }`}</code>
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" disabled={mut.isPending} onClick={() => mut.mutate(true)}>
+                Pré-visualizar
+              </Button>
+              <Button className="flex-1" disabled={mut.isPending} onClick={() => mut.mutate(false)}>
+                Importar
+              </Button>
+            </div>
+            {report && (
+              <Textarea readOnly value={report} className="font-mono text-xs h-48" />
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

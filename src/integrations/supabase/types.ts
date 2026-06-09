@@ -19,6 +19,7 @@ export type Database = {
           class_id: string
           created_at: string
           date: string
+          external_id: string | null
           id: string
           present: boolean | null
           recorded_by: string
@@ -30,6 +31,7 @@ export type Database = {
           class_id: string
           created_at?: string
           date: string
+          external_id?: string | null
           id?: string
           present?: boolean | null
           recorded_by: string
@@ -41,6 +43,7 @@ export type Database = {
           class_id?: string
           created_at?: string
           date?: string
+          external_id?: string | null
           id?: string
           present?: boolean | null
           recorded_by?: string
@@ -72,10 +75,50 @@ export type Database = {
           },
         ]
       }
+      class_teachers: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          school_id: string
+          user_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          school_id: string
+          user_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          school_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_teachers_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_teachers_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           created_at: string
           created_by: string
+          grade_level: string | null
           id: string
           name: string
           school_id: string
@@ -85,6 +128,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          grade_level?: string | null
           id?: string
           name: string
           school_id: string
@@ -94,6 +138,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          grade_level?: string | null
           id?: string
           name?: string
           school_id?: string
@@ -172,6 +217,7 @@ export type Database = {
         Row: {
           class_id: string
           created_at: string
+          external_id: string | null
           id: string
           recorded_by: string
           school_id: string
@@ -183,6 +229,7 @@ export type Database = {
         Insert: {
           class_id: string
           created_at?: string
+          external_id?: string | null
           id?: string
           recorded_by: string
           school_id: string
@@ -194,6 +241,7 @@ export type Database = {
         Update: {
           class_id?: string
           created_at?: string
+          external_id?: string | null
           id?: string
           recorded_by?: string
           school_id?: string
@@ -352,6 +400,7 @@ export type Database = {
           class_id: string | null
           created_at: string
           created_by: string
+          external_id: string | null
           guardian_name: string | null
           guardian_phone: string | null
           id: string
@@ -363,6 +412,7 @@ export type Database = {
           class_id?: string | null
           created_at?: string
           created_by: string
+          external_id?: string | null
           guardian_name?: string | null
           guardian_phone?: string | null
           id?: string
@@ -374,6 +424,7 @@ export type Database = {
           class_id?: string | null
           created_at?: string
           created_by?: string
+          external_id?: string | null
           guardian_name?: string | null
           guardian_phone?: string | null
           id?: string
@@ -429,6 +480,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["global_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_class_teacher: {
+        Args: { _class_id: string; _user_id: string }
         Returns: boolean
       }
       is_master: { Args: { _user_id: string }; Returns: boolean }

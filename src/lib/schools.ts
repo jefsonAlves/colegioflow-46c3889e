@@ -62,7 +62,8 @@ export async function createSchool(input: {
   createdBy: string;
   isMaster: boolean;
 }): Promise<SchoolDoc> {
-  const status: SchoolStatus = input.isMaster ? "active" : "pending";
+  void input.isMaster;
+  // All schools active on creation; creator bootstraps as approved school_admin.
   const { data, error } = await supabase
     .from("schools")
     .insert({
@@ -71,12 +72,23 @@ export async function createSchool(input: {
       city: input.city?.trim() || null,
       state: input.state?.trim() || null,
       created_by: input.createdBy,
-      status,
+      status: "active" as SchoolStatus,
     })
     .select("*")
     .single();
   if (error) throw error;
-  return rowToDoc(data as Row);
+  const school = rowToDoc(data as Row);
+
+  const { error: memErr } = await supabase.from("school_memberships").insert({
+    school_id: school.id,
+    user_id: input.createdBy,
+    role_in_school: "school_admin",
+    status: "approved",
+    approved_by: input.createdBy,
+  });
+  if (memErr) console.warn("[createSchool] bootstrap admin failed:", memErr.message);
+
+  return school;
 }
 
 export async function getSchool(id: string): Promise<SchoolDoc | null> {

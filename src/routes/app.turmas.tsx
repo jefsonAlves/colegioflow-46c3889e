@@ -13,6 +13,7 @@ import { Loading, EmptyState } from "@/components/States";
 import { useAuth } from "@/contexts/AuthContext";
 import { createClass, listClasses } from "@/lib/classes";
 import { createStudent, listStudentsByClass } from "@/lib/students";
+import { listClassTeachers, teachClass, untaughtClass } from "@/lib/classTeachers";
 import type { ClassDoc } from "@/lib/classes";
 
 export const Route = createFileRoute("/app/turmas")({
@@ -32,6 +33,7 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
   const qc = useQueryClient();
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newGrade, setNewGrade] = useState("");
   const [newYear, setNewYear] = useState<number>(new Date().getFullYear());
   const [openClass, setOpenClass] = useState<ClassDoc | null>(null);
 
@@ -40,8 +42,8 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
     queryFn: () => listClasses(schoolId),
   });
 
-  const canCreate =
-    userDoc?.profileType === "school_admin" || userDoc?.globalRole === "master";
+  // Any school member can create classes (RLS enforces it).
+  const canCreate = !!userDoc && userDoc.globalRole !== undefined;
 
   const save = async () => {
     if (!firebaseUser) return;
@@ -53,12 +55,14 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
       await createClass(schoolId, {
         name: newName,
         year: newYear,
+        gradeLevel: newGrade.trim() || null,
         teacherUid: userDoc?.profileType === "teacher" ? firebaseUser.uid : null,
         createdBy: firebaseUser.uid,
       });
       toast.success("Turma criada!");
       setCreating(false);
       setNewName("");
+      setNewGrade("");
       qc.invalidateQueries({ queryKey: ["classes", schoolId] });
     } catch (e) {
       console.error(e);
@@ -87,6 +91,14 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 autoFocus
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Série / Ano (ex.: 5º Ano, 3ª Série EM)</Label>
+              <Input
+                placeholder="5º Ano"
+                value={newGrade}
+                onChange={(e) => setNewGrade(e.target.value)}
               />
             </div>
             <div className="space-y-1.5">
@@ -209,12 +221,17 @@ function ClassDetail({
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-bold text-lg">{cls.name}</h3>
-            <p className="text-xs text-muted-foreground">{cls.year}</p>
+            <p className="text-xs text-muted-foreground">
+              {cls.gradeLevel ? `${cls.gradeLevel} · ` : ""}{cls.year}
+            </p>
           </div>
           <Button size="sm" variant="ghost" onClick={onClose}>
             <X className="size-4" />
           </Button>
         </div>
+
+        <TeachToggle cls={cls} schoolId={schoolId} />
+
 
         {canEdit && (
           <div className="flex gap-2">
@@ -250,6 +267,38 @@ function ClassDetail({
           </ul>
         )}
       </div>
+    </div>
+  );
+}
+
+function TeachToggle({ cls, schoolId }: { cls: ClassDoc; schoolId: string }) {
+  const { firebaseUser } = useAuth();
+  const qc = useQueryClient();
+  const teachersQ = useQuery({
+    queryKey: ["class-teachers", cls.id],
+    queryFn: () => listClassTeachers(cls.id),
+  });
+  if (!firebaseUser) return null;
+  const teaching = (teachersQ.data ?? []).some((t) => t.userId === firebaseUser.uid);
+  const onToggle = async () => {
+    try {
+      if (teaching) {
+        await untaughtClass({ classId: cls.id, userId: firebaseUser.uid });
+      } else {
+        await teachClass({ classId: cls.id, schoolId, userId: firebaseUser.uid });
+      }
+      qc.invalidateQueries({ queryKey: ["class-teachers", cls.id] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao atualizar.");
+    }
+  };
+  return (
+    <div className="flex items-center justify-between rounded-lg border p-2.5 text-sm">
+      <span>Eu leciono nesta turma</span>
+      <Button size="sm" variant={teaching ? "default" : "outline"} onClick={onToggle}>
+        {teaching ? "Sim" : "Marcar"}
+      </Button>
     </div>
   );
 }
