@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Loading, EmptyState } from "@/components/States";
 import { useAuth } from "@/contexts/AuthContext";
 import { listClasses } from "@/lib/classes";
+import { listMyTaughtClasses } from "@/lib/classTeachers";
 import { listStudentsByClass } from "@/lib/students";
 import { getAttendance, setAttendance, type AttendanceStatus } from "@/lib/attendance";
 
@@ -46,6 +47,12 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const classesQ = useQuery({
     queryKey: ["classes", schoolId],
     queryFn: () => listClasses(schoolId),
+  });
+
+  const myTaughtQ = useQuery({
+    queryKey: ["my-taught-classes", firebaseUser?.uid],
+    queryFn: () => listMyTaughtClasses(firebaseUser!.uid),
+    enabled: !!firebaseUser,
   });
 
   const studentsQ = useQuery({
@@ -87,8 +94,13 @@ function Frequencia({ schoolId }: { schoolId: string }) {
     setSaving(true);
     try {
       const now = Date.now();
+      const full: Record<string, AttendanceStatus> = { ...marks };
+      // Auto-fill: students with no mark count as Present
+      for (const s of studentsQ.data ?? []) {
+        if (!full[s.id]) full[s.id] = "P";
+      }
       const payload = Object.fromEntries(
-        Object.entries(marks).map(([uid, s]) => [uid, { status: s, by: firebaseUser.uid, at: now }]),
+        Object.entries(full).map(([uid, s]) => [uid, { status: s, by: firebaseUser.uid, at: now }]),
       );
       await setAttendance(schoolId, classId, date, payload);
       toast.success("Chamada salva!");
@@ -101,10 +113,20 @@ function Frequencia({ schoolId }: { schoolId: string }) {
     }
   };
 
-  if (classesQ.isLoading) return <Loading />;
-  const classes = classesQ.data ?? [];
-  if (classes.length === 0) {
+  if (classesQ.isLoading || myTaughtQ.isLoading) return <Loading />;
+  const taughtIds = new Set((myTaughtQ.data ?? []).map((t) => t.classId));
+  const allClasses = classesQ.data ?? [];
+  const classes = allClasses.filter((c) => taughtIds.has(c.id));
+  if (allClasses.length === 0) {
     return <EmptyState title="Nenhuma turma" description="Crie uma turma para fazer chamada." />;
+  }
+  if (classes.length === 0) {
+    return (
+      <EmptyState
+        title="Você não leciona nenhuma turma"
+        description="Vá em Turmas e marque as turmas em que você dá aula."
+      />
+    );
   }
 
   return (
