@@ -22,11 +22,13 @@ function toUser(u: { id: string; email?: string | null; user_metadata?: Record<s
   };
 }
 
-export async function signInWithGoogle() {
-  const redirect_uri = typeof window !== "undefined" ? window.location.origin : undefined;
+export async function signInWithGoogle(redirectUri?: string) {
+  const redirect_uri =
+    redirectUri ?? (typeof window !== "undefined" ? window.location.origin : undefined);
   const result = await lovable.auth.signInWithOAuth("google", { redirect_uri });
   if (result?.error) throw result.error;
 }
+
 
 export async function signInWithEmail(email: string, password: string): Promise<UserCredential> {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
