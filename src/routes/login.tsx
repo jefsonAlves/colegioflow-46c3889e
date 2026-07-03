@@ -73,7 +73,11 @@ function LoginPage() {
   const handleGoogle = async () => {
     try {
       setSubmitting(true);
-      await signInWithGoogle();
+      const target = safeNext(next);
+      const redirect = target
+        ? `${window.location.origin}/login?next=${encodeURIComponent(target)}`
+        : undefined;
+      await signInWithGoogle(redirect);
     } catch (e) {
       const err = e as AuthError;
       console.error(err);
@@ -82,6 +86,7 @@ function LoginPage() {
       setSubmitting(false);
     }
   };
+
 
   const handleEmail = async (mode: "signin" | "signup") => {
     if (!email || password.length < 6) {
