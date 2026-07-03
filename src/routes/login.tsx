@@ -16,6 +16,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { APP_NAME } from "@/lib/constants";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" ? s.next : undefined,
+  }),
   head: () => ({
     meta: [
       { title: `${APP_NAME} — Entrar` },
@@ -39,9 +42,16 @@ function translateError(message?: string): string {
   return message;
 }
 
+// Only allow same-origin relative paths (starts with a single slash, not "//").
+function safeNext(next: string | undefined): string | null {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
+}
+
 function LoginPage() {
   const { loading, firebaseUser, userDoc } = useAuth();
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const [submitting, setSubmitting] = useState(false);
 
   const [email, setEmail] = useState("");
@@ -50,9 +60,15 @@ function LoginPage() {
   useEffect(() => {
     if (loading) return;
     if (firebaseUser && userDoc) {
+      const target = safeNext(next);
+      if (target) {
+        window.location.href = target;
+        return;
+      }
       navigate({ to: userDoc.onboardingComplete ? "/app" : "/onboarding" });
     }
-  }, [loading, firebaseUser, userDoc, navigate]);
+  }, [loading, firebaseUser, userDoc, navigate, next]);
+
 
   const handleGoogle = async () => {
     try {
