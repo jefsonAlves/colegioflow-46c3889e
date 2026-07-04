@@ -245,3 +245,71 @@ function StudentBoletim({
     </>
   );
 }
+
+function BoletimActions({
+  schoolId,
+  classId,
+  studentId,
+  studentName,
+}: {
+  schoolId: string;
+  classId: string;
+  studentId: string;
+  studentName: string;
+}) {
+  const { userDoc } = useAuth();
+  const isAdmin = userDoc?.profileType === "school_admin";
+  const [busy, setBusy] = useState(false);
+  const [requesting, setRequesting] = useState(false);
+
+  const downloadPDF = async () => {
+    setBusy(true);
+    try {
+      await generateStudentBoletimPDF({ schoolId, classId, studentId, studentName });
+      toast.success("Boletim gerado.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao gerar PDF.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const requestReview = async () => {
+    const reason = window.prompt(
+      `Descreva o que precisa ser revisado no boletim de ${studentName}:`,
+    );
+    if (!reason) return;
+    setRequesting(true);
+    try {
+      await createAnnouncement({
+        schoolId,
+        classId,
+        targetClassId: classId,
+        targetRole: "teacher",
+        audience: "teachers",
+        title: `Revisão solicitada · ${studentName}`,
+        body: `A secretaria solicita revisão do boletim de ${studentName}.\n\nMotivo: ${reason}`,
+      });
+      toast.success("Solicitação enviada aos professores da turma.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Não foi possível enviar.");
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  return (
+    <div className="flex gap-2">
+      <Button className="flex-1" onClick={downloadPDF} disabled={busy}>
+        <FileDown className="size-4" /> {busy ? "Gerando..." : "Baixar boletim (PDF)"}
+      </Button>
+      {isAdmin && (
+        <Button variant="outline" onClick={requestReview} disabled={requesting}>
+          <Send className="size-4" /> {requesting ? "Enviando..." : "Solicitar revisão"}
+        </Button>
+      )}
+    </div>
+  );
+}
