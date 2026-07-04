@@ -130,10 +130,16 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    installQueryPersistence(queryClient);
+  }, [queryClient]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <OfflineStatus />
         <Outlet />
+        <InstallPrompt />
         <Toaster richColors position="top-center" />
       </AuthProvider>
     </QueryClientProvider>
