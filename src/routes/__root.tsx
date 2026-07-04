@@ -16,6 +16,7 @@ import { Toaster } from "sonner";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { OfflineStatus } from "@/components/OfflineStatus";
 import { installQueryPersistence } from "@/lib/queryPersist";
+import { installOfflineDrain } from "@/lib/offlineDrain";
 
 function NotFoundComponent() {
   return (
