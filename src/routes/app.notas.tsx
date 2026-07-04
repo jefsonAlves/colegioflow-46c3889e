@@ -53,6 +53,7 @@ function Notas({ schoolId }: { schoolId: string }) {
   const [bimestre, setBimestre] = useState<number>(1);
   const [rows, setRows] = useState<Record<string, Row>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [filter, setFilter] = useState("");
 
   const classesQ = useQuery({
     queryKey: ["classes", schoolId],
@@ -83,20 +84,36 @@ function Notas({ schoolId }: { schoolId: string }) {
     setRows(next);
   }, [studentsQ.data, gradesQ.data]);
 
+  const filteredStudents = useMemo(() => {
+    const list = studentsQ.data ?? [];
+    if (!filter.trim()) return list;
+    return list.filter((s) => matchesInitial(s.name, filter));
+  }, [studentsQ.data, filter]);
+
   const saveRow = async (studentId: string) => {
     if (!classId || !firebaseUser) return;
     setSavingId(studentId);
     try {
-      const r = rows[studentId];
+      const raw = rows[studentId];
+      const p1 = sanitizeGrade(raw.p1);
+      const p2 = sanitizeGrade(raw.p2);
+      const at = sanitizeGrade(raw.atividade);
+      // Reflect any correction back in the UI so the user sees the saved value.
+      setRows((x) => ({
+        ...x,
+        [studentId]: { p1: p1.display, p2: p2.display, atividade: at.display },
+      }));
       const entry: GradeEntry = {
-        p1: toNum(r.p1),
-        p2: toNum(r.p2),
-        atividade: toNum(r.atividade),
+        p1: p1.value,
+        p2: p2.value,
+        atividade: at.value,
         by: firebaseUser.uid,
       };
       await setStudentGrade(schoolId, classId, bimestre, studentId, entry);
-      toast.success("Nota salva.");
+      const anyCorrected = p1.corrected || p2.corrected || at.corrected;
+      toast.success(anyCorrected ? "Nota salva (valores ajustados)." : "Nota salva.");
       qc.invalidateQueries({ queryKey: ["grades", schoolId, classId, bimestre] });
+      qc.invalidateQueries({ queryKey: ["attention-report", schoolId, classId] });
     } catch (e) {
       console.error(e);
       toast.error("Erro ao salvar.");
@@ -110,6 +127,7 @@ function Notas({ schoolId }: { schoolId: string }) {
   if (classes.length === 0) {
     return <EmptyState title="Nenhuma turma" description="Crie uma turma para lançar notas." />;
   }
+  const currentClass = classes.find((c) => c.id === classId);
 
   return (
     <>
@@ -149,8 +167,15 @@ function Notas({ schoolId }: { schoolId: string }) {
         </CardContent>
       </Card>
 
-      {classId && (
+      {classId && currentClass && (
         <>
+          <NotasDashboard
+            schoolId={schoolId}
+            classId={classId}
+            className={currentClass.name}
+            bimester={bimestre}
+          />
+
           <AssessmentTypesPanel schoolId={schoolId} classId={classId} bimester={bimestre} />
 
           {studentsQ.isLoading ? (
@@ -159,26 +184,49 @@ function Notas({ schoolId }: { schoolId: string }) {
             <EmptyState title="Sem alunos" />
           ) : (
             <div className="space-y-2">
-              {studentsQ.data!.map((s) => {
+              <StudentSearchInput value={filter} onChange={setFilter} />
+              {filteredStudents.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  Nenhum aluno com essas iniciais.
+                </p>
+              )}
+              {filteredStudents.map((s) => {
                 const r = rows[s.id] ?? { p1: "", p2: "", atividade: "" };
-                const media = calcMedia({
-                  p1: toNum(r.p1) ?? undefined,
-                  p2: toNum(r.p2) ?? undefined,
-                  atividade: toNum(r.atividade) ?? undefined,
-                });
+                const nums = {
+                  p1: sanitizeGrade(r.p1).value ?? undefined,
+                  p2: sanitizeGrade(r.p2).value ?? undefined,
+                  atividade: sanitizeGrade(r.atividade).value ?? undefined,
+                };
+                const media = calcMedia(nums);
+                const sum = [nums.p1, nums.p2, nums.atividade]
+                  .filter((v): v is number => typeof v === "number")
+                  .reduce((a, b) => a + b, 0);
                 return (
                   <Card key={s.id}>
                     <CardContent className="pt-4 pb-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="font-medium text-sm truncate flex-1">{s.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          Média:{" "}
-                          <span
-                            className={`font-bold ${
-                              media >= 6 ? "text-secondary-foreground" : "text-destructive"
-                            }`}
-                          >
-                            {media.toFixed(1)}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-medium text-sm truncate flex-1 flex items-center gap-1.5">
+                          {s.name}
+                          {s.specialNeeds && (
+                            <Heart
+                              className="size-3.5 text-primary shrink-0"
+                              aria-label={s.specialNeedsNote ?? "Adaptação"}
+                            />
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground flex gap-2 shrink-0">
+                          <span>
+                            Σ <span className="font-semibold">{sum.toFixed(1)}</span>
+                          </span>
+                          <span>
+                            Média:{" "}
+                            <span
+                              className={`font-bold ${
+                                media >= 6 ? "text-secondary-foreground" : "text-destructive"
+                              }`}
+                            >
+                              {media.toFixed(1)}
+                            </span>
                           </span>
                         </div>
                       </div>
@@ -189,10 +237,7 @@ function Notas({ schoolId }: { schoolId: string }) {
                               {k === "atividade" ? "Ativ." : k.toUpperCase()}
                             </div>
                             <Input
-                              type="number"
-                              step="0.1"
-                              min={0}
-                              max={10}
+                              inputMode="decimal"
                               value={r[k]}
                               onChange={(e) =>
                                 setRows((x) => ({
@@ -200,6 +245,15 @@ function Notas({ schoolId }: { schoolId: string }) {
                                   [s.id]: { ...r, [k]: e.target.value },
                                 }))
                               }
+                              onBlur={(e) => {
+                                const sanitized = sanitizeGrade(e.target.value).display;
+                                if (sanitized !== e.target.value) {
+                                  setRows((x) => ({
+                                    ...x,
+                                    [s.id]: { ...r, [k]: sanitized },
+                                  }));
+                                }
+                              }}
                               className="h-9"
                             />
                           </div>
@@ -213,18 +267,15 @@ function Notas({ schoolId }: { schoolId: string }) {
                         disabled={savingId === s.id}
                       >
                         <Save className="size-3.5" />
-                        {savingId === s.id ? "Salvando..." : "Salvar"}
+                        {savingId === s.id
+                          ? "Salvando..."
+                          : gradesQ.data?.[s.id]
+                            ? "Atualizar"
+                            : "Salvar"}
                       </Button>
                     </CardContent>
                   </Card>
                 );
-              })}
-            </div>
-          )}
-        </>
-      )}
-    </>
-  );
 }
 
 function AssessmentTypesPanel({
