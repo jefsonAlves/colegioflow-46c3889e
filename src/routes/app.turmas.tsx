@@ -385,14 +385,24 @@ function ClassDetail({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-bold text-lg">{cls.name}</h3>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h3 className="font-bold text-lg truncate">{classDisplayName}</h3>
+              <button
+                onClick={() => { setRenameText(classDisplayName); setRenamingClass(true); }}
+                className="text-muted-foreground hover:text-foreground"
+                title="Renomear turma"
+              >
+                <Pencil className="size-3.5" />
+              </button>
+            </div>
             <p className="text-xs text-muted-foreground">
               {cls.gradeLevel ? `${cls.gradeLevel} · ` : ""}{cls.year}
             </p>
           </div>
           <Button size="sm" variant="ghost" onClick={onClose}>
             <X className="size-4" />
+
           </Button>
         </div>
 
