@@ -91,6 +91,57 @@ export type Database = {
           },
         ]
       }
+      assessment_types: {
+        Row: {
+          bimester: number
+          class_id: string | null
+          created_at: string
+          id: string
+          name: string
+          school_id: string
+          teacher_id: string
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          bimester: number
+          class_id?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          school_id: string
+          teacher_id: string
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          bimester?: number
+          class_id?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          school_id?: string
+          teacher_id?: string
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_types_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_types_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance: {
         Row: {
           class_id: string
@@ -148,6 +199,139 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_attendance_alerts: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          max_absences: number
+          period: string
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          max_absences: number
+          period?: string
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          max_absences?: number
+          period?: string
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_attendance_alerts_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_content_logs: {
+        Row: {
+          attachment_path: string | null
+          class_id: string
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          objective: string | null
+          reaction: string | null
+          school_id: string
+          success: string | null
+          teacher_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          attachment_path?: string | null
+          class_id: string
+          created_at?: string
+          date: string
+          description?: string | null
+          id?: string
+          objective?: string | null
+          reaction?: string | null
+          school_id: string
+          success?: string | null
+          teacher_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          attachment_path?: string | null
+          class_id?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          objective?: string | null
+          reaction?: string | null
+          school_id?: string
+          success?: string | null
+          teacher_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_content_logs_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_content_logs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_overrides: {
+        Row: {
+          class_id: string
+          created_at: string
+          custom_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          custom_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          custom_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_overrides_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
             referencedColumns: ["id"]
           },
         ]
@@ -625,6 +809,41 @@ export type Database = {
           },
         ]
       }
+      student_overrides: {
+        Row: {
+          created_at: string
+          custom_name: string | null
+          notes: string | null
+          student_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_name?: string | null
+          notes?: string | null
+          student_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_name?: string | null
+          notes?: string | null
+          student_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_overrides_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           class_id: string | null
@@ -733,6 +952,14 @@ export type Database = {
       is_school_member: {
         Args: { _school_id: string; _user_id: string }
         Returns: boolean
+      }
+      rename_class_smart: {
+        Args: { _class_id: string; _new_name: string }
+        Returns: string
+      }
+      rename_student_smart: {
+        Args: { _new_name: string; _student_id: string }
+        Returns: string
       }
     }
     Enums: {

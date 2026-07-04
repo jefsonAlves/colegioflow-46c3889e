@@ -116,6 +116,59 @@
         "outputSchema": null
       },
       {
+        "name": "search_students",
+        "title": "Search students",
+        "description": "Search students by name with pagination, optionally filtered by school, class, or teacher. Returns only rows visible to the signed-in user via RLS.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "school_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "School UUID to search within."
+            },
+            "query": {
+              "type": "string",
+              "description": "Case-insensitive substring to match against the student name."
+            },
+            "class_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Optional class UUID to restrict the search."
+            },
+            "teacher_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Optional teacher UUID. If provided, restricts the search to classes that teacher leads."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "description": "Page size (max 100)."
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "description": "Starting offset for pagination."
+            }
+          },
+          "required": [
+            "school_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
         "name": "list_announcements",
         "title": "List announcements",
         "description": "List the most recent announcements for a school (up to 100).",

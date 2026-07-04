@@ -12,6 +12,7 @@ import {
   Heart,
   Clock,
   CalendarDays,
+  Pencil,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { SchoolGate } from "@/components/SchoolGate";
@@ -38,6 +39,8 @@ import {
   listSchedulesByClass,
   WEEKDAY_LABELS,
 } from "@/lib/classSchedules";
+import { listMyClassOverrides, renameClassSmart } from "@/lib/classOverrides";
+import { listMyStudentOverrides, renameStudentSmart } from "@/lib/studentOverrides";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -205,6 +208,11 @@ function ClassCard({
     queryKey: ["students", schoolId, cls.id],
     queryFn: () => listStudentsByClass(schoolId, cls.id),
   });
+  const overridesQ = useQuery({
+    queryKey: ["my-class-overrides"],
+    queryFn: () => listMyClassOverrides(),
+  });
+  const displayName = overridesQ.data?.[cls.id] ?? cls.name;
 
   return (
     <button
@@ -215,7 +223,7 @@ function ClassCard({
         <Users className="size-5" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-semibold truncate">{cls.name}</div>
+        <div className="font-semibold truncate">{displayName}</div>
         <div className="text-xs text-muted-foreground">
           {cls.year} · {(studentsQ.data ?? []).length} aluno(s)
         </div>
@@ -223,6 +231,7 @@ function ClassCard({
     </button>
   );
 }
+
 
 function ClassDetail({
   cls,
@@ -249,6 +258,51 @@ function ClassDetail({
   const [transferStudent, setTransferStudent] = useState<StudentDoc | null>(null);
   const [deletingStudent, setDeletingStudent] = useState<StudentDoc | null>(null);
   const [editingNeeds, setEditingNeeds] = useState<StudentDoc | null>(null);
+  const [renamingStudent, setRenamingStudent] = useState<StudentDoc | null>(null);
+  const [renamingClass, setRenamingClass] = useState(false);
+  const [renameText, setRenameText] = useState("");
+  const classOverridesQ = useQuery({
+    queryKey: ["my-class-overrides"],
+    queryFn: () => listMyClassOverrides(),
+  });
+  const studentOverridesQ = useQuery({
+    queryKey: ["my-student-overrides"],
+    queryFn: () => listMyStudentOverrides(),
+  });
+  const classDisplayName = classOverridesQ.data?.[cls.id] ?? cls.name;
+  const studentName = (s: StudentDoc) => studentOverridesQ.data?.[s.id] ?? s.name;
+
+  const doRenameClass = async () => {
+    const nn = renameText.trim();
+    if (nn.length < 2) { toast.error("Nome muito curto."); return; }
+    try {
+      const scope = await renameClassSmart(cls.id, nn);
+      toast.success(scope === "shared" ? "Nome alterado para todos os professores." : "Alterado só para você.");
+      setRenamingClass(false);
+      qc.invalidateQueries({ queryKey: ["classes", schoolId] });
+      qc.invalidateQueries({ queryKey: ["my-class-overrides"] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao renomear.");
+    }
+  };
+
+  const doRenameStudent = async () => {
+    if (!renamingStudent) return;
+    const nn = renameText.trim();
+    if (nn.length < 2) { toast.error("Nome muito curto."); return; }
+    try {
+      const scope = await renameStudentSmart(renamingStudent.id, nn);
+      toast.success(scope === "shared" ? "Nome alterado para todos os professores." : "Alterado só para você.");
+      setRenamingStudent(null);
+      qc.invalidateQueries({ queryKey: ["students", schoolId, cls.id] });
+      qc.invalidateQueries({ queryKey: ["my-student-overrides"] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao renomear.");
+    }
+  };
+
 
   const addStudents = async () => {
     const raw = bulkText
@@ -331,14 +385,24 @@ function ClassDetail({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-bold text-lg">{cls.name}</h3>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h3 className="font-bold text-lg truncate">{classDisplayName}</h3>
+              <button
+                onClick={() => { setRenameText(classDisplayName); setRenamingClass(true); }}
+                className="text-muted-foreground hover:text-foreground"
+                title="Renomear turma"
+              >
+                <Pencil className="size-3.5" />
+              </button>
+            </div>
             <p className="text-xs text-muted-foreground">
               {cls.gradeLevel ? `${cls.gradeLevel} · ` : ""}{cls.year}
             </p>
           </div>
           <Button size="sm" variant="ghost" onClick={onClose}>
             <X className="size-4" />
+
           </Button>
         </div>
 
@@ -379,7 +443,7 @@ function ClassDetail({
                 <span className="text-xs text-muted-foreground w-6">{i + 1}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="truncate">{s.name}</span>
+                    <span className="truncate">{studentName(s)}</span>
                     {s.specialNeeds && (
                       <Heart
                         className="size-3.5 text-primary shrink-0"
@@ -401,6 +465,9 @@ function ClassDetail({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => { setRenameText(studentName(s)); setRenamingStudent(s); }}>
+                        <Pencil className="size-4" /> Renomear aluno
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setEditingNeeds(s)}>
                         <Heart className="size-4" /> Necessidades especiais
                       </DropdownMenuItem>
@@ -491,9 +558,48 @@ function ClassDetail({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={renamingClass} onOpenChange={(o) => !o && setRenamingClass(false)}>
+        <DialogContent onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>Renomear turma</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input value={renameText} onChange={(e) => setRenameText(e.target.value)} placeholder="Novo nome" />
+            <p className="text-xs text-muted-foreground">
+              Se for a primeira alteração dessa turma, o novo nome será compartilhado com os
+              outros professores. Caso contrário, será salvo apenas para você.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenamingClass(false)}>Cancelar</Button>
+            <Button onClick={doRenameClass}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!renamingStudent} onOpenChange={(o) => !o && setRenamingStudent(null)}>
+        <DialogContent onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>Renomear aluno</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input value={renameText} onChange={(e) => setRenameText(e.target.value)} placeholder="Novo nome" />
+            <p className="text-xs text-muted-foreground">
+              Primeira edição do aluno: nome será compartilhado. Depois disso, alterações ficam
+              apenas no seu ambiente.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenamingStudent(null)}>Cancelar</Button>
+            <Button onClick={doRenameStudent}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
 
 function SpecialNeedsDialog({
   student,
