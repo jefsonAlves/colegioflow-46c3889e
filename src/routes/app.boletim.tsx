@@ -235,6 +235,13 @@ function StudentBoletim({
           </CardContent>
         </Card>
       </div>
+
+      <BoletimActions
+        schoolId={schoolId}
+        classId={classId}
+        studentId={studentId}
+        studentName={studentName}
+      />
     </>
   );
 }
