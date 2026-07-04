@@ -5,11 +5,7 @@ import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persist
 // friction; accept an untyped client here.
 type AnyQueryClient = Parameters<typeof persistQueryClient>[0]["queryClient"];
 
-/**
- * Persist selected query cache to localStorage so the app boots with data
- * even when offline. Keys prefixed with "no-persist" are skipped.
- */
-export function installQueryPersistence(queryClient: QueryClient) {
+export function installQueryPersistence(queryClient: AnyQueryClient) {
   if (typeof window === "undefined") return;
   try {
     const persister = createSyncStoragePersister({
