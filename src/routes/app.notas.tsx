@@ -148,6 +148,8 @@ function Notas({ schoolId }: { schoolId: string }) {
 
       {classId && (
         <>
+          <AssessmentTypesPanel schoolId={schoolId} classId={classId} bimester={bimestre} />
+
           {studentsQ.isLoading ? (
             <Loading />
           ) : (studentsQ.data ?? []).length === 0 ? (
