@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileDown, Send } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +13,9 @@ import { listClasses } from "@/lib/classes";
 import { listStudentsByClass } from "@/lib/students";
 import { getStudentAllBimesters } from "@/lib/grades";
 import { getClassAttendanceAll } from "@/lib/attendance";
+import { generateClassBoletimPDF, generateStudentBoletimPDF } from "@/lib/pdf/boletim";
+import { createAnnouncement } from "@/lib/announcements";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const Route = createFileRoute("/app/boletim")({
   component: () => (
