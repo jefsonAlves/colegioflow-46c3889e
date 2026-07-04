@@ -276,6 +276,13 @@ function Notas({ schoolId }: { schoolId: string }) {
                     </CardContent>
                   </Card>
                 );
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
 }
 
 function AssessmentTypesPanel({
