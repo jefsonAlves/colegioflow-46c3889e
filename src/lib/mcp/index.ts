@@ -5,6 +5,7 @@ import listClassesTool from "./tools/list-classes";
 import listStudentsTool from "./tools/list-students";
 import listAnnouncementsTool from "./tools/list-announcements";
 import createAnnouncementTool from "./tools/create-announcement";
+import searchStudentsTool from "./tools/search-students";
 
 const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "project-ref-unset";
 
@@ -23,6 +24,7 @@ export default defineMcp({
     listMySchoolsTool,
     listClassesTool,
     listStudentsTool,
+    searchStudentsTool,
     listAnnouncementsTool,
     createAnnouncementTool,
   ],
