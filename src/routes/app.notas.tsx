@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Save, Trash2 } from "lucide-react";
+import { Plus, Save, Trash2, Heart } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +26,9 @@ import {
   deleteAssessmentType,
   listAssessmentTypes,
 } from "@/lib/assessmentTypes";
+import { sanitizeGrade } from "@/lib/gradeSanitize";
+import { NotasDashboard } from "@/components/NotasDashboard";
+import { matchesInitial, StudentSearchInput } from "@/components/StudentSearchInput";
 
 export const Route = createFileRoute("/app/notas")({
   component: () => (
