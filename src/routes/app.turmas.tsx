@@ -258,6 +258,51 @@ function ClassDetail({
   const [transferStudent, setTransferStudent] = useState<StudentDoc | null>(null);
   const [deletingStudent, setDeletingStudent] = useState<StudentDoc | null>(null);
   const [editingNeeds, setEditingNeeds] = useState<StudentDoc | null>(null);
+  const [renamingStudent, setRenamingStudent] = useState<StudentDoc | null>(null);
+  const [renamingClass, setRenamingClass] = useState(false);
+  const [renameText, setRenameText] = useState("");
+  const classOverridesQ = useQuery({
+    queryKey: ["my-class-overrides"],
+    queryFn: () => listMyClassOverrides(),
+  });
+  const studentOverridesQ = useQuery({
+    queryKey: ["my-student-overrides"],
+    queryFn: () => listMyStudentOverrides(),
+  });
+  const classDisplayName = classOverridesQ.data?.[cls.id] ?? cls.name;
+  const studentName = (s: StudentDoc) => studentOverridesQ.data?.[s.id] ?? s.name;
+
+  const doRenameClass = async () => {
+    const nn = renameText.trim();
+    if (nn.length < 2) { toast.error("Nome muito curto."); return; }
+    try {
+      const scope = await renameClassSmart(cls.id, nn);
+      toast.success(scope === "shared" ? "Nome alterado para todos os professores." : "Alterado só para você.");
+      setRenamingClass(false);
+      qc.invalidateQueries({ queryKey: ["classes", schoolId] });
+      qc.invalidateQueries({ queryKey: ["my-class-overrides"] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao renomear.");
+    }
+  };
+
+  const doRenameStudent = async () => {
+    if (!renamingStudent) return;
+    const nn = renameText.trim();
+    if (nn.length < 2) { toast.error("Nome muito curto."); return; }
+    try {
+      const scope = await renameStudentSmart(renamingStudent.id, nn);
+      toast.success(scope === "shared" ? "Nome alterado para todos os professores." : "Alterado só para você.");
+      setRenamingStudent(null);
+      qc.invalidateQueries({ queryKey: ["students", schoolId, cls.id] });
+      qc.invalidateQueries({ queryKey: ["my-student-overrides"] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao renomear.");
+    }
+  };
+
 
   const addStudents = async () => {
     const raw = bulkText
