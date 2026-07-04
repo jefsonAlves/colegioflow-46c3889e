@@ -1,6 +1,9 @@
-import type { QueryClient } from "@tanstack/react-query";
 import { persistQueryClient } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
+
+// Duplicate query-core versions (react-query re-exports its own) cause type
+// friction; accept an untyped client here.
+type AnyQueryClient = Parameters<typeof persistQueryClient>[0]["queryClient"];
 
 /**
  * Persist selected query cache to localStorage so the app boots with data
