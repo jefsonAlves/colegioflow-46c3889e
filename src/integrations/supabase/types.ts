@@ -49,6 +49,9 @@ export type Database = {
           created_at: string
           id: string
           school_id: string
+          target_class_id: string | null
+          target_role: string | null
+          target_user_id: string | null
           title: string
           updated_at: string
         }
@@ -60,6 +63,9 @@ export type Database = {
           created_at?: string
           id?: string
           school_id: string
+          target_class_id?: string | null
+          target_role?: string | null
+          target_user_id?: string | null
           title: string
           updated_at?: string
         }
@@ -71,6 +77,9 @@ export type Database = {
           created_at?: string
           id?: string
           school_id?: string
+          target_class_id?: string | null
+          target_role?: string | null
+          target_user_id?: string | null
           title?: string
           updated_at?: string
         }
@@ -539,6 +548,8 @@ export type Database = {
           student_id: string
           subject: string
           trimester: number
+          updated_at: string
+          updated_by: string | null
           value: number
         }
         Insert: {
@@ -551,6 +562,8 @@ export type Database = {
           student_id: string
           subject?: string
           trimester: number
+          updated_at?: string
+          updated_by?: string | null
           value: number
         }
         Update: {
@@ -563,6 +576,8 @@ export type Database = {
           student_id?: string
           subject?: string
           trimester?: number
+          updated_at?: string
+          updated_by?: string | null
           value?: number
         }
         Relationships: [
@@ -843,6 +858,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      student_performance_logs: {
+        Row: {
+          class_id: string
+          content_ref: string | null
+          created_at: string
+          date: string
+          id: string
+          needs_adaptation: boolean
+          notes: string | null
+          performance: string
+          school_id: string
+          student_id: string
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          class_id: string
+          content_ref?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          needs_adaptation?: boolean
+          notes?: string | null
+          performance: string
+          school_id: string
+          student_id: string
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string
+          content_ref?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          needs_adaptation?: boolean
+          notes?: string | null
+          performance?: string
+          school_id?: string
+          student_id?: string
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       students: {
         Row: {

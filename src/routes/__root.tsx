@@ -13,6 +13,10 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../contexts/AuthContext";
 import { Toaster } from "sonner";
+import { InstallPrompt } from "@/components/InstallPrompt";
+import { OfflineStatus } from "@/components/OfflineStatus";
+import { installQueryPersistence } from "@/lib/queryPersist";
+import { installOfflineDrain } from "@/lib/offlineDrain";
 
 function NotFoundComponent() {
   return (
@@ -127,10 +131,17 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    installQueryPersistence(queryClient);
+    installOfflineDrain();
+  }, [queryClient]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <OfflineStatus />
         <Outlet />
+        <InstallPrompt />
         <Toaster richColors position="top-center" />
       </AuthProvider>
     </QueryClientProvider>

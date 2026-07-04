@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type Audience = "parents" | "teachers" | "all";
+export type TargetRole = "teacher" | "school_admin" | "parent";
 
 export interface AnnouncementDoc {
   id: string;
@@ -11,6 +12,9 @@ export interface AnnouncementDoc {
   title: string;
   body: string;
   createdAt: number;
+  targetUserId: string | null;
+  targetRole: TargetRole | null;
+  targetClassId: string | null;
 }
 
 type Row = {
@@ -22,6 +26,9 @@ type Row = {
   title: string;
   body: string;
   created_at: string;
+  target_user_id: string | null;
+  target_role: TargetRole | null;
+  target_class_id: string | null;
 };
 
 const toDoc = (r: Row): AnnouncementDoc => ({
@@ -33,6 +40,9 @@ const toDoc = (r: Row): AnnouncementDoc => ({
   title: r.title,
   body: r.body,
   createdAt: new Date(r.created_at).getTime(),
+  targetUserId: r.target_user_id,
+  targetRole: r.target_role,
+  targetClassId: r.target_class_id,
 });
 
 export async function listAnnouncements(schoolId: string): Promise<AnnouncementDoc[]> {
@@ -48,21 +58,27 @@ export async function listAnnouncements(schoolId: string): Promise<AnnouncementD
 
 export async function createAnnouncement(input: {
   schoolId: string;
-  classId: string | null;
+  classId?: string | null;
   audience: Audience;
   title: string;
   body: string;
+  targetUserId?: string | null;
+  targetRole?: TargetRole | null;
+  targetClassId?: string | null;
 }): Promise<AnnouncementDoc> {
   const uid = (await supabase.auth.getUser()).data.user?.id ?? "";
   const { data, error } = await supabase
     .from("announcements")
     .insert({
       school_id: input.schoolId,
-      class_id: input.classId,
+      class_id: input.classId ?? null,
       audience: input.audience,
       title: input.title.trim(),
       body: input.body.trim(),
       author_id: uid,
+      target_user_id: input.targetUserId ?? null,
+      target_role: input.targetRole ?? null,
+      target_class_id: input.targetClassId ?? null,
     })
     .select("*")
     .single();
@@ -89,5 +105,8 @@ export async function markRead(announcementId: string) {
   if (!uid) return;
   await supabase
     .from("announcement_reads")
-    .upsert({ announcement_id: announcementId, user_id: uid }, { onConflict: "announcement_id,user_id" });
+    .upsert(
+      { announcement_id: announcementId, user_id: uid },
+      { onConflict: "announcement_id,user_id" },
+    );
 }

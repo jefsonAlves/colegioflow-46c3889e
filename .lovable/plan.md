@@ -1,103 +1,149 @@
+# Plano — Notas com dash, offline/PWA, boletim PDF, MCP e segurança
 
-# Plano de melhorias
+Vou implementar em 6 blocos. Cada bloco é independente e pode ser revisado.
 
-Escopo grande. Divido em 6 blocos independentes, todos entregues no mesmo build.
+## 1. Painel-dash em Notas (por turma / bimestre / semestre)
 
-## 1. MCP: nova tool `search_students`
+Novo componente `NotasDashboard` no topo de `app.notas.tsx`, ligado à turma selecionada:
 
-Arquivo: `src/lib/mcp/tools/search-students.ts` + registro em `src/lib/mcp/index.ts`.
+- Filtro de período: **Bimestre (1–4)** ou **Semestre (1–2)**. Semestre = média ponderada dos 2 bimestres correspondentes.
+- Cards:
+  - Média geral da turma, % de aprovados (≥6), % em recuperação (4–5.9), % reprovando (<4).
+  - **Alunos em atenção**: nota <6 em qualquer avaliação OU sem nota lançada OU frequência abaixo do limite do alerta da turma.
+  - Distribuição por matéria/avaliação (barras simples com CSS).
+- Cada aluno em atenção mostra: motivo (nota baixa / sem nota / faltas), professores responsáveis (via `class_teachers`) e público-alvo do alerta (professor, coordenação, secretaria).
+- Botão **"Notificar responsáveis"** cria um `announcement` direcionado (ver bloco 5 sobre destinatários).
 
-- Entrada (Zod): `query` (string opcional, busca por nome), `school_id` (uuid, obrigatório), `class_id` (uuid opcional), `teacher_id` (uuid opcional — filtra alunos das turmas em que o professor leciona via `class_teachers`), `limit` (1–100, default 25), `offset` (default 0).
-- Usa cliente Supabase com token do usuário (RLS aplica).
-- Query: `students` filtrado por `school_id`, `class_id` se fornecido, `name ilike %query%` se fornecido, join lógico com `class_teachers` quando `teacher_id`.
-- Retorno: `{ students: [...], total, limit, offset, hasMore }` em `structuredContent` + `content` texto.
-- Rodar `app_mcp_server--extract_mcp_manifest` após para regenerar manifest.
+## 2. Exportação e compartilhamento do resumo de atenção
 
-## 2. Relatórios muito mais completos (`src/routes/app.relatorios.tsx`)
+- Novo `src/lib/attentionReport.ts` que consolida por turma:
+  - Faltas sem justificativa (do período).
+  - Alunos sem notas lançadas.
+  - Alunos com frequência < limite configurado (`class_attendance_alerts`).
+- Botões no dash de Notas e no dash de Frequência:
+  - **Exportar CSV** (download direto — `/mnt`-style client blob).
+  - **Exportar PDF** (usando `jspdf` + `jspdf-autotable`, já adequado a Worker/edge — roda no cliente).
+  - **Enviar à secretaria/admin**: cria `announcement` com `target_role='school_admin'` anexando o resumo textual.
 
-Novo layout com filtros no topo e visão por turma expandível.
+## 3. Notas — UX melhorada
 
-**Filtros:**
-- Turma (multi-select — default: todas as minhas)
-- Período: mês atual / bimestre / intervalo customizado (date range)
-- Bimestre (1–4) para as notas
-- Toggle: "Só minhas turmas" (default on para professor, off para admin)
+- **Filtro por iniciais**: input de busca acima da lista de alunos (client-side, `startsWith` case-insensitive + normalização de acentos).
+- **Soma automática das notas do bimestre**: já existe `calcMedia`; adiciono badge de "soma parcial" ao lado da média (P1+P2+Ativ. + avaliações extras do `assessment_types`).
+- **Saneamento no salvar**: se o valor digitado for inválido (`", "`, `"11"`, `"-2"`, `"1,2,3"`), clamp para 0–10 e substitui vírgula por ponto. Salva sempre em formato padrão.
+- **Editar depois de salvar**: os inputs continuam editáveis; toast de "Atualizado" no re-save; log em `grades.updated_by/updated_at`.
+- **Suporte a semestre**: prop `period: 'bimester'|'semester'` no dash — as notas continuam sendo salvas por bimestre; semestre é derivado.
 
-**KPIs (cards no topo):** Turmas, Alunos ativos, Frequência média %, Média geral, **# alunos em atenção** (freq < 75% OU média < 6 OU sem nota lançada no bimestre).
+## 4. MCP `search_students` — cursor, ordenação e busca parcial
 
-**Por turma (cards expansíveis):**
-- Barra de progresso da frequência (verde ≥85, amarelo 75–84, vermelho <75)
-- Média geral por matéria (do professor)
-- **Lista "Alunos que precisam de atenção"**: cada aluno mostra motivo (badges: "Freq X%", "Sem nota", "Média Y", "Z faltas sem justificativa"), com botão "Ver aluno".
-- **Dias com mais faltas** (top 5 datas do período).
-- Botão "Exportar CSV" por turma (frequência + notas).
+Atualizar `src/lib/mcp/tools/search-students.ts`:
 
-Nova lib helper `src/lib/reports.ts` para consolidar os cálculos (compartilhada com o dashboard da Frequência abaixo).
+- Input adicional: `sort` (`name_asc`|`name_desc`|`created_desc`), `query` (busca parcial `ilike %q%`), `cursor` (base64 de `{ lastSortValue, lastId }`), `limit` (default 20, max 100).
+- Filtros mantidos: `school_id`, `class_id`, `teacher_id` (via `class_teachers`).
+- Paginação estável: keyset em `(sort_column, id)` — evita duplicações quando alunos são inseridos entre páginas.
+- Retorna `{ items, nextCursor, hasMore }`. `offset/total` marcados como deprecated mas ainda aceitos.
+- Atualizar `.lovable/mcp/manifest.json`.
 
-## 3. Turmas: renome pessoal + edição de alunos (`src/routes/app.turmas.tsx` + migração)
+## 5. Notificações direcionadas
 
-Modelo "override por professor" para nome de turma sem afetar os outros.
+Migration adiciona a `announcements`:
+- `target_user_id uuid null` (aluno/professor específico)
+- `target_role text null` (`teacher`|`school_admin`|`parent`)
+- `target_class_id uuid null`
 
-**Migração:**
-- Nova tabela `class_overrides` (`user_id`, `class_id`, `custom_name`, timestamps, PK `(user_id, class_id)`). RLS: cada usuário só lê/escreve o seu. GRANT authenticated + service_role.
-- Nova tabela `student_overrides` (`user_id`, `student_id`, `custom_name`, `notes`, timestamps, PK `(user_id, student_id)`). Mesmas RLS.
-- **Nome canônico**: mantém `classes.name` / `students.name`. Se um professor editar e for a **primeira alteração daquela turma no sistema** (nenhum override existente para essa turma por ninguém e ele é o criador OU admin), atualiza `classes.name` direto (formato compartilhado). Caso contrário, grava em `class_overrides` (só pra ele). Regra semelhante para aluno — a "primeira edição compartilhada" é decidida no lado do servidor por trigger/RPC `rename_class_smart(class_id, new_name)` e `rename_student_smart(student_id, new_name)`.
+Atualiza políticas RLS para: usuário vê o aviso se for autor, ou target_user_id = auth.uid(), ou target_role bate com sua role no `school_memberships`, ou é membro da `target_class_id`. Escola continua vendo o que ela mesma enviou. Corrige o problema de "todo mundo vê tudo".
 
-**UI:**
-- Em cada turma: ícone lápis abre inline edit do nome. Ao salvar, toast informa "Alterado só para você" ou "Compartilhado com os outros professores".
-- Na lista de alunos da turma: ícone lápis por aluno, mesma regra. Admin sempre edita o canônico.
-- `listClasses`/`listStudents` fazem merge com overrides do usuário atual antes de exibir.
+## 6. Boletim em PDF (`app.boletim.tsx`)
 
-## 4. Frequência: dashboard, animação de sucesso, alertas de faltas, registro de conteúdo (`src/routes/app.frequencia.tsx`)
+- Botões: **Baixar boletim individual** e **Baixar boletim geral (turma)**.
+- Usa `jspdf` + `autotable`: cabeçalho com escola/turma/ano, tabela com bimestres × matérias (média), coluna Frequência (% presença + total de faltas), média final e situação (APR/REC/REP).
+- A secretaria (perfil `school_admin`) tem botão extra "**Solicitar revisão ao professor**" por aluno → gera `announcement` direcionado ao(s) professor(es) da turma com o motivo digitado.
 
-**Ao selecionar turma**, aparece painel dashboard acima da lista de chamada:
-- Top 5 alunos mais faltosos (período configurável: mês/bimestre)
-- Faltas **sem justificativa** por aluno com datas
-- Alerta configurável: **"Limite de faltas"** por turma (`class_attendance_alerts` tabela: `class_id`, `teacher_id`, `max_absences`, `period` enum `month|bimester|year`). Alunos que atingirem/passarem viram badge vermelho "Encaminhar à secretaria" com botão que gera aviso (usa `announcements` audience=`all`, prefill do texto).
-- Contador em tempo real dos ausentes do dia atual.
+## 7. Desempenho individual + laudos/adaptação
 
-**Salvamento:**
-- Substituir toast simples por animação: check verde animado (Framer Motion / CSS keyframes) + toast Sonner "Frequência salva com sucesso · N alunos marcados como presentes automaticamente".
-- Botão "Salvar" com estado loading → success → volta ao normal em 1.5s.
+Nova tabela `student_profiles_extra`:
+- `student_id`, `has_disability boolean`, `disability_notes text`, `accommodation_request text`, `requested_by uuid`, `updated_at`.
 
-**Registro de conteúdo da aula (nova aba na tela de frequência):**
-- Formulário: título, descrição, objetivo, reação da turma (textarea), houve êxito? (radio: sim/parcial/não), anexo (arquivo).
-- Nova tabela `class_content_logs` (`school_id`, `class_id`, `teacher_id`, `date`, `title`, `description`, `objective`, `reaction`, `success` enum, `attachment_path`, timestamps). RLS: professor lê/edita os seus; admin da escola lê todos; anexos via bucket privado `class-content` (novo, RLS espelhando).
-- Lista histórica filtrável por data/turma, com botão "Baixar anexo". Admin tem visão consolidada em nova rota `/app/registros` (ou aba dentro de Relatórios).
+Nova tabela `student_performance_logs`:
+- `student_id`, `teacher_id`, `class_id`, `date`, `content_ref` (id opcional de `class_content_logs`), `performance` (`excelente|bom|regular|dificuldade`), `notes text`, `needs_adaptation boolean`.
 
-## 5. Notas: dashboard equivalente + botão "Mais" para tipos de avaliação (`src/routes/app.notas.tsx`)
+No dash de Notas e no perfil do aluno:
+- **Badge de alerta** quando `has_disability` OU `accommodation_request` presentes — visível para os professores da turma e para admin. Texto: "Este aluno tem adaptação solicitada".
+- Botão "Registrar desempenho" abre modal (ligado opcionalmente ao último `class_content_logs`).
 
-**Dashboard ao selecionar turma:**
-- Top alunos com menor média, alunos sem nota lançada, distribuição de notas (histograma simples).
-- Alerta configurável de média mínima (mesma ideia do de faltas — `class_grade_alerts`), com botão "Encaminhar à secretaria".
+Secretaria pode editar `student_profiles_extra`; professor só lê.
 
-**Botão "+" ao lado das colunas de avaliação:**
-- Modal: nome da avaliação (ex: "Trabalho 3"), peso, tipo. Pergunta escopo: **"Aplicar em: [esta turma] / [todas as minhas turmas]"**.
-- Nova tabela `assessment_types` (`teacher_id`, `class_id` nullable — null = todas as turmas do professor, `name`, `weight`, `bimester`, timestamps). RLS por professor. `grades` ganha coluna `assessment_type_id` opcional para vincular.
-- Ao criar com escopo "todas", replica registro para cada turma do professor.
+## 8. Offline + PWA + sincronização
 
-## 6. Ambientes por tipo de usuário (limitações finas)
+- Ativar PWA via `vite-plugin-pwa` (`generateSW`, `registerType: autoUpdate`) seguindo o skill/pwa: registro guardado (nunca em preview/iframe), `NetworkFirst` para navegações, `CacheFirst` só para assets hasheados, kill-switch `?sw=off`.
+- Manifest com nome "Colégio em Movimento", ícones, `display: standalone`, theme color.
+- **Banner "Instalar app"** (`InstallPrompt`) escutando `beforeinstallprompt` (Android/desktop) + instrução iOS "Adicionar à tela inicial" via `<ClientOnly>`.
+- **Fila de sincronização offline**:
+  - Novo `src/lib/offlineQueue.ts` usando IndexedDB (via `idb`).
+  - Wrappers `queueAttendance()`, `queueGrade()`, `queueContentLog()` que:
+    - Tentam salvar direto quando `navigator.onLine`.
+    - Se falhar/offline, enfileiram com timestamp + payload + tabela alvo.
+  - Worker de sync no cliente: on `online` e a cada foco de janela, drena a fila em ordem, respeitando idempotência (upsert por `(class_id, student_id, date)` para frequência, por `(class_id, student_id, bimester, tipo)` para notas).
+  - Badge "N alterações pendentes" no `AppShell`.
+- **Leitura offline**: React Query com `persistQueryClient` (localStorage) para turmas/alunos/notas/frequência do professor. TTL de 24h.
 
-Consolidar `AppShell` + rotas para respeitar papéis:
-- **Professor**: vê apenas suas turmas, seus lançamentos, seus registros de conteúdo. Não vê configurações de escola nem migração.
-- **Admin da escola**: vê tudo da escola, incluindo consolidação de registros de conteúdo e alertas.
-- **Pais** (se vinculado): vê apenas os próprios filhos — boletim, frequência, avisos. Sem edição.
-- **Master**: mantém painel atual.
+## 9. Segurança (correções sem quebrar nada)
 
-Implementação: helper `useUserScope()` centraliza `{ role, isAdmin, isTeacher, isParent, isMaster }` e cada rota usa isso para esconder botões/abas. Nada de checagem só client — RLS já garante no banco.
+- Revisar RLS de `announcements` (bloco 5) para evitar leitura cruzada.
+- `student_overrides` / `class_overrides`: garantir política `USING (auth.uid() = user_id)`.
+- `student_profiles_extra`: SELECT restrito a professores da turma + admin da escola; UPDATE só admin.
+- `student_performance_logs`: SELECT para professor autor + admin da escola + professores da mesma turma; INSERT só professor da turma.
+- Rodar `security--run_security_scan` no fim e corrigir apenas achados novos introduzidos por esta mudança (sem tocar em código existente que funciona).
+- MCP: validar `limit` (1..100) e sanitizar `query` (`ilike` com escape de `%` e `_`) para evitar wildcard injection.
 
-## Detalhes técnicos (resumo)
+## Detalhes técnicos
 
-- **Migrations (uma só, ordenada):** `class_overrides`, `student_overrides`, `class_attendance_alerts`, `class_grade_alerts`, `class_content_logs`, `assessment_types` + coluna `grades.assessment_type_id` + RPCs `rename_class_smart`, `rename_student_smart`. Todas com GRANT + RLS + policies + `updated_at` trigger.
-- **Bucket storage:** `class-content` privado, policies por `teacher_id` e admin da escola.
-- **Libs novas:** `src/lib/reports.ts`, `src/lib/classOverrides.ts`, `src/lib/studentOverrides.ts`, `src/lib/attendanceAlerts.ts`, `src/lib/gradeAlerts.ts`, `src/lib/classContent.ts`, `src/lib/assessmentTypes.ts`, `src/lib/userScope.ts`.
-- **MCP:** nova tool + regeneração de manifest.
-- **UI:** Framer Motion já pode ser adicionado (`bun add framer-motion`) para a animação de sucesso.
+Novos/alterados:
 
-## Fora de escopo (posso fazer depois)
+```text
+src/lib/
+  offlineQueue.ts            # IndexedDB + drain worker
+  attentionReport.ts         # CSV + PDF + payload de anúncio
+  pdf/boletim.ts             # jsPDF + autotable
+  studentExtras.ts           # CRUD de laudos/adaptação
+  performanceLogs.ts         # CRUD
+src/components/
+  NotasDashboard.tsx
+  StudentFilterInput.tsx
+  InstallPrompt.tsx
+  PendingSyncBadge.tsx
+src/routes/
+  app.notas.tsx              # + dash + filtro por iniciais + editar/salvar padrão
+  app.boletim.tsx            # + PDF individual/geral
+  app.relatorios.tsx         # + exportações e envio à secretaria
+  __root.tsx                 # + registro PWA guardado + persistQueryClient
+public/
+  manifest.webmanifest       # atualizado
+  sw-register.ts             # wrapper com guardas
+vite.config.ts               # + VitePWA
+.lovable/mcp/manifest.json   # search_students v2
+src/lib/mcp/tools/search-students.ts  # cursor + ilike + sort
+```
 
-- Push notifications reais (fica só como aviso no app).
-- Exportar PDF (por ora só CSV).
-- Chat em tempo real entre professor e pais.
+Migrations:
+1. `announcements`: colunas `target_user_id`, `target_role`, `target_class_id` + novas policies.
+2. `student_profiles_extra` (com GRANTs + RLS + policies).
+3. `student_performance_logs` (com GRANTs + RLS + policies).
+4. `grades`: `updated_by uuid`, trigger `touch_updated_at`.
 
-Confirma que posso seguir com tudo isso? Se preferir, começo só pelos blocos 1–4 e deixo 5–6 para um segundo passo.
+Dependências novas (via `bun add`): `vite-plugin-pwa`, `workbox-window`, `idb`, `jspdf`, `jspdf-autotable`, `@tanstack/react-query-persist-client`, `@tanstack/query-sync-storage-persister`.
+
+## Fora do escopo
+
+- Push notifications (FCM) — só o app instalável e sync offline.
+- Reconhecimento por voz para frequência.
+- App nativo (Capacitor).
+
+## Ordem sugerida de implementação
+
+1. Bloco 4 (MCP) — isolado, rápido.
+2. Blocos 1+2+3 (Notas dash + export + UX).
+3. Bloco 5 (notificações direcionadas) + 9 (segurança) — juntos, mesma área.
+4. Bloco 6+7 (Boletim PDF + laudos/desempenho).
+5. Bloco 8 (PWA/offline) por último, para não interferir na iteração.
+
+Confirma que sigo nessa ordem?

@@ -118,7 +118,7 @@
       {
         "name": "search_students",
         "title": "Search students",
-        "description": "Search students by name with pagination, optionally filtered by school, class, or teacher. Returns only rows visible to the signed-in user via RLS.",
+        "description": "Search students by (partial) name with stable keyset pagination, sorting, and optional filters by school, class, or teacher. Returns only rows visible to the signed-in user via RLS.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -134,6 +134,7 @@
             },
             "query": {
               "type": "string",
+              "maxLength": 120,
               "description": "Case-insensitive substring to match against the student name."
             },
             "class_id": {
@@ -144,7 +145,18 @@
             "teacher_id": {
               "type": "string",
               "format": "uuid",
-              "description": "Optional teacher UUID. If provided, restricts the search to classes that teacher leads."
+              "description": "Optional teacher UUID. If provided, restricts to classes that teacher leads."
+            },
+            "sort": {
+              "type": "string",
+              "enum": [
+                "name_asc",
+                "name_desc",
+                "created_desc",
+                "created_asc"
+              ],
+              "default": "name_asc",
+              "description": "Sort order for results."
             },
             "limit": {
               "type": "integer",
@@ -153,11 +165,15 @@
               "default": 25,
               "description": "Page size (max 100)."
             },
+            "cursor": {
+              "type": "string",
+              "description": "Opaque cursor returned as `nextCursor` from a previous call. Preferred over `offset` for stable pagination."
+            },
             "offset": {
               "type": "integer",
               "minimum": 0,
               "default": 0,
-              "description": "Starting offset for pagination."
+              "description": "Deprecated. Use `cursor` for stable pagination; kept for backward compatibility."
             }
           },
           "required": [

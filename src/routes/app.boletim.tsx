@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileDown, Send } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +13,9 @@ import { listClasses } from "@/lib/classes";
 import { listStudentsByClass } from "@/lib/students";
 import { getStudentAllBimesters } from "@/lib/grades";
 import { getClassAttendanceAll } from "@/lib/attendance";
+import { generateClassBoletimPDF, generateStudentBoletimPDF } from "@/lib/pdf/boletim";
+import { createAnnouncement } from "@/lib/announcements";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const Route = createFileRoute("/app/boletim")({
   component: () => (
@@ -76,6 +80,24 @@ function Boletim({ schoolId }: { schoolId: string }) {
 
       {classId && (
         <>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={async () => {
+                try {
+                  await generateClassBoletimPDF({ schoolId, classId });
+                  toast.success("Boletim geral gerado.");
+                } catch (e) {
+                  console.error(e);
+                  toast.error("Erro ao gerar PDF.");
+                }
+              }}
+            >
+              <FileDown className="size-4" /> Boletim geral (turma) em PDF
+            </Button>
+          </div>
           {studentsQ.isLoading ? (
             <Loading />
           ) : (studentsQ.data ?? []).length === 0 ? (
@@ -213,6 +235,81 @@ function StudentBoletim({
           </CardContent>
         </Card>
       </div>
+
+      <BoletimActions
+        schoolId={schoolId}
+        classId={classId}
+        studentId={studentId}
+        studentName={studentName}
+      />
     </>
+  );
+}
+
+function BoletimActions({
+  schoolId,
+  classId,
+  studentId,
+  studentName,
+}: {
+  schoolId: string;
+  classId: string;
+  studentId: string;
+  studentName: string;
+}) {
+  const { userDoc } = useAuth();
+  const isAdmin = userDoc?.profileType === "school_admin";
+  const [busy, setBusy] = useState(false);
+  const [requesting, setRequesting] = useState(false);
+
+  const downloadPDF = async () => {
+    setBusy(true);
+    try {
+      await generateStudentBoletimPDF({ schoolId, classId, studentId, studentName });
+      toast.success("Boletim gerado.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao gerar PDF.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const requestReview = async () => {
+    const reason = window.prompt(
+      `Descreva o que precisa ser revisado no boletim de ${studentName}:`,
+    );
+    if (!reason) return;
+    setRequesting(true);
+    try {
+      await createAnnouncement({
+        schoolId,
+        classId,
+        targetClassId: classId,
+        targetRole: "teacher",
+        audience: "teachers",
+        title: `Revisão solicitada · ${studentName}`,
+        body: `A secretaria solicita revisão do boletim de ${studentName}.\n\nMotivo: ${reason}`,
+      });
+      toast.success("Solicitação enviada aos professores da turma.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Não foi possível enviar.");
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  return (
+    <div className="flex gap-2">
+      <Button className="flex-1" onClick={downloadPDF} disabled={busy}>
+        <FileDown className="size-4" /> {busy ? "Gerando..." : "Baixar boletim (PDF)"}
+      </Button>
+      {isAdmin && (
+        <Button variant="outline" onClick={requestReview} disabled={requesting}>
+          <Send className="size-4" /> {requesting ? "Enviando..." : "Solicitar revisão"}
+        </Button>
+      )}
+    </div>
   );
 }

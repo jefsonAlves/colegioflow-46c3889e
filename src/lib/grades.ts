@@ -66,10 +66,10 @@ export async function setStudentGrade(
     .eq("trimester", bimestre)
     .in("subject", SUBJECTS as unknown as string[]);
 
-  const rows: Array<{ school_id: string; class_id: string; student_id: string; trimester: number; subject: string; value: number; recorded_by: string }> = [];
+  const rows: Array<{ school_id: string; class_id: string; student_id: string; trimester: number; subject: string; value: number; recorded_by: string; updated_by: string }> = [];
   const push = (subject: string, val: number | null | undefined) => {
     if (typeof val === "number" && !Number.isNaN(val)) {
-      rows.push({ school_id: schoolId, class_id: classId, student_id: studentId, trimester: bimestre, subject, value: val, recorded_by: uid });
+      rows.push({ school_id: schoolId, class_id: classId, student_id: studentId, trimester: bimestre, subject, value: val, recorded_by: uid, updated_by: uid });
     }
   };
   push("P1", entry.p1);
