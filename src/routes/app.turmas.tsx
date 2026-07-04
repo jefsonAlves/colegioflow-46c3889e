@@ -443,7 +443,7 @@ function ClassDetail({
                 <span className="text-xs text-muted-foreground w-6">{i + 1}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="truncate">{s.name}</span>
+                    <span className="truncate">{studentName(s)}</span>
                     {s.specialNeeds && (
                       <Heart
                         className="size-3.5 text-primary shrink-0"
@@ -465,6 +465,9 @@ function ClassDetail({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => { setRenameText(studentName(s)); setRenamingStudent(s); }}>
+                        <Pencil className="size-4" /> Renomear aluno
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setEditingNeeds(s)}>
                         <Heart className="size-4" /> Necessidades especiais
                       </DropdownMenuItem>
