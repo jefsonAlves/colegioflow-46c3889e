@@ -80,6 +80,24 @@ function Boletim({ schoolId }: { schoolId: string }) {
 
       {classId && (
         <>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={async () => {
+                try {
+                  await generateClassBoletimPDF({ schoolId, classId });
+                  toast.success("Boletim geral gerado.");
+                } catch (e) {
+                  console.error(e);
+                  toast.error("Erro ao gerar PDF.");
+                }
+              }}
+            >
+              <FileDown className="size-4" /> Boletim geral (turma) em PDF
+            </Button>
+          </div>
           {studentsQ.isLoading ? (
             <Loading />
           ) : (studentsQ.data ?? []).length === 0 ? (
