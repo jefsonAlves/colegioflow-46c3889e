@@ -12,6 +12,7 @@ import {
   Heart,
   Clock,
   CalendarDays,
+  Pencil,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { SchoolGate } from "@/components/SchoolGate";
@@ -38,6 +39,8 @@ import {
   listSchedulesByClass,
   WEEKDAY_LABELS,
 } from "@/lib/classSchedules";
+import { listMyClassOverrides, renameClassSmart } from "@/lib/classOverrides";
+import { listMyStudentOverrides, renameStudentSmart } from "@/lib/studentOverrides";
 import {
   DropdownMenu,
   DropdownMenuContent,
