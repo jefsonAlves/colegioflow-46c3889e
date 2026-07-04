@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { enqueue } from "@/lib/offlineQueue";
 
 export type AttendanceStatus = "P" | "F" | "J";
 
