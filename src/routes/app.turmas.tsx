@@ -558,9 +558,48 @@ function ClassDetail({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={renamingClass} onOpenChange={(o) => !o && setRenamingClass(false)}>
+        <DialogContent onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>Renomear turma</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input value={renameText} onChange={(e) => setRenameText(e.target.value)} placeholder="Novo nome" />
+            <p className="text-xs text-muted-foreground">
+              Se for a primeira alteração dessa turma, o novo nome será compartilhado com os
+              outros professores. Caso contrário, será salvo apenas para você.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenamingClass(false)}>Cancelar</Button>
+            <Button onClick={doRenameClass}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!renamingStudent} onOpenChange={(o) => !o && setRenamingStudent(null)}>
+        <DialogContent onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>Renomear aluno</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input value={renameText} onChange={(e) => setRenameText(e.target.value)} placeholder="Novo nome" />
+            <p className="text-xs text-muted-foreground">
+              Primeira edição do aluno: nome será compartilhado. Depois disso, alterações ficam
+              apenas no seu ambiente.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenamingStudent(null)}>Cancelar</Button>
+            <Button onClick={doRenameStudent}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
 
 function SpecialNeedsDialog({
   student,
