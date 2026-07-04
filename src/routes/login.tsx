@@ -16,9 +16,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { APP_NAME } from "@/lib/constants";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    next: typeof s.next === "string" ? s.next : undefined,
-  }),
+  validateSearch: (s: Record<string, unknown>): { next?: string } => {
+    const next = typeof s.next === "string" ? s.next : undefined;
+    return next ? { next } : {};
+  },
   head: () => ({
     meta: [
       { title: `${APP_NAME} — Entrar` },
