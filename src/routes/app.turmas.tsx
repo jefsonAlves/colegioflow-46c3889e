@@ -208,6 +208,11 @@ function ClassCard({
     queryKey: ["students", schoolId, cls.id],
     queryFn: () => listStudentsByClass(schoolId, cls.id),
   });
+  const overridesQ = useQuery({
+    queryKey: ["my-class-overrides"],
+    queryFn: () => listMyClassOverrides(),
+  });
+  const displayName = overridesQ.data?.[cls.id] ?? cls.name;
 
   return (
     <button
@@ -218,7 +223,7 @@ function ClassCard({
         <Users className="size-5" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-semibold truncate">{cls.name}</div>
+        <div className="font-semibold truncate">{displayName}</div>
         <div className="text-xs text-muted-foreground">
           {cls.year} · {(studentsQ.data ?? []).length} aluno(s)
         </div>
@@ -226,6 +231,7 @@ function ClassCard({
     </button>
   );
 }
+
 
 function ClassDetail({
   cls,
