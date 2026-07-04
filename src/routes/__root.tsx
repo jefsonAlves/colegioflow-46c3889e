@@ -133,6 +133,7 @@ function RootComponent() {
 
   useEffect(() => {
     installQueryPersistence(queryClient);
+    installOfflineDrain();
   }, [queryClient]);
 
   return (
