@@ -2,18 +2,30 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Save } from "lucide-react";
+import { Plus, Save, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Loading, EmptyState } from "@/components/States";
 import { useAuth } from "@/contexts/AuthContext";
 import { listClasses } from "@/lib/classes";
 import { listStudentsByClass } from "@/lib/students";
 import { calcMedia, getGrades, setStudentGrade, type GradeEntry } from "@/lib/grades";
+import {
+  createAssessmentType,
+  deleteAssessmentType,
+  listAssessmentTypes,
+} from "@/lib/assessmentTypes";
 
 export const Route = createFileRoute("/app/notas")({
   component: () => (
