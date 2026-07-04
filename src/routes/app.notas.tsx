@@ -223,3 +223,126 @@ function Notas({ schoolId }: { schoolId: string }) {
     </>
   );
 }
+
+function AssessmentTypesPanel({
+  schoolId,
+  classId,
+  bimester,
+}: {
+  schoolId: string;
+  classId: string;
+  bimester: number;
+}) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [weight, setWeight] = useState(1);
+  const [scope, setScope] = useState<"class" | "all">("class");
+
+  const typesQ = useQuery({
+    queryKey: ["assessment-types", schoolId, classId, bimester],
+    queryFn: () => listAssessmentTypes(schoolId, classId, bimester),
+  });
+
+  const save = async () => {
+    if (!name.trim()) { toast.error("Dê um nome à avaliação."); return; }
+    try {
+      await createAssessmentType({
+        schoolId,
+        classId: scope === "all" ? null : classId,
+        name,
+        weight,
+        bimester,
+      });
+      toast.success(scope === "all" ? "Aplicado em todas as suas turmas." : "Avaliação adicionada.");
+      setName(""); setWeight(1); setScope("class"); setOpen(false);
+      qc.invalidateQueries({ queryKey: ["assessment-types"] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao adicionar.");
+    }
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Remover avaliação?")) return;
+    try {
+      await deleteAssessmentType(id);
+      qc.invalidateQueries({ queryKey: ["assessment-types"] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao remover.");
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="pt-4 pb-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-semibold">Avaliações do bimestre</div>
+          <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+            <Plus className="size-4" /> Mais
+          </Button>
+        </div>
+        {(typesQ.data ?? []).length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            Nenhuma avaliação personalizada. Você usa P1, P2 e Atividade por padrão. Toque em "Mais"
+            para adicionar (ex: Trabalho, Prova extra).
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {typesQ.data!.map((t) => (
+              <span
+                key={t.id}
+                className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-1 text-xs font-medium"
+              >
+                {t.name} <span className="opacity-60">×{t.weight}</span>
+                <button onClick={() => remove(t.id)} className="hover:opacity-70">
+                  <Trash2 className="size-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nova avaliação</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Nome</Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Trabalho de Ciências" />
+              </div>
+              <div>
+                <Label>Peso</Label>
+                <Input type="number" step="0.5" min={0.5} value={weight}
+                  onChange={(e) => setWeight(Number(e.target.value) || 1)} />
+              </div>
+              <div>
+                <Label>Aplicar em</Label>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <button
+                    onClick={() => setScope("class")}
+                    className={`h-10 rounded-md border text-sm ${scope === "class" ? "bg-primary text-primary-foreground border-primary" : "bg-card"}`}
+                  >
+                    Só esta turma
+                  </button>
+                  <button
+                    onClick={() => setScope("all")}
+                    className={`h-10 rounded-md border text-sm ${scope === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card"}`}
+                  >
+                    Todas as minhas turmas
+                  </button>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+              <Button onClick={save}>Adicionar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+}
