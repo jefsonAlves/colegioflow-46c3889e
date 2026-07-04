@@ -55,16 +55,29 @@ export async function setAttendance(
     recorded_by: uid,
   }));
   if (rows.length === 0) return;
-  // Replace this teacher's existing entries for that day/class
-  await supabase
-    .from("attendance")
-    .delete()
-    .eq("school_id", schoolId)
-    .eq("class_id", classId)
-    .eq("date", dateISO)
-    .eq("recorded_by", uid);
-  const { error } = await supabase.from("attendance").insert(rows);
-  if (error) throw error;
+
+  const doWrite = async () => {
+    await supabase
+      .from("attendance")
+      .delete()
+      .eq("school_id", schoolId)
+      .eq("class_id", classId)
+      .eq("date", dateISO)
+      .eq("recorded_by", uid);
+    const { error } = await supabase.from("attendance").insert(rows);
+    if (error) throw error;
+  };
+
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    await enqueue({ kind: "attendance", payload: { schoolId, classId, dateISO, uid, rows } });
+    return;
+  }
+  try {
+    await doWrite();
+  } catch (e) {
+    await enqueue({ kind: "attendance", payload: { schoolId, classId, dateISO, uid, rows } });
+    throw e;
+  }
 }
 
 export async function getClassAttendanceAll(
