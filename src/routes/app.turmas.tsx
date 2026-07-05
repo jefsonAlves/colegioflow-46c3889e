@@ -389,6 +389,7 @@ function ClassDetail({
       toast.success("Aluno transferido!");
       qc.invalidateQueries({ queryKey: ["students", schoolId, fromId] });
       qc.invalidateQueries({ queryKey: ["students", schoolId, newClassId] });
+      qc.invalidateQueries({ queryKey: ["students-counts", schoolId] });
       setTransferStudent(null);
     } catch (e) {
       console.error(e);
