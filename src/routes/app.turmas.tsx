@@ -216,22 +216,23 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
 
 function ClassCard({
   cls,
-  schoolId,
   onOpen,
+  count,
+  maxCount,
 }: {
   cls: ClassDoc;
   schoolId: string;
   onOpen: () => void;
+  count: number;
+  maxCount: number;
 }) {
-  const studentsQ = useQuery({
-    queryKey: ["students", schoolId, cls.id],
-    queryFn: () => listStudentsByClass(schoolId, cls.id),
-  });
   const overridesQ = useQuery({
     queryKey: ["my-class-overrides"],
     queryFn: () => listMyClassOverrides(),
+    staleTime: 60_000,
   });
   const displayName = overridesQ.data?.[cls.id] ?? cls.name;
+  const pct = Math.max(6, Math.round((count / Math.max(1, maxCount)) * 100));
 
   return (
     <button
@@ -241,10 +242,22 @@ function ClassCard({
       <div className="size-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
         <Users className="size-5" />
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="font-semibold truncate">{displayName}</div>
-        <div className="text-xs text-muted-foreground">
-          {cls.year} · {(studentsQ.data ?? []).length} aluno(s)
+      <div className="flex-1 min-w-0 space-y-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="font-semibold truncate">{displayName}</div>
+          <span className="shrink-0 rounded-full bg-primary/10 text-primary text-xs font-bold px-2 py-0.5">
+            {count} {count === 1 ? "aluno" : "alunos"}
+          </span>
+        </div>
+        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+          <div
+            className="h-full bg-primary/70 transition-all"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <div className="text-[11px] text-muted-foreground">
+          {cls.gradeLevel ? `${cls.gradeLevel} · ` : ""}
+          {cls.year}
         </div>
       </div>
     </button>
