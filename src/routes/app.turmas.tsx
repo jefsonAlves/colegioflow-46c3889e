@@ -26,6 +26,7 @@ import { Loading, EmptyState } from "@/components/States";
 import { useAuth } from "@/contexts/AuthContext";
 import { createClass, listClasses } from "@/lib/classes";
 import {
+  countStudentsBySchool,
   createStudentsBulk,
   deleteStudent,
   listStudentsByClass,
@@ -90,6 +91,12 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
   const classesQ = useQuery({
     queryKey: ["classes", schoolId],
     queryFn: () => listClasses(schoolId),
+    staleTime: 30_000,
+  });
+  const countsQ = useQuery({
+    queryKey: ["students-counts", schoolId],
+    queryFn: () => countStudentsBySchool(schoolId),
+    staleTime: 30_000,
   });
 
   const canCreate = !!userDoc && userDoc.globalRole !== undefined;
@@ -113,6 +120,7 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
       setNewName("");
       setNewGrade("");
       qc.invalidateQueries({ queryKey: ["classes", schoolId] });
+      qc.invalidateQueries({ queryKey: ["students-counts", schoolId] });
     } catch (e) {
       console.error(e);
       toast.error("Erro ao criar turma.");
@@ -177,9 +185,20 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
         />
       ) : (
         <div className="space-y-2">
-          {classes.map((c) => (
-            <ClassCard key={c.id} cls={c} schoolId={schoolId} onOpen={() => setOpenClass(c)} />
-          ))}
+          {(() => {
+            const counts = countsQ.data ?? {};
+            const max = Math.max(1, ...Object.values(counts));
+            return classes.map((c) => (
+              <ClassCard
+                key={c.id}
+                cls={c}
+                schoolId={schoolId}
+                count={counts[c.id] ?? 0}
+                maxCount={max}
+                onOpen={() => setOpenClass(c)}
+              />
+            ));
+          })()}
         </div>
       )}
 
@@ -197,22 +216,23 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
 
 function ClassCard({
   cls,
-  schoolId,
   onOpen,
+  count,
+  maxCount,
 }: {
   cls: ClassDoc;
   schoolId: string;
   onOpen: () => void;
+  count: number;
+  maxCount: number;
 }) {
-  const studentsQ = useQuery({
-    queryKey: ["students", schoolId, cls.id],
-    queryFn: () => listStudentsByClass(schoolId, cls.id),
-  });
   const overridesQ = useQuery({
     queryKey: ["my-class-overrides"],
     queryFn: () => listMyClassOverrides(),
+    staleTime: 60_000,
   });
   const displayName = overridesQ.data?.[cls.id] ?? cls.name;
+  const pct = Math.max(6, Math.round((count / Math.max(1, maxCount)) * 100));
 
   return (
     <button
@@ -222,10 +242,22 @@ function ClassCard({
       <div className="size-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
         <Users className="size-5" />
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="font-semibold truncate">{displayName}</div>
-        <div className="text-xs text-muted-foreground">
-          {cls.year} · {(studentsQ.data ?? []).length} aluno(s)
+      <div className="flex-1 min-w-0 space-y-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="font-semibold truncate">{displayName}</div>
+          <span className="shrink-0 rounded-full bg-primary/10 text-primary text-xs font-bold px-2 py-0.5">
+            {count} {count === 1 ? "aluno" : "alunos"}
+          </span>
+        </div>
+        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+          <div
+            className="h-full bg-primary/70 transition-all"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <div className="text-[11px] text-muted-foreground">
+          {cls.gradeLevel ? `${cls.gradeLevel} · ` : ""}
+          {cls.year}
         </div>
       </div>
     </button>
@@ -337,6 +369,7 @@ function ClassDetail({
       await createStudentsBulk(schoolId, cls.id, toInsert);
       setBulkText("");
       qc.invalidateQueries({ queryKey: ["students", schoolId, cls.id] });
+      qc.invalidateQueries({ queryKey: ["students-counts", schoolId] });
       toast.success(
         `${toInsert.length} aluno(s) adicionado(s)${skipped > 0 ? ` · ${skipped} ignorado(s)` : ""}.`,
       );
@@ -356,6 +389,7 @@ function ClassDetail({
       toast.success("Aluno transferido!");
       qc.invalidateQueries({ queryKey: ["students", schoolId, fromId] });
       qc.invalidateQueries({ queryKey: ["students", schoolId, newClassId] });
+      qc.invalidateQueries({ queryKey: ["students-counts", schoolId] });
       setTransferStudent(null);
     } catch (e) {
       console.error(e);
@@ -369,6 +403,7 @@ function ClassDetail({
       await deleteStudent(schoolId, deletingStudent.id);
       toast.success("Aluno removido.");
       qc.invalidateQueries({ queryKey: ["students", schoolId, cls.id] });
+      qc.invalidateQueries({ queryKey: ["students-counts", schoolId] });
       setDeletingStudent(null);
     } catch (e) {
       console.error(e);

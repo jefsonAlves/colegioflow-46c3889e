@@ -53,6 +53,21 @@ export async function listStudentsByClass(schoolId: string, classId: string): Pr
   return (data ?? []).map((r) => toDoc(r as Row));
 }
 
+export async function countStudentsBySchool(schoolId: string): Promise<Record<string, number>> {
+  const { data, error } = await supabase
+    .from("students")
+    .select("class_id")
+    .eq("school_id", schoolId);
+  if (error) throw error;
+  const out: Record<string, number> = {};
+  for (const r of data ?? []) {
+    const cid = (r as { class_id: string | null }).class_id;
+    if (!cid) continue;
+    out[cid] = (out[cid] ?? 0) + 1;
+  }
+  return out;
+}
+
 export async function createStudent(
   schoolId: string,
   input: { name: string; classId: string; parentUid?: string; createdBy?: string },
