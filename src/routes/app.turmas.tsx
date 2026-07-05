@@ -403,6 +403,7 @@ function ClassDetail({
       await deleteStudent(schoolId, deletingStudent.id);
       toast.success("Aluno removido.");
       qc.invalidateQueries({ queryKey: ["students", schoolId, cls.id] });
+      qc.invalidateQueries({ queryKey: ["students-counts", schoolId] });
       setDeletingStudent(null);
     } catch (e) {
       console.error(e);
