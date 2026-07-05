@@ -71,16 +71,21 @@ export async function buildAttentionReport(input: {
     }
     const attendancePct = daysCount === 0 ? 100 : Math.round((presentOrJust / daysCount) * 100);
     const g = grades[s.id] ?? {};
-    const missingGrades = [g.p1, g.p2, g.atividade].filter(
-      (v) => v == null || Number.isNaN(v),
-    ).length;
+    const isMissing = (v: number | null | undefined) => v == null || Number.isNaN(v);
+    const missingLabels: string[] = [];
+    if (isMissing(g.p1)) missingLabels.push("P1");
+    if (isMissing(g.p2)) missingLabels.push("P2");
+    if (isMissing(g.atividade)) missingLabels.push("Ativ.");
+    const missingGrades = missingLabels.length;
     const media = g.media ?? 0;
     const lowGrade = missingGrades < 3 && media > 0 && media < 6;
+    const frequentWithoutGrade = attendancePct >= 75 && missingGrades > 0;
     const reasons: string[] = [];
     if (total >= maxAbs) reasons.push(`${total} faltas (limite ${maxAbs})`);
     if (attendancePct < 75) reasons.push(`Frequência ${attendancePct}%`);
-    if (missingGrades > 0) reasons.push(`${missingGrades} nota(s) sem lançar`);
+    if (missingGrades > 0) reasons.push(`Sem ${missingLabels.join(", ")}`);
     if (lowGrade) reasons.push(`Média ${media.toFixed(1)}`);
+    if (frequentWithoutGrade) reasons.push(`Frequente sem nota`);
     return {
       studentId: s.id,
       studentName: s.name,
@@ -88,19 +93,23 @@ export async function buildAttentionReport(input: {
       unjustified: unj,
       attendancePct,
       missingGrades,
+      missingLabels,
       lowGrade,
+      frequentWithoutGrade,
       reasons,
     };
   });
 
   const atRisk = rows.filter((r) => r.reasons.length > 0);
+  const frequentWithoutGrade = rows.filter((r) => r.frequentWithoutGrade).length;
   return {
     className,
     bimester: input.bimester,
     period,
     generatedAt: new Date().toISOString(),
     rows: atRisk,
-    totals: { students: students.length, atRisk: atRisk.length },
+    allRows: rows,
+    totals: { students: students.length, atRisk: atRisk.length, frequentWithoutGrade },
   };
 }
 
