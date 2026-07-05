@@ -9,6 +9,7 @@ import {
   Megaphone,
   Building2,
   ChevronRight,
+  Activity,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
