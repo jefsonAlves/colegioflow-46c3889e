@@ -26,6 +26,7 @@ import { Loading, EmptyState } from "@/components/States";
 import { useAuth } from "@/contexts/AuthContext";
 import { createClass, listClasses } from "@/lib/classes";
 import {
+  countStudentsBySchool,
   createStudentsBulk,
   deleteStudent,
   listStudentsByClass,
