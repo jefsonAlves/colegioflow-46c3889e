@@ -91,6 +91,12 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
   const classesQ = useQuery({
     queryKey: ["classes", schoolId],
     queryFn: () => listClasses(schoolId),
+    staleTime: 30_000,
+  });
+  const countsQ = useQuery({
+    queryKey: ["students-counts", schoolId],
+    queryFn: () => countStudentsBySchool(schoolId),
+    staleTime: 30_000,
   });
 
   const canCreate = !!userDoc && userDoc.globalRole !== undefined;
