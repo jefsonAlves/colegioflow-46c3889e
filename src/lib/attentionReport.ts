@@ -13,7 +13,9 @@ export interface AttentionRow {
   unjustified: number;
   attendancePct: number;
   missingGrades: number; // 0..3 (P1/P2/Ativ)
+  missingLabels: string[];
   lowGrade: boolean;
+  frequentWithoutGrade: boolean;
   reasons: string[];
 }
 
@@ -23,7 +25,8 @@ export interface AttentionReport {
   period: ReportPeriod;
   generatedAt: string;
   rows: AttentionRow[];
-  totals: { students: number; atRisk: number };
+  allRows: AttentionRow[];
+  totals: { students: number; atRisk: number; frequentWithoutGrade: number };
 }
 
 const periodStartSemester = (): Date => {
