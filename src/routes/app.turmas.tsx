@@ -120,6 +120,7 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
       setNewName("");
       setNewGrade("");
       qc.invalidateQueries({ queryKey: ["classes", schoolId] });
+      qc.invalidateQueries({ queryKey: ["students-counts", schoolId] });
     } catch (e) {
       console.error(e);
       toast.error("Erro ao criar turma.");
