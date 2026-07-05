@@ -185,9 +185,20 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
         />
       ) : (
         <div className="space-y-2">
-          {classes.map((c) => (
-            <ClassCard key={c.id} cls={c} schoolId={schoolId} onOpen={() => setOpenClass(c)} />
-          ))}
+          {(() => {
+            const counts = countsQ.data ?? {};
+            const max = Math.max(1, ...Object.values(counts));
+            return classes.map((c) => (
+              <ClassCard
+                key={c.id}
+                cls={c}
+                schoolId={schoolId}
+                count={counts[c.id] ?? 0}
+                maxCount={max}
+                onOpen={() => setOpenClass(c)}
+              />
+            ));
+          })()}
         </div>
       )}
 
