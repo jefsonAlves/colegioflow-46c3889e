@@ -369,6 +369,7 @@ function ClassDetail({
       await createStudentsBulk(schoolId, cls.id, toInsert);
       setBulkText("");
       qc.invalidateQueries({ queryKey: ["students", schoolId, cls.id] });
+      qc.invalidateQueries({ queryKey: ["students-counts", schoolId] });
       toast.success(
         `${toInsert.length} aluno(s) adicionado(s)${skipped > 0 ? ` · ${skipped} ignorado(s)` : ""}.`,
       );
