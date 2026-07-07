@@ -1,78 +1,85 @@
-# Plano
+## Objetivo
 
-Quatro blocos independentes. Nada do que já funciona é removido — só ajustes e adições.
+Reorganizar o fluxo de dados por perfil (escola × professor), permitir que a escola gerencie alunos/turmas/professores de forma centralizada, e que atestados registrados pela secretaria reflitam automaticamente como falta justificada. Também melhorar sincronização e visualização.
 
-## 1. Tela de Desempenho Individual do Aluno
+## Blocos
 
-Nova rota `src/routes/app.desempenho.tsx` (link no menu do app, visível para professor/admin).
+### 1. Cadastro de alunos compartilhado por escola (não por professor)
+Hoje cada professor lida com sua turma. Vamos deixar explícito que **alunos pertencem à escola** e ficam disponíveis para todos os professores da mesma escola.
 
-Fluxo:
-- Seletor de escola → turma → aluno (usa `listStudentsByClass` + `StudentSearchInput`).
-- Cabeçalho do aluno: nome, turma, frequência do bimestre, média atual (reaproveita `getGrades` + `getClassAttendanceAll`).
-- Timeline dos registros de `student_performance_logs` (via `listPerformanceLogs`), com filtro por período (mês/bimestre/semestre).
-- Formulário "Novo registro":
-  - Data, desempenho (excelente/bom/regular/dificuldade), observações.
-  - Campo "Conteúdo/guia do professor" (texto + seletor opcional apontando para um `class_content_logs` já registrado, gravado em `content_ref`).
-  - Toggle "Precisa de adaptação (solicitação da secretaria)" → `needs_adaptation=true`.
-  - Se `needs_adaptation`, campo extra "Descrição da adaptação solicitada" salvo dentro de `notes` com prefixo `[Adaptação] …` (evita nova coluna/migration).
-- Ações: editar/excluir registro próprio (`deletePerformanceLog`), botão "Enviar resumo à secretaria" que usa `createAnnouncement` com `target_role: 'school_admin'` e corpo montado a partir dos últimos N registros.
-- Visão da secretaria (quando `is_school_admin`): mesma tela lista todos os alunos com `needs_adaptation=true` recentes + botão "Solicitar ajuste ao professor" (announcement com `target_user_id` = professor do registro).
+- Em `app.escola.tsx` (secretaria/admin): nova aba "Alunos da escola" com CRUD central, busca, filtro por turma/série/modalidade e ação em massa "mover para turma".
+- Em `app.turmas.tsx` (professor): botão "Adicionar aluno" passa a abrir um seletor com **alunos já cadastrados na escola** + opção "criar novo". Evita duplicidade.
+- Regras compartilhadas × pessoais:
+  - **Dados do aluno** (nome, série, modalidade, laudo) → compartilhado (escola).
+  - **Notas e frequência** → permanecem **por professor + turma** (cada professor tem seu diário; nada muda no fluxo atual).
+- Ajuste em `src/lib/students.ts`: `listStudentsBySchool(schoolId)` já existe via `countStudentsBySchool` — expor `listAllStudentsBySchool` com paginação e filtros.
 
-Sem mudanças de schema. Só componentes/route.
+### 2. Modalidade/etapa da instituição e do professor
+Escolas de anos iniciais têm um professor polivalente; escolas de fundamental II/médio têm professor por disciplina. Precisamos representar isso.
 
-## 2. PWA offline completo (PC + celular) com sync automático
+- Novos campos:
+  - `schools.stages` (array): `["infantil","fund1","fund2","medio","eja"]` — o que a escola atende.
+  - `classes.stage` (enum) e `classes.modality` (`regular` | `eja` | `integral`).
+  - `class_teachers.subject` (texto opcional; vazio = polivalente/todas as matérias).
+  - `students.stage` espelha a turma mas pode ser sobrescrito individualmente (ex.: aluno multisseriado).
+- UI:
+  - Em `app.escola.tsx`: seleção das etapas atendidas (marcadores).
+  - Em `app.turmas.tsx`: ao criar/editar turma, escolher etapa/modalidade; ao vincular professor, escolher disciplina ou "todas".
+  - Em Notas/Frequência: se professor for polivalente, mostra seletor de disciplina no topo do diário (Português/Matemática/…); se for por disciplina, fixa a dele.
 
-Hoje o projeto tem só `manifest.webmanifest` + `offlineQueue`/`offlineDrain`/`queryPersist`. Falta o service worker de app-shell.
+### 3. Atestado → falta justificada automática
+Hoje justificar é manual no diário. Vamos ligar atestado da secretaria à frequência.
 
-Ações:
-- Adicionar `vite-plugin-pwa` (`generateSW`, `registerType: 'autoUpdate'`, `injectRegister: null`, `devOptions.enabled: false`).
-- Runtime caching:
-  - HTML/navegação: `NetworkFirst` (exclui `/~oauth`, `/[.mcp]`, `/api/`).
-  - Assets hasheados same-origin: `CacheFirst`.
-  - Chamadas Supabase REST/Storage: `NetworkFirst` com fallback ao cache (24h) para leitura offline.
-- Novo `src/lib/pwa/register.ts` — wrapper de registro com guardas obrigatórios: só registra em `PROD`, fora de iframe, hostname não é preview/lovableproject/beta, sem `?sw=off`. Nos contextos negados, chama `unregister()` das SWs existentes.
-- Registro chamado uma única vez a partir de `src/routes/__root.tsx` (via `useEffect`).
-- Sync automático: já existe `installOfflineDrain()` (dispara em `online`/`focus`). Complementar com listener do SW `controllerchange` → dispara `drainQueue` mais uma vez após ativação.
-- Manifest: manter `display: standalone`, adicionar `id: "/"`, `dir: "ltr"`.
-- Kill-switch: `?sw=off` documentado; útil se algo travar cache.
-- InstallPrompt já existe — só garantir que aparece em desktop também (já cobre `beforeinstallprompt`).
+- Nova tabela `student_certificates`: `student_id`, `school_id`, `start_date`, `end_date`, `reason`, `attachment_url` (bucket `class-content`), `created_by`.
+- Ao inserir um atestado, um trigger/serverFn (`applyCertificateToAttendance`):
+  - Para cada dia no intervalo em que já existe registro `F`, converte para `J` (justificada).
+  - Para dias futuros, marca automaticamente `J` quando o professor abrir o diário (fallback client-side lê `student_certificates` no `getClassAttendanceAll` e sugere `J` como default, mostrando ícone "atestado" — professor ainda pode alterar).
+- UI:
+  - Em `app.escola.tsx` → aba "Atestados": lista, upload PDF/imagem, gera log.
+  - Em `app.frequencia.tsx`: badge "Atestado vigente (dd/mm–dd/mm)" ao lado do aluno; célula `J` fica com tooltip do motivo.
+- RLS: secretaria (school_admin) grava; professor lê apenas dos alunos das suas turmas.
 
-Escopo do offline: leitura das telas visitadas (via `queryPersist` de 24h + cache SW) e escrita enfileirada de presença/notas (já via `offlineQueue`). Sincroniza sozinho ao voltar rede/foco/ativação do SW.
+### 4. Remanejamento de alunos e professores pela escola
+- Em `app.escola.tsx` → aba "Turmas & pessoas":
+  - Tabela de alunos com seletor "mover para turma X" (bulk).
+  - Tabela de professores com "atribuir/remover de turma" e "disciplina".
+- ServerFns: `moveStudentsToClass(studentIds, classId)`, `assignTeacherToClass(userId, classId, subject)`.
+- Preserva histórico: registro em `student_class_history` (nova tabela: `student_id`, `from_class_id`, `to_class_id`, `moved_at`, `moved_by`) para o boletim manter o vínculo do bimestre anterior.
 
-## 3. Total de alunos por turma (visual) + correções de carregamento
+### 5. Fluxo de acesso por perfil (afinar RLS + UI)
+Padronizar quem enxerga o quê, e esconder ações que o usuário não pode executar (evita erro 401 na UI).
 
-Em `src/routes/app.turmas.tsx`:
-- Buscar contagem via uma única query `students` agrupada por `class_id` (usar `select('class_id', { count: 'exact', head: false })` em paralelo, ou `listStudentsByClass` já em cache — preferir uma consulta agregada em `src/lib/students.ts` `countStudentsBySchool(schoolId)` retornando `Record<classId, number>`).
-- Card da turma: badge grande "N alunos" + barra proporcional (mín/máx da escola) para leitura visual rápida.
-- Também exibir no seletor de turma em Frequência/Notas/Desempenho.
+| Ação | Master | Secretaria (school_admin) | Professor | Responsável |
+|---|---|---|---|---|
+| CRUD escola | ✓ | ✓ (a sua) | — | — |
+| CRUD aluno | ✓ | ✓ | criar + editar nome (sugestão) | — |
+| Mover aluno / trocar turma | ✓ | ✓ | — | — |
+| Atestado | ✓ | ✓ | ver | ver do filho |
+| Diário (nota/frequência) | ver | ver | CRUD nas suas turmas | ver do filho |
+| Relatórios/boletim | ✓ | ✓ | suas turmas | filho |
+| Avisos direcionados | ✓ | ✓ | sua turma | ver |
 
-Correções de "atualização e carregamento":
-- Padronizar `staleTime: 30_000` e `refetchOnWindowFocus: true` para as queries de turmas/alunos/notas/frequência.
-- Invalidação explícita nos `onSuccess` que já existem (rename, criar registro etc.) por `queryClient.invalidateQueries({ queryKey: [...] })` — auditar `app.turmas.tsx`, `app.frequencia.tsx`, `app.notas.tsx`.
-- Substituir spinners "pendurados" por `Skeleton` shadcn nos cards de turma/aluno.
-- Botão "Atualizar" discreto no topo das telas principais chamando `queryClient.invalidateQueries()` do escopo da tela.
+- `has_role`/`is_school_admin`/`is_class_teacher` já cobrem — vamos revisar cada policy das tabelas listadas e alinhar com a matriz acima; policies antigas que permitem "authenticated" amplo serão restritas.
+- No frontend: hook `usePermissions()` consumido pelas telas para esconder botões que o backend recusaria.
 
-## 4. Alerta "aluno frequente sem notas lançadas" (não bloqueante)
+### 6. Visualização e sincronização
+- `NotasDashboard` e `app.turmas.tsx`: adicionar filtros por etapa/modalidade/disciplina.
+- Padronizar `staleTime: 30s`, `refetchOnWindowFocus: true`, e broadcast via Supabase Realtime nos canais `students:school_id`, `attendance:class_id`, `grades:class_id` para atualizar entre abas/dispositivos sem F5.
+- Skeleton loaders substituem spinners longos; botão "Atualizar agora" em cada tela.
+- Indicador global "Sincronizado há Xs" no `AppShell` (usa `OfflineStatus` existente).
 
-Regra: para o bimestre selecionado, se um aluno tem `attendancePct >= 75` **e** `missingGrades > 0` (nenhuma das P1/P2/Ativ preenchida ou parcialmente vazia), sinalizar.
+## Ordem de execução
+1. Bloco 5 (RLS/permissões) — base segura.
+2. Bloco 1 (alunos por escola) + Bloco 2 (etapas/disciplinas) — migração + UI escola.
+3. Bloco 3 (atestados → J).
+4. Bloco 4 (remanejamento + histórico).
+5. Bloco 6 (realtime + UI final).
 
-Onde aparece:
-- `NotasDashboard`: novo Stat "Frequente sem nota" ao lado dos existentes, e nova seção listando esses alunos (nome + o que falta: "P1, P2").
-- `app.notas.tsx`: badge amarelo ao lado do nome do aluno na tabela de lançamento quando cair na regra; tooltip "Aluno frequente sem nota lançada — verifique".
-- Toast informativo (não bloqueante) ao abrir a tela de notas: "N alunos frequentes ainda sem nota neste bimestre" com botão "Ver" que rola até a seção.
-- Botão "Notificar professor" (visível para admin) → `createAnnouncement` com `target_user_id` do professor da turma listando os alunos.
+## Detalhes técnicos (resumido)
+- Migrações: `schools.stages`, `classes.stage`/`modality`, `class_teachers.subject`, `student_certificates`, `student_class_history`, funções `apply_certificate_to_attendance(certificate_id)`, `move_students_to_class(...)`, revisão de policies.
+- Novos arquivos: `src/lib/certificates.ts`, `src/lib/studentMovement.ts`, `src/lib/realtime.ts`, `src/hooks/usePermissions.ts`, aba `SchoolStudentsTab.tsx`, `SchoolCertificatesTab.tsx`, `SchoolStaffTab.tsx`.
+- Sem quebrar telas atuais: os campos novos são opcionais com defaults sensatos (`stage='fund1'`, `modality='regular'`).
 
-Implementação: derivar em `attentionReport.ts` (`row.attendancePct >= 75 && row.missingGrades > 0` já é computável com os dados atuais) — adicionar campo `frequentWithoutGrade: boolean` em `AttentionRow` e `totals.frequentWithoutGrade`. Zero migration.
-
-## Fora do escopo
-
-- Push notifications (web-push/FCM).
-- Novas colunas em `student_performance_logs` (adaptação segue em `notes` com prefixo).
-- Reescrita das RLS existentes.
-
-## Ordem sugerida
-
-1. Bloco 4 (rápido, só derivado).
-2. Bloco 3 (contagem + refetch).
-3. Bloco 1 (tela de desempenho).
-4. Bloco 2 (SW/PWA) por último, para não interferir no preview durante o resto.
+## Perguntas antes de implementar
+1. Quando a secretaria remaneja um aluno **no meio do bimestre**, as notas já lançadas devem: (a) ir junto com o aluno para a nova turma, (b) ficar na turma antiga como histórico e a nova começa em branco, ou (c) o sistema pergunta a cada movimentação?
+2. Atestado retroativo cobrindo dias em que o professor marcou `P` (presente por engano) — devemos sobrescrever para `J` ou apenas sinalizar conflito para a secretaria revisar?
