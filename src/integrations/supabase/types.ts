@@ -405,6 +405,7 @@ export type Database = {
           created_at: string
           id: string
           school_id: string
+          subject: string | null
           user_id: string
         }
         Insert: {
@@ -412,6 +413,7 @@ export type Database = {
           created_at?: string
           id?: string
           school_id: string
+          subject?: string | null
           user_id: string
         }
         Update: {
@@ -419,6 +421,7 @@ export type Database = {
           created_at?: string
           id?: string
           school_id?: string
+          subject?: string | null
           user_id?: string
         }
         Relationships: [
@@ -444,8 +447,10 @@ export type Database = {
           created_by: string
           grade_level: string | null
           id: string
+          modality: string
           name: string
           school_id: string
+          stage: string
           teacher_uid: string | null
           year: number
         }
@@ -454,8 +459,10 @@ export type Database = {
           created_by: string
           grade_level?: string | null
           id?: string
+          modality?: string
           name: string
           school_id: string
+          stage?: string
           teacher_uid?: string | null
           year: number
         }
@@ -464,8 +471,10 @@ export type Database = {
           created_by?: string
           grade_level?: string | null
           id?: string
+          modality?: string
           name?: string
           school_id?: string
+          stage?: string
           teacher_uid?: string | null
           year?: number
         }
@@ -786,6 +795,7 @@ export type Database = {
           merged_into: string | null
           name: string
           normalized_name: string
+          stages: string[]
           state: string | null
           status: Database["public"]["Enums"]["school_status"]
           updated_at: string
@@ -798,6 +808,7 @@ export type Database = {
           merged_into?: string | null
           name: string
           normalized_name: string
+          stages?: string[]
           state?: string | null
           status?: Database["public"]["Enums"]["school_status"]
           updated_at?: string
@@ -810,6 +821,7 @@ export type Database = {
           merged_into?: string | null
           name?: string
           normalized_name?: string
+          stages?: string[]
           state?: string | null
           status?: Database["public"]["Enums"]["school_status"]
           updated_at?: string
@@ -820,6 +832,108 @@ export type Database = {
             columns: ["merged_into"]
             isOneToOne: false
             referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_certificates: {
+        Row: {
+          attachment_url: string | null
+          created_at: string
+          created_by: string
+          end_date: string
+          id: string
+          reason: string | null
+          school_id: string
+          start_date: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          attachment_url?: string | null
+          created_at?: string
+          created_by: string
+          end_date: string
+          id?: string
+          reason?: string | null
+          school_id: string
+          start_date: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          attachment_url?: string | null
+          created_at?: string
+          created_by?: string
+          end_date?: string
+          id?: string
+          reason?: string | null
+          school_id?: string
+          start_date?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_certificates_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_certificates_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_class_history: {
+        Row: {
+          from_class_id: string | null
+          id: string
+          moved_at: string
+          moved_by: string
+          note: string | null
+          school_id: string
+          student_id: string
+          to_class_id: string | null
+        }
+        Insert: {
+          from_class_id?: string | null
+          id?: string
+          moved_at?: string
+          moved_by: string
+          note?: string | null
+          school_id: string
+          student_id: string
+          to_class_id?: string | null
+        }
+        Update: {
+          from_class_id?: string | null
+          id?: string
+          moved_at?: string
+          moved_by?: string
+          note?: string | null
+          school_id?: string
+          student_id?: string
+          to_class_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_class_history_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_class_history_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
@@ -993,6 +1107,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_certificate_to_attendance: {
+        Args: { _cert_id: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["global_role"]
@@ -1012,6 +1130,10 @@ export type Database = {
       is_school_member: {
         Args: { _school_id: string; _user_id: string }
         Returns: boolean
+      }
+      move_students_to_class: {
+        Args: { _student_ids: string[]; _to_class_id: string }
+        Returns: number
       }
       rename_class_smart: {
         Args: { _class_id: string; _new_name: string }
