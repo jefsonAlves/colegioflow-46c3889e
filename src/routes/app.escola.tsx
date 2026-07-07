@@ -185,6 +185,8 @@ function SchoolAdminCard({ school, onChanged }: { school: SchoolDoc; onChanged: 
         )}
       </section>
 
+      <SchoolStudentsManager schoolId={school.id} />
+      <SchoolCertificatesSection schoolId={school.id} />
       <ParentLinksSection schoolId={school.id} />
     </div>
   );
