@@ -21,6 +21,8 @@ import {
   listSchoolParentLinks,
 } from "@/lib/parentLinks";
 import type { MembershipDoc, SchoolDoc, UserDoc } from "@/lib/types";
+import { SchoolCertificatesSection } from "@/components/SchoolCertificates";
+import { SchoolStudentsManager } from "@/components/SchoolStudentsManager";
 
 export const Route = createFileRoute("/app/escola")({
   component: SchoolAdminPage,
