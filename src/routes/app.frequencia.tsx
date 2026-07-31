@@ -17,6 +17,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { AbsenceReportSection } from "@/components/AbsenceReportSection";
 import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,7 +82,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const [marks, setMarks] = useState<Record<string, AttendanceStatus>>({});
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
-  const [tab, setTab] = useState<"chamada" | "conteudo">("chamada");
+  const [tab, setTab] = useState<"chamada" | "conteudo" | "faltosos">("chamada");
 
   useEffect(() => {
     if (search.classId) setClassId(search.classId);
@@ -273,10 +274,11 @@ function Frequencia({ schoolId }: { schoolId: string }) {
             onAlertSaved={() => qc.invalidateQueries({ queryKey: ["att-alert", classId] })}
           />
 
-          <Tabs value={tab} onValueChange={(v) => setTab(v as "chamada" | "conteudo")}>
-            <TabsList className="w-full grid grid-cols-2">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as "chamada" | "conteudo" | "faltosos")}>
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="chamada">Chamada</TabsTrigger>
-              <TabsTrigger value="conteudo">Conteúdo da aula</TabsTrigger>
+              <TabsTrigger value="conteudo">Conteúdo</TabsTrigger>
+              <TabsTrigger value="faltosos">Faltosos</TabsTrigger>
             </TabsList>
 
             <TabsContent value="chamada" className="space-y-2 mt-3">
@@ -375,6 +377,15 @@ function Frequencia({ schoolId }: { schoolId: string }) {
 
             <TabsContent value="conteudo" className="space-y-3 mt-3">
               <ContentLogPanel schoolId={schoolId} classId={classId} date={date} />
+            </TabsContent>
+
+            <TabsContent value="faltosos" className="space-y-3 mt-3">
+              <AbsenceReportSection
+                schoolId={schoolId}
+                defaultClassId={classId}
+                classOptions={classes.map((c) => ({ id: c.id, name: c.name }))}
+                title="Relatório de faltosos"
+              />
             </TabsContent>
           </Tabs>
         </>
