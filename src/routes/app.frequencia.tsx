@@ -273,10 +273,11 @@ function Frequencia({ schoolId }: { schoolId: string }) {
             onAlertSaved={() => qc.invalidateQueries({ queryKey: ["att-alert", classId] })}
           />
 
-          <Tabs value={tab} onValueChange={(v) => setTab(v as "chamada" | "conteudo")}>
-            <TabsList className="w-full grid grid-cols-2">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as "chamada" | "conteudo" | "faltosos")}>
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="chamada">Chamada</TabsTrigger>
-              <TabsTrigger value="conteudo">Conteúdo da aula</TabsTrigger>
+              <TabsTrigger value="conteudo">Conteúdo</TabsTrigger>
+              <TabsTrigger value="faltosos">Faltosos</TabsTrigger>
             </TabsList>
 
             <TabsContent value="chamada" className="space-y-2 mt-3">
