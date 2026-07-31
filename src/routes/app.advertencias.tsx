@@ -27,7 +27,7 @@ import { StudentSearchInput, matchesInitial } from "@/components/StudentSearchIn
 import { useAuth } from "@/contexts/AuthContext";
 import { listClasses } from "@/lib/classes";
 import { listMyTaughtClasses } from "@/lib/classTeachers";
-import { listStudentsByClass } from "@/lib/students";
+import { listStudents, listStudentsByClass } from "@/lib/students";
 import { listSchedulesBySchool, WEEKDAY_LABELS } from "@/lib/classSchedules";
 import {
   createDisciplinary,
