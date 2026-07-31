@@ -137,9 +137,13 @@ function Advertencias({ schoolId }: { schoolId: string }) {
   }, [studentsQ.data, studentFilter]);
 
   const studentMap = useMemo(
-    () => new Map((studentsQ.data ?? []).map((s) => [s.id, s])),
-    [studentsQ.data],
+    () =>
+      new Map(
+        [...(allStudentsQ.data ?? []), ...(studentsQ.data ?? [])].map((s) => [s.id, s]),
+      ),
+    [allStudentsQ.data, studentsQ.data],
   );
+
 
   const shiftDay = (delta: number) => {
     const d = fromISO(date);
