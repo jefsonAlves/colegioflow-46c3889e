@@ -377,6 +377,15 @@ function Frequencia({ schoolId }: { schoolId: string }) {
             <TabsContent value="conteudo" className="space-y-3 mt-3">
               <ContentLogPanel schoolId={schoolId} classId={classId} date={date} />
             </TabsContent>
+
+            <TabsContent value="faltosos" className="space-y-3 mt-3">
+              <AbsenceReportSection
+                schoolId={schoolId}
+                defaultClassId={classId}
+                classOptions={classes.map((c) => ({ id: c.id, name: c.name }))}
+                title="Relatório de faltosos"
+              />
+            </TabsContent>
           </Tabs>
         </>
       )}
