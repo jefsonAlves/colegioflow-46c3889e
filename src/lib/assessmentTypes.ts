@@ -146,7 +146,12 @@ export async function updateAssessmentType(
   id: string,
   patch: { name?: string; weight?: number; maxValue?: number; position?: number },
 ): Promise<void> {
-  const payload: Record<string, unknown> = {};
+  const payload: {
+    name?: string;
+    weight?: number;
+    max_value?: number;
+    position?: number;
+  } = {};
   if (patch.name !== undefined) payload.name = patch.name.trim();
   if (patch.weight !== undefined) payload.weight = patch.weight;
   if (patch.maxValue !== undefined) payload.max_value = patch.maxValue;
