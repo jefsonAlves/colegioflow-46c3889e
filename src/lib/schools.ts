@@ -79,14 +79,8 @@ export async function createSchool(input: {
   if (error) throw error;
   const school = rowToDoc(data as Row);
 
-  const { error: memErr } = await supabase.from("school_memberships").insert({
-    school_id: school.id,
-    user_id: input.createdBy,
-    role_in_school: "school_admin",
-    status: "approved",
-    approved_by: input.createdBy,
-  });
-  if (memErr) console.warn("[createSchool] bootstrap admin failed:", memErr.message);
+  // The creator is bootstrapped as approved school_admin by a database trigger.
+
 
   return school;
 }
