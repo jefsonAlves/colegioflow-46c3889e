@@ -106,8 +106,11 @@ export type Database = {
           class_id: string | null
           created_at: string
           id: string
+          max_value: number
           name: string
+          position: number
           school_id: string
+          subject_key: string
           teacher_id: string
           updated_at: string
           weight: number
@@ -117,8 +120,11 @@ export type Database = {
           class_id?: string | null
           created_at?: string
           id?: string
+          max_value?: number
           name: string
+          position?: number
           school_id: string
+          subject_key?: string
           teacher_id: string
           updated_at?: string
           weight?: number
@@ -128,8 +134,11 @@ export type Database = {
           class_id?: string | null
           created_at?: string
           id?: string
+          max_value?: number
           name?: string
+          position?: number
           school_id?: string
+          subject_key?: string
           teacher_id?: string
           updated_at?: string
           weight?: number
