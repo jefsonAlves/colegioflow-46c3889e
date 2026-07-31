@@ -104,3 +104,92 @@ export async function getStudentAllBimesters(
   for (const k of Object.keys(out)) out[Number(k)].media = calcMedia(out[Number(k)]);
   return out;
 }
+
+/* ------------------------------------------------------------------ *
+ * Dynamic columns (diário): grades are stored one row per subject key.
+ * A subject key is either a legacy key (P1 / P2 / ATIVIDADE) or the
+ * generated key of a teacher-defined assessment column.
+ * ------------------------------------------------------------------ */
+
+export type GradeMap = Record<string, number>; // subjectKey -> value
+export type ClassGradeMap = Record<string, GradeMap>; // studentId -> GradeMap
+
+export interface WeightedColumn {
+  subjectKey: string;
+  weight: number;
+}
+
+/** Weighted average over the columns that actually have a value. */
+export function calcWeightedMedia(values: GradeMap, columns: WeightedColumn[]): number {
+  let sum = 0;
+  let weights = 0;
+  for (const c of columns) {
+    const v = values[c.subjectKey];
+    if (typeof v !== "number" || Number.isNaN(v)) continue;
+    const w = c.weight > 0 ? c.weight : 1;
+    sum += v * w;
+    weights += w;
+  }
+  if (weights === 0) return 0;
+  return Math.round((sum / weights) * 10) / 10;
+}
+
+export async function getClassGradeMap(
+  schoolId: string,
+  classId: string,
+  bimestre: number,
+): Promise<ClassGradeMap> {
+  const { data, error } = await supabase
+    .from("grades")
+    .select("student_id, subject, value")
+    .eq("school_id", schoolId)
+    .eq("class_id", classId)
+    .eq("trimester", bimestre);
+  if (error) throw error;
+  const out: ClassGradeMap = {};
+  for (const r of data ?? []) {
+    const sid = r.student_id as string;
+    (out[sid] ??= {})[r.subject as string] = Number(r.value);
+  }
+  return out;
+}
+
+/** Replaces the values of the given subject keys for one student. */
+export async function setStudentGradeMap(input: {
+  schoolId: string;
+  classId: string;
+  bimestre: number;
+  studentId: string;
+  subjectKeys: string[];
+  values: Record<string, number | null>;
+}): Promise<void> {
+  const { schoolId, classId, bimestre, studentId, subjectKeys, values } = input;
+  if (subjectKeys.length === 0) return;
+  const uid = (await supabase.auth.getUser()).data.user?.id ?? "";
+
+  const { error: delError } = await supabase
+    .from("grades")
+    .delete()
+    .eq("school_id", schoolId)
+    .eq("class_id", classId)
+    .eq("student_id", studentId)
+    .eq("trimester", bimestre)
+    .in("subject", subjectKeys);
+  if (delError) throw delError;
+
+  const rows = subjectKeys
+    .filter((k) => typeof values[k] === "number" && !Number.isNaN(values[k] as number))
+    .map((k) => ({
+      school_id: schoolId,
+      class_id: classId,
+      student_id: studentId,
+      trimester: bimestre,
+      subject: k,
+      value: values[k] as number,
+      recorded_by: uid,
+      updated_by: uid,
+    }));
+  if (rows.length === 0) return;
+  const { error } = await supabase.from("grades").insert(rows);
+  if (error) throw error;
+}
