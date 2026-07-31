@@ -2,32 +2,26 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Save, Trash2, Heart } from "lucide-react";
+import { Heart, Save } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Loading, EmptyState } from "@/components/States";
-import { useAuth } from "@/contexts/AuthContext";
 import { listClasses } from "@/lib/classes";
 import { listStudentsByClass } from "@/lib/students";
-import { calcMedia, getGrades, setStudentGrade, type GradeEntry } from "@/lib/grades";
 import {
-  createAssessmentType,
-  deleteAssessmentType,
-  listAssessmentTypes,
-} from "@/lib/assessmentTypes";
+  calcWeightedMedia,
+  getClassGradeMap,
+  setStudentGradeMap,
+  type GradeMap,
+} from "@/lib/grades";
+import { ensureAssessmentTypes, type AssessmentType } from "@/lib/assessmentTypes";
 import { sanitizeGrade } from "@/lib/gradeSanitize";
 import { NotasDashboard } from "@/components/NotasDashboard";
+import { GradeColumnsPanel } from "@/components/GradeColumnsPanel";
 import { matchesInitial, StudentSearchInput } from "@/components/StudentSearchInput";
 
 export const Route = createFileRoute("/app/notas")({
@@ -38,20 +32,14 @@ export const Route = createFileRoute("/app/notas")({
   ),
 });
 
-type Row = { p1: string; p2: string; atividade: string };
-
-function toNum(s: string): number | null {
-  if (s === "") return null;
-  const n = Number(s.replace(",", "."));
-  return Number.isNaN(n) ? null : n;
-}
+type RowDraft = Record<string, string>; // subjectKey -> typed text
 
 function Notas({ schoolId }: { schoolId: string }) {
-  const { firebaseUser } = useAuth();
   const qc = useQueryClient();
   const [classId, setClassId] = useState<string | null>(null);
   const [bimestre, setBimestre] = useState<number>(1);
-  const [rows, setRows] = useState<Record<string, Row>>({});
+  const [drafts, setDrafts] = useState<Record<string, RowDraft>>({});
+  const [dirty, setDirty] = useState<Record<string, boolean>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
 
@@ -64,25 +52,34 @@ function Notas({ schoolId }: { schoolId: string }) {
     queryFn: () => listStudentsByClass(schoolId, classId!),
     enabled: !!classId,
   });
+  const typesQ = useQuery({
+    queryKey: ["assessment-types", schoolId, classId, bimestre],
+    queryFn: () => ensureAssessmentTypes(schoolId, classId!, bimestre),
+    enabled: !!classId,
+  });
   const gradesQ = useQuery({
-    queryKey: ["grades", schoolId, classId, bimestre],
-    queryFn: () => getGrades(schoolId, classId!, bimestre),
+    queryKey: ["grade-map", schoolId, classId, bimestre],
+    queryFn: () => getClassGradeMap(schoolId, classId!, bimestre),
     enabled: !!classId,
   });
 
+  const columns: AssessmentType[] = useMemo(() => typesQ.data ?? [], [typesQ.data]);
+
   useEffect(() => {
-    if (!studentsQ.data) return;
-    const next: Record<string, Row> = {};
+    if (!studentsQ.data || !gradesQ.data) return;
+    const next: Record<string, RowDraft> = {};
     for (const s of studentsQ.data) {
-      const g = gradesQ.data?.[s.id] ?? {};
-      next[s.id] = {
-        p1: g.p1 == null ? "" : String(g.p1),
-        p2: g.p2 == null ? "" : String(g.p2),
-        atividade: g.atividade == null ? "" : String(g.atividade),
-      };
+      const stored = gradesQ.data[s.id] ?? {};
+      const row: RowDraft = {};
+      for (const c of columns) {
+        const v = stored[c.subjectKey];
+        row[c.subjectKey] = typeof v === "number" ? String(v) : "";
+      }
+      next[s.id] = row;
     }
-    setRows(next);
-  }, [studentsQ.data, gradesQ.data]);
+    setDrafts(next);
+    setDirty({});
+  }, [studentsQ.data, gradesQ.data, columns]);
 
   const filteredStudents = useMemo(() => {
     const list = studentsQ.data ?? [];
@@ -90,28 +87,42 @@ function Notas({ schoolId }: { schoolId: string }) {
     return list.filter((s) => matchesInitial(s.name, filter));
   }, [studentsQ.data, filter]);
 
+  const numbersFor = (studentId: string): GradeMap => {
+    const row = drafts[studentId] ?? {};
+    const out: GradeMap = {};
+    for (const c of columns) {
+      const parsed = sanitizeGrade(row[c.subjectKey] ?? "", c.maxValue).value;
+      if (parsed != null) out[c.subjectKey] = parsed;
+    }
+    return out;
+  };
+
   const saveRow = async (studentId: string) => {
-    if (!classId || !firebaseUser) return;
+    if (!classId) return;
     setSavingId(studentId);
     try {
-      const raw = rows[studentId];
-      const p1 = sanitizeGrade(raw.p1);
-      const p2 = sanitizeGrade(raw.p2);
-      const at = sanitizeGrade(raw.atividade);
-      // Reflect any correction back in the UI so the user sees the saved value.
-      setRows((x) => ({
-        ...x,
-        [studentId]: { p1: p1.display, p2: p2.display, atividade: at.display },
-      }));
-      const entry: GradeEntry = {
-        p1: p1.value,
-        p2: p2.value,
-        atividade: at.value,
-        by: firebaseUser.uid,
-      };
-      await setStudentGrade(schoolId, classId, bimestre, studentId, entry);
-      const anyCorrected = p1.corrected || p2.corrected || at.corrected;
-      toast.success(anyCorrected ? "Nota salva (valores ajustados)." : "Nota salva.");
+      const row = drafts[studentId] ?? {};
+      const values: Record<string, number | null> = {};
+      const display: RowDraft = {};
+      let corrected = false;
+      for (const c of columns) {
+        const s = sanitizeGrade(row[c.subjectKey] ?? "", c.maxValue);
+        values[c.subjectKey] = s.value;
+        display[c.subjectKey] = s.display;
+        corrected = corrected || s.corrected;
+      }
+      setDrafts((x) => ({ ...x, [studentId]: display }));
+      await setStudentGradeMap({
+        schoolId,
+        classId,
+        bimestre,
+        studentId,
+        subjectKeys: columns.map((c) => c.subjectKey),
+        values,
+      });
+      setDirty((d) => ({ ...d, [studentId]: false }));
+      toast.success(corrected ? "Nota salva (valores ajustados)." : "Nota salva.");
+      qc.invalidateQueries({ queryKey: ["grade-map", schoolId, classId, bimestre] });
       qc.invalidateQueries({ queryKey: ["grades", schoolId, classId, bimestre] });
       qc.invalidateQueries({ queryKey: ["attention-report", schoolId, classId] });
     } catch (e) {
@@ -120,6 +131,11 @@ function Notas({ schoolId }: { schoolId: string }) {
     } finally {
       setSavingId(null);
     }
+  };
+
+  const dirtyIds = Object.keys(dirty).filter((id) => dirty[id]);
+  const saveAll = async () => {
+    for (const id of dirtyIds) await saveRow(id);
   };
 
   if (classesQ.isLoading) return <Loading />;
@@ -134,8 +150,9 @@ function Notas({ schoolId }: { schoolId: string }) {
       <Card>
         <CardContent className="pt-5 space-y-3">
           <div className="space-y-1.5">
-            <Label>Turma</Label>
+            <Label htmlFor="turma-select">Turma</Label>
             <select
+              id="turma-select"
               className="w-full h-10 rounded-md border bg-background px-3 text-sm"
               value={classId ?? ""}
               onChange={(e) => setClassId(e.target.value || null)}
@@ -150,10 +167,12 @@ function Notas({ schoolId }: { schoolId: string }) {
           </div>
           <div className="space-y-1.5">
             <Label>Bimestre</Label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-2" role="group" aria-label="Bimestre">
               {[1, 2, 3, 4].map((b) => (
                 <button
                   key={b}
+                  type="button"
+                  aria-pressed={bimestre === b}
                   onClick={() => setBimestre(b)}
                   className={`h-10 rounded-md border text-sm font-medium ${
                     bimestre === b ? "bg-primary text-primary-foreground border-primary" : "bg-card"
@@ -176,37 +195,61 @@ function Notas({ schoolId }: { schoolId: string }) {
             bimester={bimestre}
           />
 
-          <AssessmentTypesPanel schoolId={schoolId} classId={classId} bimester={bimestre} />
+          {typesQ.isLoading ? (
+            <Loading />
+          ) : (
+            <GradeColumnsPanel
+              schoolId={schoolId}
+              classId={classId}
+              bimester={bimestre}
+              types={columns}
+            />
+          )}
 
-          {studentsQ.isLoading ? (
+          {studentsQ.isLoading || gradesQ.isLoading ? (
             <Loading />
           ) : (studentsQ.data ?? []).length === 0 ? (
             <EmptyState title="Sem alunos" />
           ) : (
             <div className="space-y-2">
               <StudentSearchInput value={filter} onChange={setFilter} />
+
+              {dirtyIds.length > 0 && (
+                <div className="sticky top-2 z-10 flex items-center justify-between gap-2 rounded-md border bg-card/95 backdrop-blur px-3 py-2 shadow-sm">
+                  <span className="text-xs text-muted-foreground">
+                    {dirtyIds.length} aluno(s) com alterações
+                  </span>
+                  <Button size="sm" onClick={saveAll} disabled={!!savingId}>
+                    <Save className="size-3.5" /> Salvar tudo
+                  </Button>
+                </div>
+              )}
+
               {filteredStudents.length === 0 && (
                 <p className="text-xs text-muted-foreground text-center py-2">
                   Nenhum aluno com essas iniciais.
                 </p>
               )}
-              {filteredStudents.map((s) => {
-                const r = rows[s.id] ?? { p1: "", p2: "", atividade: "" };
-                const nums = {
-                  p1: sanitizeGrade(r.p1).value ?? undefined,
-                  p2: sanitizeGrade(r.p2).value ?? undefined,
-                  atividade: sanitizeGrade(r.atividade).value ?? undefined,
-                };
-                const media = calcMedia(nums);
-                const sum = [nums.p1, nums.p2, nums.atividade]
-                  .filter((v): v is number => typeof v === "number")
-                  .reduce((a, b) => a + b, 0);
+
+              {filteredStudents.map((s, index) => {
+                const row = drafts[s.id] ?? {};
+                const nums = numbersFor(s.id);
+                const media = calcWeightedMedia(
+                  nums,
+                  columns.map((c) => ({ subjectKey: c.subjectKey, weight: c.weight })),
+                );
+                const sum = Object.values(nums).reduce((a, b) => a + b, 0);
+                const filled = Object.keys(nums).length;
+                const isDirty = !!dirty[s.id];
                 return (
-                  <Card key={s.id}>
-                    <CardContent className="pt-4 pb-4 space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="font-medium text-sm truncate flex-1 flex items-center gap-1.5">
-                          {s.name}
+                  <Card key={s.id} className={isDirty ? "border-primary/60" : undefined}>
+                    <CardContent className="pt-4 pb-4 space-y-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1 flex items-center gap-1.5">
+                          <span className="text-xs font-mono text-muted-foreground shrink-0">
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
+                          <span className="font-medium text-sm truncate">{s.name}</span>
                           {s.specialNeeds && (
                             <Heart
                               className="size-3.5 text-primary shrink-0"
@@ -222,7 +265,11 @@ function Notas({ schoolId }: { schoolId: string }) {
                             Média:{" "}
                             <span
                               className={`font-bold ${
-                                media >= 6 ? "text-secondary-foreground" : "text-destructive"
+                                filled === 0
+                                  ? "text-muted-foreground"
+                                  : media >= 6
+                                    ? "text-primary"
+                                    : "text-destructive"
                               }`}
                             >
                               {media.toFixed(1)}
@@ -230,38 +277,54 @@ function Notas({ schoolId }: { schoolId: string }) {
                           </span>
                         </div>
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        {(["p1", "p2", "atividade"] as const).map((k) => (
-                          <div key={k}>
-                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
-                              {k === "atividade" ? "Ativ." : k.toUpperCase()}
-                            </div>
-                            <Input
-                              inputMode="decimal"
-                              value={r[k]}
-                              onChange={(e) =>
-                                setRows((x) => ({
-                                  ...x,
-                                  [s.id]: { ...r, [k]: e.target.value },
-                                }))
-                              }
-                              onBlur={(e) => {
-                                const sanitized = sanitizeGrade(e.target.value).display;
-                                if (sanitized !== e.target.value) {
-                                  setRows((x) => ({
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        {columns.map((c) => {
+                          const inputId = `g-${s.id}-${c.subjectKey}`;
+                          return (
+                            <div key={c.subjectKey} className="min-w-0">
+                              <label
+                                htmlFor={inputId}
+                                className="block text-[10px] uppercase tracking-wide text-muted-foreground mb-1 truncate"
+                                title={`${c.name} (peso ${c.weight}, máx ${c.maxValue})`}
+                              >
+                                {c.name}
+                                {c.weight !== 1 && (
+                                  <span className="opacity-60"> ×{c.weight}</span>
+                                )}
+                              </label>
+                              <Input
+                                id={inputId}
+                                inputMode="decimal"
+                                value={row[c.subjectKey] ?? ""}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setDrafts((x) => ({
                                     ...x,
-                                    [s.id]: { ...r, [k]: sanitized },
+                                    [s.id]: { ...(x[s.id] ?? {}), [c.subjectKey]: v },
                                   }));
-                                }
-                              }}
-                              className="h-9"
-                            />
-                          </div>
-                        ))}
+                                  setDirty((d) => ({ ...d, [s.id]: true }));
+                                }}
+                                onBlur={(e) => {
+                                  const sanitized = sanitizeGrade(e.target.value, c.maxValue)
+                                    .display;
+                                  if (sanitized !== e.target.value) {
+                                    setDrafts((x) => ({
+                                      ...x,
+                                      [s.id]: { ...(x[s.id] ?? {}), [c.subjectKey]: sanitized },
+                                    }));
+                                  }
+                                }}
+                                className="h-9 text-center tabular-nums"
+                              />
+                            </div>
+                          );
+                        })}
                       </div>
+
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant={isDirty ? "default" : "outline"}
                         className="w-full"
                         onClick={() => saveRow(s.id)}
                         disabled={savingId === s.id}
@@ -269,9 +332,11 @@ function Notas({ schoolId }: { schoolId: string }) {
                         <Save className="size-3.5" />
                         {savingId === s.id
                           ? "Salvando..."
-                          : gradesQ.data?.[s.id]
-                            ? "Atualizar"
-                            : "Salvar"}
+                          : isDirty
+                            ? "Salvar alterações"
+                            : filled > 0
+                              ? "Atualizar"
+                              : "Salvar"}
                       </Button>
                     </CardContent>
                   </Card>
@@ -282,128 +347,5 @@ function Notas({ schoolId }: { schoolId: string }) {
         </>
       )}
     </>
-  );
-}
-
-function AssessmentTypesPanel({
-  schoolId,
-  classId,
-  bimester,
-}: {
-  schoolId: string;
-  classId: string;
-  bimester: number;
-}) {
-  const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [weight, setWeight] = useState(1);
-  const [scope, setScope] = useState<"class" | "all">("class");
-
-  const typesQ = useQuery({
-    queryKey: ["assessment-types", schoolId, classId, bimester],
-    queryFn: () => listAssessmentTypes(schoolId, classId, bimester),
-  });
-
-  const save = async () => {
-    if (!name.trim()) { toast.error("Dê um nome à avaliação."); return; }
-    try {
-      await createAssessmentType({
-        schoolId,
-        classId: scope === "all" ? null : classId,
-        name,
-        weight,
-        bimester,
-      });
-      toast.success(scope === "all" ? "Aplicado em todas as suas turmas." : "Avaliação adicionada.");
-      setName(""); setWeight(1); setScope("class"); setOpen(false);
-      qc.invalidateQueries({ queryKey: ["assessment-types"] });
-    } catch (e) {
-      console.error(e);
-      toast.error("Erro ao adicionar.");
-    }
-  };
-
-  const remove = async (id: string) => {
-    if (!confirm("Remover avaliação?")) return;
-    try {
-      await deleteAssessmentType(id);
-      qc.invalidateQueries({ queryKey: ["assessment-types"] });
-    } catch (e) {
-      console.error(e);
-      toast.error("Erro ao remover.");
-    }
-  };
-
-  return (
-    <Card>
-      <CardContent className="pt-4 pb-4 space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold">Avaliações do bimestre</div>
-          <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
-            <Plus className="size-4" /> Mais
-          </Button>
-        </div>
-        {(typesQ.data ?? []).length === 0 ? (
-          <p className="text-xs text-muted-foreground">
-            Nenhuma avaliação personalizada. Você usa P1, P2 e Atividade por padrão. Toque em "Mais"
-            para adicionar (ex: Trabalho, Prova extra).
-          </p>
-        ) : (
-          <div className="flex flex-wrap gap-1.5">
-            {typesQ.data!.map((t) => (
-              <span
-                key={t.id}
-                className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-1 text-xs font-medium"
-              >
-                {t.name} <span className="opacity-60">×{t.weight}</span>
-                <button onClick={() => remove(t.id)} className="hover:opacity-70">
-                  <Trash2 className="size-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Nova avaliação</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label>Nome</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Trabalho de Ciências" />
-              </div>
-              <div>
-                <Label>Peso</Label>
-                <Input type="number" step="0.5" min={0.5} value={weight}
-                  onChange={(e) => setWeight(Number(e.target.value) || 1)} />
-              </div>
-              <div>
-                <Label>Aplicar em</Label>
-                <div className="grid grid-cols-2 gap-2 mt-1">
-                  <button
-                    onClick={() => setScope("class")}
-                    className={`h-10 rounded-md border text-sm ${scope === "class" ? "bg-primary text-primary-foreground border-primary" : "bg-card"}`}
-                  >
-                    Só esta turma
-                  </button>
-                  <button
-                    onClick={() => setScope("all")}
-                    className={`h-10 rounded-md border text-sm ${scope === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card"}`}
-                  >
-                    Todas as minhas turmas
-                  </button>
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button onClick={save}>Adicionar</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </CardContent>
-    </Card>
   );
 }
