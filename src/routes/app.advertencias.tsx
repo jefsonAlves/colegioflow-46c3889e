@@ -100,7 +100,12 @@ function Advertencias({ schoolId }: { schoolId: string }) {
     queryFn: () => listStudentsByClass(schoolId, classId),
     enabled: !!classId,
   });
+  const allStudentsQ = useQuery({
+    queryKey: ["students-all", schoolId],
+    queryFn: () => listStudents(schoolId),
+  });
   const listQ = useQuery({
+
     queryKey: ["disciplinary", schoolId, classId || "all"],
     queryFn: () => listDisciplinary(schoolId, classId ? { classId } : undefined),
   });
