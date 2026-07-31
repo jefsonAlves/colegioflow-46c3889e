@@ -1,4 +1,4 @@
-import { Outlet, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Outlet, createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AlertTriangle, LogOut, RefreshCw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,7 +9,45 @@ import { signOut } from "@/integrations/firebase/auth";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
+  errorComponent: AppErrorBoundary,
 });
+
+/** Keeps a failure inside the app shell instead of blanking the whole site. */
+function AppErrorBoundary({ error, reset }: { error: Error; reset: () => void }) {
+  const router = useRouter();
+  return (
+    <div className="min-h-screen flex items-center justify-center px-5 py-8 bg-muted/30">
+      <Card className="w-full max-w-md border-destructive/40">
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="size-6 text-destructive shrink-0 mt-0.5" />
+            <div>
+              <h2 className="font-semibold text-lg">Algo falhou nesta tela</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                {error?.message || "Erro inesperado."} Seus dados salvos não foram perdidos.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              className="flex-1"
+              onClick={() => {
+                router.invalidate();
+                reset();
+              }}
+            >
+              <RefreshCw className="size-4" /> Tentar novamente
+            </Button>
+            <Button variant="outline" onClick={() => router.navigate({ to: "/app" })}>
+              Início
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 
 function AppLayout() {
   const { loading, firebaseUser, userDoc, bootError, retryBoot } = useAuth();
