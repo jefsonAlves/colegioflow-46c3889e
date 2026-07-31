@@ -1,14 +1,35 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Calendar, GraduationCap, Users } from "lucide-react";
+import { BookOpen, Calendar, Download, FileText, GraduationCap, Users } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loading } from "@/components/States";
+import { useActiveSchool } from "@/hooks/useActiveSchool";
 import { listClasses } from "@/lib/classes";
 import { listStudents } from "@/lib/students";
 import { getClassAttendanceAll } from "@/lib/attendance";
 import { getGrades } from "@/lib/grades";
+import {
+  absenceReportToCSV,
+  buildAbsenceReport,
+  periodRange,
+  type AbsencePeriodKey,
+} from "@/lib/absenceReport";
+import { downloadCSV } from "@/lib/attentionReport";
+import { generateAbsenceReportPDF } from "@/lib/pdf/faltosos";
+
 
 export const Route = createFileRoute("/app/relatorios")({
   component: () => (
