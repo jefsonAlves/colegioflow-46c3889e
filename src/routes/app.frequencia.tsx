@@ -81,7 +81,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const [marks, setMarks] = useState<Record<string, AttendanceStatus>>({});
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
-  const [tab, setTab] = useState<"chamada" | "conteudo">("chamada");
+  const [tab, setTab] = useState<"chamada" | "conteudo" | "faltosos">("chamada");
 
   useEffect(() => {
     if (search.classId) setClassId(search.classId);
