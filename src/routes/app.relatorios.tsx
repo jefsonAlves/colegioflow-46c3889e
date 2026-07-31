@@ -121,6 +121,10 @@ function Relatorios({ schoolId }: { schoolId: string }) {
         <Stat icon={GraduationCap} label="Média geral" value={avgGrade.toFixed(1)} />
       </div>
 
+      <AbsenceReportSection schoolId={schoolId} />
+
+
+
       <section className="space-y-2">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
           Por turma
