@@ -312,36 +312,3 @@ function ParentLinksSection({ schoolId }: { schoolId: string }) {
     </section>
   );
 }
-
-function RemoveAdminButton({
-  membership,
-  onDone,
-}: {
-  membership: MembershipDoc;
-  onDone: () => void;
-}) {
-  const { userDoc } = useAuth();
-  const isMaster = userDoc?.globalRole === "master";
-  const isAdminRow = membership.roleInSchool === "school_admin";
-  // Master can remove anyone; school_admin can remove non-admin members; admins of the school can't remove other admins.
-  const canRemove = isMaster || !isAdminRow;
-  if (!canRemove) return null;
-  const onClick = async () => {
-    if (!confirm("Remover este membro da escola?")) return;
-    try {
-      const { supabase } = await import("@/integrations/supabase/client");
-      const { error } = await supabase.from("school_memberships").delete().eq("id", membership.id);
-      if (error) throw error;
-      toast.success("Membro removido.");
-      onDone();
-    } catch (e) {
-      console.error(e);
-      toast.error("Erro ao remover.");
-    }
-  };
-  return (
-    <Button size="sm" variant="outline" onClick={onClick}>
-      <X className="size-4" />
-    </Button>
-  );
-}
