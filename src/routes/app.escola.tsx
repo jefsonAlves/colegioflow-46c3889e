@@ -23,6 +23,9 @@ import {
 import type { MembershipDoc, SchoolDoc, UserDoc } from "@/lib/types";
 import { SchoolCertificatesSection } from "@/components/SchoolCertificates";
 import { SchoolStudentsManager } from "@/components/SchoolStudentsManager";
+import { SchoolStaffSection } from "@/components/SchoolStaffSection";
+import { SchoolUsageSummary } from "@/components/SchoolUsageSummary";
+import { TipsTour } from "@/components/TipsTour";
 
 export const Route = createFileRoute("/app/escola")({
   component: SchoolAdminPage,
