@@ -282,6 +282,11 @@ function ClassDetail({
     queryKey: ["students", schoolId, cls.id],
     queryFn: () => listStudentsByClass(schoolId, cls.id),
   });
+  const schoolStudentsQ = useQuery({
+    queryKey: ["students-all", schoolId],
+    queryFn: () => listStudents(schoolId),
+    staleTime: 30_000,
+  });
   const classesQ = useQuery({
     queryKey: ["classes", schoolId],
     queryFn: () => listClasses(schoolId),
