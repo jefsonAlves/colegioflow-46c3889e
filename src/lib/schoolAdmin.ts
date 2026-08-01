@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { asPlanKey, asPlanStatus, type PlanKey, type PlanStatus } from "./plans";
+import type { AccessRole, SchoolRole } from "./roles";
 
 export interface SchoolUsage {
   staffCount: number;
