@@ -107,10 +107,10 @@ export async function setSchoolPlan(input: {
     _school_id: input.schoolId,
     _plan: input.plan,
     _plan_status: input.planStatus,
-    _plan_expires_at: input.planExpiresAt,
+    _plan_expires_at: input.planExpiresAt as unknown as string,
     _max_staff: input.maxStaff,
     _max_students: input.maxStudents,
-    _master_notes: input.masterNotes,
+    _master_notes: input.masterNotes as unknown as string,
   });
   if (error) throw error;
 }
