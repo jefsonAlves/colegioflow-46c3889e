@@ -57,6 +57,7 @@ function SchoolAdminPage() {
 
   return (
     <AppShell title="Minha escola">
+      <TipsTour audience="school_admin" />
       {myMemQ.isLoading ? (
         <Loading />
       ) : adminSchoolIds.length === 0 ? (
