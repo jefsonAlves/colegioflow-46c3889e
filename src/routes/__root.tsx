@@ -131,15 +131,21 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   useEffect(() => {
-    installQueryPersistence(queryClient);
+    // Cache persistido foi removido: limpa restos antigos que quebravam a
+    // hidratação das queries ("u.has is not a function").
+    try {
+      window.localStorage.removeItem("cem.rq.cache.v1");
+    } catch {
+      /* storage indisponível */
+    }
     installOfflineDrain();
   }, [queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <OfflineStatus />
         <Outlet />
+
         <InstallPrompt />
         <Toaster richColors position="top-center" />
       </AuthProvider>
