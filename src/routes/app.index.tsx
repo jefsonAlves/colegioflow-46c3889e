@@ -68,6 +68,22 @@ function AppHome() {
           <>
             <NextClassCard schoolId={schoolId} />
 
+            <TipsTour
+              audience={
+                userDoc.globalRole === "master"
+                  ? "master"
+                  : userDoc.profileType === "school_admin"
+                    ? "school_admin"
+                    : "teacher"
+              }
+            />
+
+            {userDoc.profileType === "school_admin" && (
+              <SchoolUsageSummary schoolId={schoolId} compact />
+            )}
+
+
+
             <section className="space-y-1">
               <p className="text-sm text-muted-foreground">
                 {userDoc.profileType === "school_admin"
