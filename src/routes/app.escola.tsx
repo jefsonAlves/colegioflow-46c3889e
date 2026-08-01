@@ -157,6 +157,8 @@ function SchoolAdminCard({ school, onChanged }: { school: SchoolDoc; onChanged: 
         )}
       </section>
 
+      <SchoolUsageSummary schoolId={school.id} />
+
       <SchoolStaffSection schoolId={school.id} />
 
       <SchoolStudentsManager schoolId={school.id} />
