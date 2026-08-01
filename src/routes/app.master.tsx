@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
+import { TipsTour } from "@/components/TipsTour";
+import { MasterSchoolsOverview } from "@/components/MasterSchoolsOverview";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,6 +100,10 @@ function MasterPage() {
 
   return (
     <AppShell title="Painel Master">
+      <TipsTour audience="master" />
+
+      <MasterSchoolsOverview />
+
       <Link to="/app/master/migracao" className="block">
         <Card className="border-primary/30 hover:bg-primary/5 transition">
           <CardContent className="pt-4 pb-4 flex items-center gap-3">

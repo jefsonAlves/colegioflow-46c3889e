@@ -16,6 +16,8 @@ import { AppShell } from "@/components/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { NextClassCard } from "@/components/NextClassCard";
 import { SchoolGate } from "@/components/SchoolGate";
+import { TipsTour } from "@/components/TipsTour";
+import { SchoolUsageSummary } from "@/components/SchoolUsageSummary";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { listAnnouncements, listReadIds } from "@/lib/announcements";
@@ -65,6 +67,22 @@ function AppHome() {
         {({ schoolId }) => (
           <>
             <NextClassCard schoolId={schoolId} />
+
+            <TipsTour
+              audience={
+                userDoc.globalRole === "master"
+                  ? "master"
+                  : userDoc.profileType === "school_admin"
+                    ? "school_admin"
+                    : "teacher"
+              }
+            />
+
+            {userDoc.profileType === "school_admin" && (
+              <SchoolUsageSummary schoolId={schoolId} compact />
+            )}
+
+
 
             <section className="space-y-1">
               <p className="text-sm text-muted-foreground">

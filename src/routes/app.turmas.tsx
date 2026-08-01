@@ -29,6 +29,7 @@ import {
   countStudentsBySchool,
   createStudentsBulk,
   deleteStudent,
+  listStudents,
   listStudentsByClass,
   updateStudent,
   type StudentDoc,
@@ -281,6 +282,11 @@ function ClassDetail({
     queryKey: ["students", schoolId, cls.id],
     queryFn: () => listStudentsByClass(schoolId, cls.id),
   });
+  const schoolStudentsQ = useQuery({
+    queryKey: ["students-all", schoolId],
+    queryFn: () => listStudents(schoolId),
+    staleTime: 30_000,
+  });
   const classesQ = useQuery({
     queryKey: ["classes", schoolId],
     queryFn: () => listClasses(schoolId),
@@ -345,34 +351,58 @@ function ClassDetail({
       toast.error("Digite ao menos um nome.");
       return;
     }
+    const key = (n: string) => n.toLocaleLowerCase("pt-BR");
     const seen = new Set<string>();
     const unique: string[] = [];
     for (const n of raw) {
-      const k = n.toLocaleLowerCase("pt-BR");
-      if (!seen.has(k)) {
-        seen.add(k);
+      if (!seen.has(key(n))) {
+        seen.add(key(n));
         unique.push(n);
       }
     }
-    const existing = new Set(
-      (studentsQ.data ?? []).map((s) => s.name.toLocaleLowerCase("pt-BR")),
-    );
-    const toInsert = unique.filter((n) => !existing.has(n.toLocaleLowerCase("pt-BR")));
-    const skipped = unique.length - toInsert.length;
-    if (toInsert.length === 0) {
-      toast.error("Todos os nomes já existem na turma.");
+
+    const inClass = new Set((studentsQ.data ?? []).map((s) => key(s.name)));
+    // Alunos já cadastrados na escola por outro professor: reaproveitamos o registro
+    // em vez de criar um duplicado, mantendo o nome compartilhado na turma.
+    const schoolByName = new Map<string, StudentDoc>();
+    for (const s of schoolStudentsQ.data ?? []) {
+      if (!schoolByName.has(key(s.name))) schoolByName.set(key(s.name), s);
+    }
+
+    const reuse: StudentDoc[] = [];
+    const toInsert: string[] = [];
+    let skipped = 0;
+    for (const n of unique) {
+      if (inClass.has(key(n))) {
+        skipped += 1;
+        continue;
+      }
+      const found = schoolByName.get(key(n));
+      if (found) reuse.push(found);
+      else toInsert.push(n);
+    }
+
+    if (toInsert.length === 0 && reuse.length === 0) {
+      toast.error("Todos os nomes já estão nesta turma.");
       return;
     }
     toInsert.sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
     setAdding(true);
     try {
-      await createStudentsBulk(schoolId, cls.id, toInsert);
+      for (const s of reuse) {
+        await updateStudent(schoolId, s.id, { classId: cls.id });
+      }
+      if (toInsert.length > 0) await createStudentsBulk(schoolId, cls.id, toInsert);
       setBulkText("");
-      qc.invalidateQueries({ queryKey: ["students", schoolId, cls.id] });
+      qc.invalidateQueries({ queryKey: ["students", schoolId] });
+      qc.invalidateQueries({ queryKey: ["students-all", schoolId] });
       qc.invalidateQueries({ queryKey: ["students-counts", schoolId] });
-      toast.success(
-        `${toInsert.length} aluno(s) adicionado(s)${skipped > 0 ? ` · ${skipped} ignorado(s)` : ""}.`,
-      );
+      const parts = [
+        toInsert.length > 0 ? `${toInsert.length} novo(s)` : null,
+        reuse.length > 0 ? `${reuse.length} reaproveitado(s) da escola` : null,
+        skipped > 0 ? `${skipped} já na turma` : null,
+      ].filter(Boolean);
+      toast.success(`Lista atualizada: ${parts.join(" · ")}.`);
     } catch (e) {
       console.error(e);
       toast.error("Erro ao adicionar alunos.");
@@ -380,6 +410,7 @@ function ClassDetail({
       setAdding(false);
     }
   };
+
 
   const doTransfer = async (newClassId: string) => {
     if (!transferStudent) return;
@@ -456,6 +487,10 @@ function ClassDetail({
               onChange={(e) => setBulkText(e.target.value)}
               rows={4}
             />
+            <p className="text-[11px] text-muted-foreground">
+              Nomes já cadastrados na escola são reaproveitados automaticamente (sem duplicar) e a
+              lista é ordenada em ordem alfabética.
+            </p>
             <Button onClick={addStudents} disabled={adding} className="w-full">
               <Plus className="size-4" /> {adding ? "Adicionando..." : "Adicionar alunos"}
             </Button>

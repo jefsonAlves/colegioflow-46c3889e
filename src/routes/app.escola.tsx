@@ -23,6 +23,9 @@ import {
 import type { MembershipDoc, SchoolDoc, UserDoc } from "@/lib/types";
 import { SchoolCertificatesSection } from "@/components/SchoolCertificates";
 import { SchoolStudentsManager } from "@/components/SchoolStudentsManager";
+import { SchoolStaffSection } from "@/components/SchoolStaffSection";
+import { SchoolUsageSummary } from "@/components/SchoolUsageSummary";
+import { TipsTour } from "@/components/TipsTour";
 
 export const Route = createFileRoute("/app/escola")({
   component: SchoolAdminPage,
@@ -54,6 +57,7 @@ function SchoolAdminPage() {
 
   return (
     <AppShell title="Minha escola">
+      <TipsTour audience="school_admin" />
       {myMemQ.isLoading ? (
         <Loading />
       ) : adminSchoolIds.length === 0 ? (
@@ -157,37 +161,14 @@ function SchoolAdminCard({ school, onChanged }: { school: SchoolDoc; onChanged: 
         )}
       </section>
 
-      <section>
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-          Membros aprovados
-        </h3>
-        {approved.length === 0 ? (
-          <EmptyState title="Ainda sem membros aprovados" />
-        ) : (
-          <div className="space-y-2">
-            {approved.map((m) => {
-              const u = usersQ.data?.[m.userId];
-              return (
-                <Card key={m.id}>
-                  <CardContent className="pt-3 pb-3 flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{u?.name ?? "Usuário"}</div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {u?.email} · {m.roleInSchool}
-                      </div>
-                    </div>
-                    <RemoveAdminButton membership={m} onDone={() => memsQ.refetch()} />
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </section>
+      <SchoolUsageSummary schoolId={school.id} />
+
+      <SchoolStaffSection schoolId={school.id} />
 
       <SchoolStudentsManager schoolId={school.id} />
       <SchoolCertificatesSection schoolId={school.id} />
       <ParentLinksSection schoolId={school.id} />
+
     </div>
   );
 }
@@ -330,38 +311,5 @@ function ParentLinksSection({ schoolId }: { schoolId: string }) {
         </ul>
       )}
     </section>
-  );
-}
-
-function RemoveAdminButton({
-  membership,
-  onDone,
-}: {
-  membership: MembershipDoc;
-  onDone: () => void;
-}) {
-  const { userDoc } = useAuth();
-  const isMaster = userDoc?.globalRole === "master";
-  const isAdminRow = membership.roleInSchool === "school_admin";
-  // Master can remove anyone; school_admin can remove non-admin members; admins of the school can't remove other admins.
-  const canRemove = isMaster || !isAdminRow;
-  if (!canRemove) return null;
-  const onClick = async () => {
-    if (!confirm("Remover este membro da escola?")) return;
-    try {
-      const { supabase } = await import("@/integrations/supabase/client");
-      const { error } = await supabase.from("school_memberships").delete().eq("id", membership.id);
-      if (error) throw error;
-      toast.success("Membro removido.");
-      onDone();
-    } catch (e) {
-      console.error(e);
-      toast.error("Erro ao remover.");
-    }
-  };
-  return (
-    <Button size="sm" variant="outline" onClick={onClick}>
-      <X className="size-4" />
-    </Button>
   );
 }

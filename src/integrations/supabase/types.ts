@@ -801,9 +801,15 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
+          master_notes: string | null
+          max_staff: number
+          max_students: number
           merged_into: string | null
           name: string
           normalized_name: string
+          plan: string
+          plan_expires_at: string | null
+          plan_status: string
           stages: string[]
           state: string | null
           status: Database["public"]["Enums"]["school_status"]
@@ -814,9 +820,15 @@ export type Database = {
           created_at?: string
           created_by: string
           id?: string
+          master_notes?: string | null
+          max_staff?: number
+          max_students?: number
           merged_into?: string | null
           name: string
           normalized_name: string
+          plan?: string
+          plan_expires_at?: string | null
+          plan_status?: string
           stages?: string[]
           state?: string | null
           status?: Database["public"]["Enums"]["school_status"]
@@ -827,9 +839,15 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
+          master_notes?: string | null
+          max_staff?: number
+          max_students?: number
           merged_into?: string | null
           name?: string
           normalized_name?: string
+          plan?: string
+          plan_expires_at?: string | null
+          plan_status?: string
           stages?: string[]
           state?: string | null
           status?: Database["public"]["Enums"]["school_status"]
@@ -1140,6 +1158,41 @@ export type Database = {
         Args: { _school_id: string; _user_id: string }
         Returns: boolean
       }
+      master_schools_overview: {
+        Args: never
+        Returns: {
+          admin_count: number
+          city: string
+          class_count: number
+          created_at: string
+          master_notes: string
+          max_staff: number
+          max_students: number
+          name: string
+          pending_count: number
+          plan: string
+          plan_expires_at: string
+          plan_status: string
+          school_id: string
+          staff_count: number
+          state: string
+          status: string
+          student_count: number
+          teacher_count: number
+        }[]
+      }
+      master_set_school_plan: {
+        Args: {
+          _master_notes: string
+          _max_staff: number
+          _max_students: number
+          _plan: string
+          _plan_expires_at: string
+          _plan_status: string
+          _school_id: string
+        }
+        Returns: undefined
+      }
       move_students_to_class: {
         Args: { _student_ids: string[]; _to_class_id: string }
         Returns: number
@@ -1151,6 +1204,34 @@ export type Database = {
       rename_student_smart: {
         Args: { _new_name: string; _student_id: string }
         Returns: string
+      }
+      school_staff: {
+        Args: { _school_id: string }
+        Returns: {
+          created_at: string
+          email: string
+          membership_id: string
+          name: string
+          role_in_school: string
+          status: string
+          user_id: string
+        }[]
+      }
+      school_usage: {
+        Args: { _school_id: string }
+        Returns: {
+          admin_count: number
+          class_count: number
+          max_staff: number
+          max_students: number
+          pending_count: number
+          plan: string
+          plan_expires_at: string
+          plan_status: string
+          staff_count: number
+          student_count: number
+          teacher_count: number
+        }[]
       }
     }
     Enums: {
