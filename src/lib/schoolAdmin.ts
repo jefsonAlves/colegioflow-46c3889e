@@ -48,7 +48,7 @@ export async function getSchoolUsage(schoolId: string): Promise<SchoolUsage | nu
     classCount: row.class_count ?? 0,
     studentCount: row.student_count ?? 0,
     plan: asPlanKey(row.plan),
-    planStatus: asPlanStatus(row.plan_status),
+    planStatus: asPlanStatus(r.plan_status),
     planExpiresAt: row.plan_expires_at ?? null,
     maxStaff: row.max_staff ?? 0,
     maxStudents: row.max_students ?? 0,
