@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { asPlanKey, asPlanStatus, type PlanKey, type PlanStatus } from "./plans";
+import type { AccessRole, SchoolRole } from "./roles";
 
 export interface SchoolUsage {
   staffCount: number;
@@ -114,3 +115,20 @@ export async function setSchoolPlan(input: {
   });
   if (error) throw error;
 }
+
+/** Altera o papel de um funcionário já vinculado (apenas admin da escola ou master). */
+export async function setMembershipRole(membershipId: string, role: SchoolRole): Promise<void> {
+  const { error } = await supabase.rpc("set_membership_role", {
+    _membership_id: membershipId,
+    _role: role,
+  });
+  if (error) throw error;
+}
+
+/** Papel efetivo do usuário autenticado na escola informada. */
+export async function getMySchoolRole(schoolId: string): Promise<AccessRole | null> {
+  const { data, error } = await supabase.rpc("my_school_role", { _school_id: schoolId });
+  if (error) throw error;
+  return (data as AccessRole | null) ?? null;
+}
+
