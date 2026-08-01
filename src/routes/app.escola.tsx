@@ -157,37 +157,12 @@ function SchoolAdminCard({ school, onChanged }: { school: SchoolDoc; onChanged: 
         )}
       </section>
 
-      <section>
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-          Membros aprovados
-        </h3>
-        {approved.length === 0 ? (
-          <EmptyState title="Ainda sem membros aprovados" />
-        ) : (
-          <div className="space-y-2">
-            {approved.map((m) => {
-              const u = usersQ.data?.[m.userId];
-              return (
-                <Card key={m.id}>
-                  <CardContent className="pt-3 pb-3 flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{u?.name ?? "Usuário"}</div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {u?.email} · {m.roleInSchool}
-                      </div>
-                    </div>
-                    <RemoveAdminButton membership={m} onDone={() => memsQ.refetch()} />
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </section>
+      <SchoolStaffSection schoolId={school.id} />
 
       <SchoolStudentsManager schoolId={school.id} />
       <SchoolCertificatesSection schoolId={school.id} />
       <ParentLinksSection schoolId={school.id} />
+
     </div>
   );
 }
