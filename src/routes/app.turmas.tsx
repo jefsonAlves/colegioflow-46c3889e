@@ -487,6 +487,10 @@ function ClassDetail({
               onChange={(e) => setBulkText(e.target.value)}
               rows={4}
             />
+            <p className="text-[11px] text-muted-foreground">
+              Nomes já cadastrados na escola são reaproveitados automaticamente (sem duplicar) e a
+              lista é ordenada em ordem alfabética.
+            </p>
             <Button onClick={addStudents} disabled={adding} className="w-full">
               <Plus className="size-4" /> {adding ? "Adicionando..." : "Adicionar alunos"}
             </Button>
