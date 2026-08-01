@@ -29,6 +29,7 @@ import {
   countStudentsBySchool,
   createStudentsBulk,
   deleteStudent,
+  listStudents,
   listStudentsByClass,
   updateStudent,
   type StudentDoc,
