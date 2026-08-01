@@ -1197,6 +1197,7 @@ export type Database = {
         Args: { _student_ids: string[]; _to_class_id: string }
         Returns: number
       }
+      my_school_role: { Args: { _school_id: string }; Returns: string }
       rename_class_smart: {
         Args: { _class_id: string; _new_name: string }
         Returns: string
@@ -1232,6 +1233,10 @@ export type Database = {
           student_count: number
           teacher_count: number
         }[]
+      }
+      set_membership_role: {
+        Args: { _membership_id: string; _role: string }
+        Returns: undefined
       }
     }
     Enums: {
