@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/States";
 import { useActiveSchool } from "@/hooks/useActiveSchool";
+import { MembershipStatusCard } from "@/components/MembershipStatusCard";
+
 
 interface Props {
   children: (ctx: { schoolId: string }) => React.ReactNode;
