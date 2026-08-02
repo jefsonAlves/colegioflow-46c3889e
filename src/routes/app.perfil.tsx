@@ -17,6 +17,8 @@ import { getSchool } from "@/lib/schools";
 import { listClasses } from "@/lib/classes";
 import { listMyTaughtClasses, teachClass, untaughtClass } from "@/lib/classTeachers";
 import { SchoolPicker } from "@/components/SchoolPicker";
+import { MembershipStatusCard } from "@/components/MembershipStatusCard";
+
 import type { ProfileType, RoleInSchool, SchoolDoc } from "@/lib/types";
 
 export const Route = createFileRoute("/app/perfil")({
@@ -228,29 +230,18 @@ function PerfilPage() {
           </Card>
         ) : (
           <div className="space-y-2">
-            {memberships.map((m) => {
-              const s = schoolById.get(m.schoolId);
-              return (
-                <Card key={m.id}>
-                  <CardContent className="pt-4 pb-4 flex items-center gap-3">
-                    <div className="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                      <Building2 className="size-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{s?.name ?? "Escola"}</div>
-                      <div className="text-xs text-muted-foreground capitalize">
-                        {m.status === "pending"
-                          ? "Aguardando aprovação"
-                          : m.status === "approved"
-                            ? `Ativo · ${m.roleInSchool}`
-                            : m.status}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+            {memberships.map((m) => (
+              <MembershipStatusCard
+                key={m.id}
+                status={m.status}
+                role={m.roleInSchool}
+                schoolName={schoolById.get(m.schoolId)?.name ?? "Escola"}
+                profileType={userDoc.profileType}
+                onboardingComplete={userDoc.onboardingComplete}
+              />
+            ))}
           </div>
+
         )}
 
         {profileType && profileType !== "parent" && !pickingSchool && (

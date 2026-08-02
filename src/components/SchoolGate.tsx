@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/States";
 import { useActiveSchool } from "@/hooks/useActiveSchool";
+import { MembershipStatusCard } from "@/components/MembershipStatusCard";
+
 
 interface Props {
   children: (ctx: { schoolId: string }) => React.ReactNode;
@@ -16,22 +18,34 @@ export function SchoolGate({ children }: Props) {
 
   if (approvedSchools.length === 0) {
     return (
-      <Card>
-        <CardContent className="pt-6 pb-6 flex flex-col items-center text-center gap-3">
-          <AlertCircle className="size-10 text-muted-foreground" />
-          <h3 className="font-semibold">Você ainda não tem escola ativa</h3>
-          <p className="text-sm text-muted-foreground max-w-xs">
-            {pendingSchools.length > 0
-              ? "Sua solicitação está aguardando aprovação do administrador da escola."
-              : "Vincule-se a uma escola no seu perfil para começar."}
-          </p>
-          <Link to="/app/perfil">
-            <Button>Ir para o perfil</Button>
-          </Link>
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        {pendingSchools.length > 0 ? (
+          pendingSchools.map(({ membership }) => (
+            <MembershipStatusCard
+              key={membership.id}
+              status={membership.status}
+              role={membership.roleInSchool}
+            />
+          ))
+        ) : (
+          <Card>
+            <CardContent className="pt-6 pb-6 flex flex-col items-center text-center gap-3">
+              <AlertCircle className="size-10 text-muted-foreground" />
+              <h3 className="font-semibold">Você ainda não tem escola ativa</h3>
+              <p className="text-sm text-muted-foreground max-w-xs">
+                Vincule-se a uma escola no seu perfil para começar. Se a escola ainda não existe, o
+                sistema cria um cadastro padrão com todas as funções de professor liberadas.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+        <Link to="/app/perfil">
+          <Button className="w-full">Ir para o perfil</Button>
+        </Link>
+      </div>
     );
   }
+
 
   return (
     <div className="space-y-3">
