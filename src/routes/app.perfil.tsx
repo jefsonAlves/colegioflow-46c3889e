@@ -17,6 +17,8 @@ import { getSchool } from "@/lib/schools";
 import { listClasses } from "@/lib/classes";
 import { listMyTaughtClasses, teachClass, untaughtClass } from "@/lib/classTeachers";
 import { SchoolPicker } from "@/components/SchoolPicker";
+import { MembershipStatusCard } from "@/components/MembershipStatusCard";
+
 import type { ProfileType, RoleInSchool, SchoolDoc } from "@/lib/types";
 
 export const Route = createFileRoute("/app/perfil")({
