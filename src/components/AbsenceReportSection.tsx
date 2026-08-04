@@ -43,8 +43,8 @@ export function AbsenceReportSection({
   const [period, setPeriod] = useState<AbsencePeriodKey>("month");
   const [classId, setClassId] = useState<string>(defaultClassId ?? "all");
   const [minAbsences, setMinAbsences] = useState(1);
-  const [from, setFrom] = useState(initial.from);
-  const [to, setTo] = useState(initial.to);
+  const [from, setFrom] = useState(() => periodRange("month").from);
+  const [to, setTo] = useState(() => periodRange("month").to);
 
   useEffect(() => {
     if (period === "custom") {
