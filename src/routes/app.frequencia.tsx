@@ -344,8 +344,8 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                       Ver todos os alunos
                     </Button>
                   </div>
-                  <p className="text-[10px] text-muted-foreground px-1">
-                    Filtre as datas e visualize os alunos faltosos daquela data, bimestre ou semestre para gerar arquivos detalhados e compartilhar.
+                  <p className="text-[10px] text-muted-foreground px-1 leading-tight">
+                    essa falta do mês e mais a do dia tudo jutno vai virar uma confusão por isso traga apenas o do dia e só apareça do mês se eu pedi para mostrar conforme a escolha do filtro o padrão fixo é mostrar a falta do dia caso tenha sido feito a chamada ou seja a frequencia. e a parte para para filtra o mÊs, ano ou bimestre ao se escolido precisa aparecer separado a falta do mês mais precisa adicionar a opção para escolhe o mês que deseja filtrar as falta  por isso ajuste isso e melhore e deixe o painel mais moderno e preciso
                   </p>
                 </div>
               )}
