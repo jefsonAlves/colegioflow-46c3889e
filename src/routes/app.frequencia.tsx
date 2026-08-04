@@ -160,7 +160,20 @@ function Frequencia({ schoolId }: { schoolId: string }) {
     const startISO = start.toISOString().slice(0, 10);
     const perStudent: Record<string, { total: number; unjustified: number; dates: string[] }> = {};
     const dayFaults: Record<string, number> = {};
+    const selectedDateAbsentees: { id: string; name: string; status: AttendanceStatus }[] = [];
+
+    const nameOf = (id: string) =>
+      (studentsQ.data ?? []).find((s) => s.id === id)?.name ?? "Aluno";
+
     for (const [d, entries] of Object.entries(allAttendanceQ.data ?? {})) {
+      if (d === date) {
+        for (const [sid, e] of Object.entries(entries)) {
+          if (e.status === "F" || e.status === "J") {
+            selectedDateAbsentees.push({ id: sid, name: nameOf(sid), status: e.status as AttendanceStatus });
+          }
+        }
+      }
+
       if (d < startISO) continue;
       for (const [sid, e] of Object.entries(entries)) {
         if (e.status === "F" || e.status === "J") {
@@ -174,8 +187,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
         }
       }
     }
-    const nameOf = (id: string) =>
-      (studentsQ.data ?? []).find((s) => s.id === id)?.name ?? "Aluno";
+
     const top = Object.entries(perStudent)
       .sort((a, b) => b[1].total - a[1].total)
       .slice(0, 5)
@@ -189,8 +201,8 @@ function Frequencia({ schoolId }: { schoolId: string }) {
           .filter(([, s]) => s.total >= (alertQ.data?.maxAbsences ?? Infinity))
           .map(([id, s]) => ({ id, name: nameOf(id), ...s }))
       : [];
-    return { top, topDays, atRisk, period };
-  }, [allAttendanceQ.data, studentsQ.data, alertQ.data]);
+    return { top, topDays, atRisk, period, selectedDateAbsentees };
+  }, [allAttendanceQ.data, studentsQ.data, alertQ.data, date]);
 
   const save = async () => {
     if (!classId || !firebaseUser) return;
