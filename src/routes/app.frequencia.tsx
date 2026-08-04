@@ -62,6 +62,7 @@ import { createAnnouncement } from "@/lib/announcements";
 export const Route = createFileRoute("/app/frequencia")({
   validateSearch: (s: Record<string, unknown>) => ({
     classId: typeof s.classId === "string" ? s.classId : undefined,
+    date: typeof s.date === "string" ? s.date : undefined,
   }),
   component: () => (
     <AppShell title="Frequência">
@@ -79,7 +80,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const qc = useQueryClient();
   const search = Route.useSearch();
   const [classId, setClassId] = useState<string | null>(search.classId ?? null);
-  const [date, setDate] = useState(todayISO());
+  const [date, setDate] = useState(search.date ?? todayISO());
   const [marks, setMarks] = useState<Record<string, AttendanceStatus>>({});
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
@@ -159,7 +160,20 @@ function Frequencia({ schoolId }: { schoolId: string }) {
     const startISO = start.toISOString().slice(0, 10);
     const perStudent: Record<string, { total: number; unjustified: number; dates: string[] }> = {};
     const dayFaults: Record<string, number> = {};
+    const selectedDateAbsentees: { id: string; name: string; status: AttendanceStatus }[] = [];
+
+    const nameOf = (id: string) =>
+      (studentsQ.data ?? []).find((s) => s.id === id)?.name ?? "Aluno";
+
     for (const [d, entries] of Object.entries(allAttendanceQ.data ?? {})) {
+      if (d === date) {
+        for (const [sid, e] of Object.entries(entries)) {
+          if (e.status === "F" || e.status === "J") {
+            selectedDateAbsentees.push({ id: sid, name: nameOf(sid), status: e.status as AttendanceStatus });
+          }
+        }
+      }
+
       if (d < startISO) continue;
       for (const [sid, e] of Object.entries(entries)) {
         if (e.status === "F" || e.status === "J") {
@@ -173,8 +187,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
         }
       }
     }
-    const nameOf = (id: string) =>
-      (studentsQ.data ?? []).find((s) => s.id === id)?.name ?? "Aluno";
+
     const top = Object.entries(perStudent)
       .sort((a, b) => b[1].total - a[1].total)
       .slice(0, 5)
@@ -188,8 +201,8 @@ function Frequencia({ schoolId }: { schoolId: string }) {
           .filter(([, s]) => s.total >= (alertQ.data?.maxAbsences ?? Infinity))
           .map(([id, s]) => ({ id, name: nameOf(id), ...s }))
       : [];
-    return { top, topDays, atRisk, period };
-  }, [allAttendanceQ.data, studentsQ.data, alertQ.data]);
+    return { top, topDays, atRisk, period, selectedDateAbsentees };
+  }, [allAttendanceQ.data, studentsQ.data, alertQ.data, date]);
 
   const save = async () => {
     if (!classId || !firebaseUser) return;
@@ -298,6 +311,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
             alertMax={alertQ.data?.maxAbsences ?? null}
             alertPeriod={alertQ.data?.period ?? "month"}
             onAlertSaved={() => qc.invalidateQueries({ queryKey: ["att-alert", classId] })}
+            currentDate={date}
           />
 
           <Tabs value={tab} onValueChange={(v) => setTab(v as "chamada" | "conteudo" | "faltosos")}>
@@ -458,6 +472,7 @@ function AttendanceDashboard({
   alertMax,
   alertPeriod,
   onAlertSaved,
+  currentDate,
 }: {
   schoolId: string;
   classId: string;
@@ -466,10 +481,12 @@ function AttendanceDashboard({
     topDays: { date: string; count: number }[];
     atRisk: { id: string; name: string; total: number; unjustified: number; dates: string[] }[];
     period: AlertPeriod;
+    selectedDateAbsentees: { id: string; name: string; status: AttendanceStatus }[];
   };
   alertMax: number | null;
   alertPeriod: AlertPeriod;
   onAlertSaved: () => void;
+  currentDate: string;
 }) {
   const [openAlert, setOpenAlert] = useState(false);
   const [maxAbs, setMaxAbs] = useState(alertMax ?? 5);
@@ -539,6 +556,47 @@ function AttendanceDashboard({
         )}
 
         <div>
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1 flex items-center justify-between">
+            <span>Faltosos do dia ({currentDate})</span>
+            {stats.selectedDateAbsentees.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-[10px] gap-1 px-2"
+                onClick={async () => {
+                  const { buildAbsenceReport } = await import("@/lib/absenceReport");
+                  const { generateAbsenceReportPDF } = await import("@/lib/pdf/faltosos");
+                  const report = await buildAbsenceReport({
+                    schoolId,
+                    from: currentDate,
+                    to: currentDate,
+                    classId,
+                    minAbsences: 1,
+                  });
+                  generateAbsenceReportPDF(report);
+                }}
+              >
+                <Download className="size-4" /> PDF
+              </Button>
+            )}
+          </div>
+          {stats.selectedDateAbsentees.length === 0 ? (
+            <div className="text-xs text-muted-foreground">Nenhuma falta registrada nesta data.</div>
+          ) : (
+            <div className="space-y-1">
+              {stats.selectedDateAbsentees.map((s) => (
+                <div key={s.id} className="flex items-center justify-between text-xs">
+                  <span className="truncate flex-1">{s.name}</span>
+                  <span className={`font-bold ${s.status === "J" ? "text-accent" : "text-destructive"}`}>
+                    {s.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
           <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
             Mais faltosos ({stats.period === "month" ? "no mês" : stats.period === "bimester" ? "no bimestre" : "no ano"})
           </div>
@@ -560,8 +618,27 @@ function AttendanceDashboard({
 
         {stats.topDays.length > 0 && (
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
-              Dias com mais faltas
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1 flex items-center justify-between">
+              <span>Dias com mais faltas</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-[10px] gap-1 px-2"
+                onClick={async () => {
+                  const { buildAbsenceReport } = await import("@/lib/absenceReport");
+                  const { generateAbsenceReportPDF } = await import("@/lib/pdf/faltosos");
+                  const report = await buildAbsenceReport({
+                    schoolId,
+                    from: currentDate,
+                    to: currentDate,
+                    classId,
+                    minAbsences: 1,
+                  });
+                  generateAbsenceReportPDF(report);
+                }}
+              >
+                <Download className="size-3" /> PDF do dia
+              </Button>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {stats.topDays.map((d) => (
