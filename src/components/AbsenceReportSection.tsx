@@ -43,9 +43,18 @@ export function AbsenceReportSection({
   const [period, setPeriod] = useState<AbsencePeriodKey>("month");
   const [classId, setClassId] = useState<string>(defaultClassId ?? "all");
   const [minAbsences, setMinAbsences] = useState(1);
-  const initial = periodRange("month");
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
+
+  useEffect(() => {
+    if (period === "custom") {
+      // Don't override user interaction if they are already on custom
+      return;
+    }
+    const next = periodRange(period);
+    setFrom(next.from);
+    setTo(next.to);
+  }, [period]);
 
   useEffect(() => {
     if (defaultClassId) setClassId(defaultClassId);
