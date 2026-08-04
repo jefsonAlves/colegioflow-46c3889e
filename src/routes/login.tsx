@@ -75,13 +75,13 @@ function LoginPage() {
     try {
       setSubmitting(true);
       const target = safeNext(next);
-      const redirect = target
-        ? `${window.location.origin}/login?next=${encodeURIComponent(target)}`
-        : undefined;
+      // Construct a fixed redirect URL that always points to /login or a callback
+      const redirect = `${window.location.origin}/login${target ? `?next=${encodeURIComponent(target)}` : ""}`;
+      console.log("LoginPage: handleGoogle redirecting to:", redirect);
       await signInWithGoogle(redirect);
     } catch (e) {
       const err = e as AuthError;
-      console.error(err);
+      console.error("LoginPage: handleGoogle error", err);
       toast.error(translateError(err.message));
     } finally {
       setSubmitting(false);
