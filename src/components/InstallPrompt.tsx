@@ -58,7 +58,7 @@ export function InstallPrompt() {
           <Download className="size-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold">Instalar Colégio em Movimento</div>
+          <div className="text-sm font-semibold">Instalar Klassio</div>
           <div className="text-xs text-muted-foreground truncate">
             {evt
               ? "Use como app no seu celular ou computador."

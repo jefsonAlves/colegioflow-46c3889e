@@ -11,9 +11,9 @@
   },
   "mcp": {
     "server": {
-      "name": "colegio-em-movimento-mcp",
+      "name": "klassio-mcp",
       "version": "0.1.0",
-      "title": "Colégio em Movimento"
+      "title": "Klassio — Gestão Escolar"
     },
     "tools": [
       {

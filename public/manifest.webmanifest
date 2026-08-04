@@ -1,7 +1,7 @@
 {
-  "name": "Colégio em Movimento",
-  "short_name": "Colégio",
-  "description": "Gestão escolar simples para professores, escolas e famílias.",
+  "name": "Klassio — Gestão Escolar",
+  "short_name": "Klassio",
+  "description": "Klassio: Gestão escolar e acesso para professores e pais de fácil acesso.",
   "start_url": "/app",
   "scope": "/",
   "display": "standalone",
