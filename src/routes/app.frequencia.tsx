@@ -85,6 +85,8 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
   const [tab, setTab] = useState<"chamada" | "conteudo" | "faltosos">("chamada");
+  const [showPeriodStats, setShowPeriodStats] = useState(false);
+  const [statsRefDate, setStatsRefDate] = useState(todayISO());
 
   useEffect(() => {
     if (search.classId) setClassId(search.classId);
@@ -156,8 +158,21 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   // Absentee analytics for the alert period
   const absenceStats = useMemo(() => {
     const period: AlertPeriod = alertQ.data?.period ?? "month";
-    const start = periodStart(period);
+    const ref = new Date(statsRefDate + "T12:00:00");
+    const start = periodStart(period, ref);
     const startISO = start.toISOString().slice(0, 10);
+    // End date for the period - last day of the month/bimester/year
+    let endISO = "9999-12-31";
+    if (period === "month") {
+      const end = new Date(ref.getFullYear(), ref.getMonth() + 1, 0);
+      endISO = end.toISOString().slice(0, 10);
+    } else if (period === "bimester") {
+      const bStart = Math.floor(ref.getMonth() / 2) * 2;
+      const end = new Date(ref.getFullYear(), bStart + 2, 0);
+      endISO = end.toISOString().slice(0, 10);
+    } else if (period === "year") {
+      endISO = `${ref.getFullYear()}-12-31`;
+    }
     const perStudent: Record<string, { total: number; unjustified: number; dates: string[] }> = {};
     const dayFaults: Record<string, number> = {};
     const selectedDateAbsentees: { id: string; name: string; status: AttendanceStatus }[] = [];
@@ -174,7 +189,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
         }
       }
 
-      if (d < startISO) continue;
+      if (d < startISO || d > endISO) continue;
       for (const [sid, e] of Object.entries(entries)) {
         if (e.status === "F" || e.status === "J") {
           const rec = (perStudent[sid] ??= { total: 0, unjustified: 0, dates: [] });
@@ -312,6 +327,10 @@ function Frequencia({ schoolId }: { schoolId: string }) {
             alertPeriod={alertQ.data?.period ?? "month"}
             onAlertSaved={() => qc.invalidateQueries({ queryKey: ["att-alert", classId] })}
             currentDate={date}
+            showStats={showPeriodStats}
+            setShowStats={setShowPeriodStats}
+            statsRefDate={statsRefDate}
+            setStatsRefDate={setStatsRefDate}
           />
 
           <Tabs value={tab} onValueChange={(v) => setTab(v as "chamada" | "conteudo" | "faltosos")}>
