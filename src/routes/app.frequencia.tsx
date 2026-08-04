@@ -556,26 +556,6 @@ function AttendanceDashboard({
         )}
 
         <div>
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
-            Mais faltosos ({stats.period === "month" ? "no mês" : stats.period === "bimester" ? "no bimestre" : "no ano"})
-          </div>
-          {stats.top.length === 0 ? (
-            <div className="text-xs text-muted-foreground">Ninguém com faltas — turma cheia!</div>
-          ) : (
-            <div className="space-y-1">
-              {stats.top.map((s) => (
-                <div key={s.id} className="flex items-center justify-between text-xs">
-                  <span className="truncate flex-1">{s.name}</span>
-                  <span className="tabular-nums text-muted-foreground">
-                    {s.total} <span className="opacity-60">({s.unjustified} sem justif.)</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div>
           <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1 flex items-center justify-between">
             <span>Faltosos do dia ({currentDate})</span>
             {stats.selectedDateAbsentees.length > 0 && (
@@ -596,7 +576,7 @@ function AttendanceDashboard({
                   generateAbsenceReportPDF(report);
                 }}
               >
-                <Download className="size-3" /> PDF
+                <Download className="size-4" /> PDF
               </Button>
             )}
           </div>
@@ -609,6 +589,26 @@ function AttendanceDashboard({
                   <span className="truncate flex-1">{s.name}</span>
                   <span className={`font-bold ${s.status === "J" ? "text-accent" : "text-destructive"}`}>
                     {s.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
+            Mais faltosos ({stats.period === "month" ? "no mês" : stats.period === "bimester" ? "no bimestre" : "no ano"})
+          </div>
+          {stats.top.length === 0 ? (
+            <div className="text-xs text-muted-foreground">Ninguém com faltas — turma cheia!</div>
+          ) : (
+            <div className="space-y-1">
+              {stats.top.map((s) => (
+                <div key={s.id} className="flex items-center justify-between text-xs">
+                  <span className="truncate flex-1">{s.name}</span>
+                  <span className="tabular-nums text-muted-foreground">
+                    {s.total} <span className="opacity-60">({s.unjustified} sem justif.)</span>
                   </span>
                 </div>
               ))}
