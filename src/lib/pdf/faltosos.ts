@@ -33,16 +33,17 @@ export function generateAbsenceReportPDF(r: AbsenceReport, className?: string): 
 
   autoTable(doc, {
     startY: y + 5,
-    head: [["Aluno", "Turma", "Faltas", "Just.", "Dias", "Freq. %"]],
+    head: [["Aluno", "Turma", "Série", "Faltas", "Just.", "Dias", "Freq. %"]],
     body: r.rows.map((row) => [
       row.studentName,
       row.className,
+      row.gradeLevel || "-",
       String(row.absences),
       String(row.justified),
       String(row.days),
       `${row.attendancePct}%`,
     ]),
-    styles: { fontSize: 9 },
+    styles: { fontSize: 8 },
     headStyles: { fillColor: [30, 64, 175] },
     margin: { left: 14, right: 14 },
   });

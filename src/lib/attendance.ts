@@ -105,3 +105,20 @@ export async function getClassAttendanceAll(
   }
   return out;
 }
+
+export async function getClassRegencyDates(
+  schoolId: string,
+  classId: string,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("attendance")
+    .select("date")
+    .eq("school_id", schoolId)
+    .eq("class_id", classId)
+    .order("date", { ascending: false });
+
+  if (error) throw error;
+  
+  // Return unique dates sorted descending
+  return Array.from(new Set((data ?? []).map((r) => r.date as string)));
+}

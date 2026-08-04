@@ -40,6 +40,7 @@ import { listStudentsByClass } from "@/lib/students";
 import {
   getAttendance,
   getClassAttendanceAll,
+  getClassRegencyDates,
   setAttendance,
   type AttendanceStatus,
 } from "@/lib/attendance";
@@ -121,6 +122,12 @@ function Frequencia({ schoolId }: { schoolId: string }) {
     queryKey: ["att-alert", classId, firebaseUser?.uid],
     queryFn: () => getMyAttendanceAlert(classId!),
     enabled: !!classId && !!firebaseUser,
+  });
+
+  const regencyDatesQ = useQuery({
+    queryKey: ["regency-dates", schoolId, classId],
+    queryFn: () => getClassRegencyDates(schoolId, classId!),
+    enabled: !!classId,
   });
 
   useEffect(() => {
@@ -253,11 +260,30 @@ function Frequencia({ schoolId }: { schoolId: string }) {
               ))}
             </select>
           </div>
-          <div className="space-y-1.5">
-            <Label>Data</Label>
-            <div className="relative">
-              <Calendar className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input type="date" className="pl-9" value={date} onChange={(e) => setDate(e.target.value)} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Data</Label>
+              <div className="relative">
+                <Calendar className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input type="date" className="pl-9" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Datas com regência</Label>
+              <select
+                className="w-full h-10 rounded-md border bg-background px-3 text-sm"
+                value={date}
+                onChange={(e) => {
+                  if (e.target.value) setDate(e.target.value);
+                }}
+              >
+                <option value="">Escolha uma data...</option>
+                {(regencyDatesQ.data ?? []).map((d) => (
+                  <option key={d} value={d}>
+                    {new Date(d + "T12:00:00").toLocaleDateString("pt-BR")}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </CardContent>
@@ -282,6 +308,29 @@ function Frequencia({ schoolId }: { schoolId: string }) {
             </TabsList>
 
             <TabsContent value="chamada" className="space-y-2 mt-3">
+              {attendanceQ.data && Object.keys(attendanceQ.data).length > 0 && (
+                <div className="flex items-center justify-between p-2 rounded-lg bg-secondary/10 border border-secondary/20">
+                  <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Check className="size-3 text-secondary" /> Já existe chamada (mostrando faltas abaixo).
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-[10px] gap-1"
+                    onClick={() => {
+                      const allSids = studentsQ.data?.map(s => s.id) || [];
+                      const next = { ...marks };
+                      allSids.forEach(sid => {
+                        if (!attendanceQ.data![sid]) next[sid] = "P";
+                      });
+                      setMarks(next);
+                    }}
+                  >
+                    Ver todos os alunos
+                  </Button>
+                </div>
+              )}
+
               {studentsQ.isLoading ? (
                 <Loading />
               ) : (studentsQ.data ?? []).length === 0 ? (
@@ -301,7 +350,13 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                     <span className="ml-auto text-muted-foreground">Total: {counts.total}</span>
                   </div>
 
-                  {studentsQ.data!.map((s, i) => {
+                  {studentsQ.data!.filter(s => {
+                    const hasAttendanceForDay = attendanceQ.data && Object.keys(attendanceQ.data).length > 0;
+                    if (!hasAttendanceForDay) return true;
+                    // Se já houve chamada, mostramos por padrão apenas quem faltou ou foi justificado
+                    const status = marks[s.id] ?? "P";
+                    return status === "F" || status === "J";
+                  }).map((s, i) => {
                     const status = marks[s.id] ?? "P";
                     return (
                       <div key={s.id} className="rounded-xl border bg-card p-3 flex items-center gap-2">
@@ -367,8 +422,8 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                   </p>
 
                   {attendanceQ.data && Object.keys(attendanceQ.data).length > 0 && (
-                    <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
-                      <Check className="size-3" /> Já existe chamada para este dia (você pode editar e salvar de novo).
+                    <p className="text-xs text-muted-foreground text-center">
+                      Exibindo apenas alunos com falta ou justificativa por padrão.
                     </p>
                   )}
                 </div>
