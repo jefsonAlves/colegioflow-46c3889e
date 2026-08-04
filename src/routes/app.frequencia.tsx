@@ -481,6 +481,7 @@ function AttendanceDashboard({
     topDays: { date: string; count: number }[];
     atRisk: { id: string; name: string; total: number; unjustified: number; dates: string[] }[];
     period: AlertPeriod;
+    selectedDateAbsentees: { id: string; name: string; status: AttendanceStatus }[];
   };
   alertMax: number | null;
   alertPeriod: AlertPeriod;
@@ -567,6 +568,47 @@ function AttendanceDashboard({
                   <span className="truncate flex-1">{s.name}</span>
                   <span className="tabular-nums text-muted-foreground">
                     {s.total} <span className="opacity-60">({s.unjustified} sem justif.)</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1 flex items-center justify-between">
+            <span>Faltosos do dia ({currentDate})</span>
+            {stats.selectedDateAbsentees.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-[10px] gap-1 px-2"
+                onClick={async () => {
+                  const { buildAbsenceReport } = await import("@/lib/absenceReport");
+                  const { generateAbsenceReportPDF } = await import("@/lib/pdf/faltosos");
+                  const report = await buildAbsenceReport({
+                    schoolId,
+                    from: currentDate,
+                    to: currentDate,
+                    classId,
+                    minAbsences: 1,
+                  });
+                  generateAbsenceReportPDF(report);
+                }}
+              >
+                <Download className="size-3" /> PDF
+              </Button>
+            )}
+          </div>
+          {stats.selectedDateAbsentees.length === 0 ? (
+            <div className="text-xs text-muted-foreground">Nenhuma falta registrada nesta data.</div>
+          ) : (
+            <div className="space-y-1">
+              {stats.selectedDateAbsentees.map((s) => (
+                <div key={s.id} className="flex items-center justify-between text-xs">
+                  <span className="truncate flex-1">{s.name}</span>
+                  <span className={`font-bold ${s.status === "J" ? "text-accent" : "text-destructive"}`}>
+                    {s.status}
                   </span>
                 </div>
               ))}
