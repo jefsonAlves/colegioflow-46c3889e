@@ -85,6 +85,8 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
   const [tab, setTab] = useState<"chamada" | "conteudo" | "faltosos">("chamada");
+  const [showPeriodStats, setShowPeriodStats] = useState(false);
+  const [statsRefDate, setStatsRefDate] = useState(todayISO());
 
   useEffect(() => {
     if (search.classId) setClassId(search.classId);
@@ -156,8 +158,21 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   // Absentee analytics for the alert period
   const absenceStats = useMemo(() => {
     const period: AlertPeriod = alertQ.data?.period ?? "month";
-    const start = periodStart(period);
+    const ref = new Date(statsRefDate + "T12:00:00");
+    const start = periodStart(period, ref);
     const startISO = start.toISOString().slice(0, 10);
+    // End date for the period - last day of the month/bimester/year
+    let endISO = "9999-12-31";
+    if (period === "month") {
+      const end = new Date(ref.getFullYear(), ref.getMonth() + 1, 0);
+      endISO = end.toISOString().slice(0, 10);
+    } else if (period === "bimester") {
+      const bStart = Math.floor(ref.getMonth() / 2) * 2;
+      const end = new Date(ref.getFullYear(), bStart + 2, 0);
+      endISO = end.toISOString().slice(0, 10);
+    } else if (period === "year") {
+      endISO = `${ref.getFullYear()}-12-31`;
+    }
     const perStudent: Record<string, { total: number; unjustified: number; dates: string[] }> = {};
     const dayFaults: Record<string, number> = {};
     const selectedDateAbsentees: { id: string; name: string; status: AttendanceStatus }[] = [];
@@ -174,7 +189,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
         }
       }
 
-      if (d < startISO) continue;
+      if (d < startISO || d > endISO) continue;
       for (const [sid, e] of Object.entries(entries)) {
         if (e.status === "F" || e.status === "J") {
           const rec = (perStudent[sid] ??= { total: 0, unjustified: 0, dates: [] });
@@ -312,6 +327,10 @@ function Frequencia({ schoolId }: { schoolId: string }) {
             alertPeriod={alertQ.data?.period ?? "month"}
             onAlertSaved={() => qc.invalidateQueries({ queryKey: ["att-alert", classId] })}
             currentDate={date}
+            showStats={showPeriodStats}
+            setShowStats={setShowPeriodStats}
+            statsRefDate={statsRefDate}
+            setStatsRefDate={setStatsRefDate}
           />
 
           <Tabs value={tab} onValueChange={(v) => setTab(v as "chamada" | "conteudo" | "faltosos")}>
@@ -344,9 +363,6 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                       Ver todos os alunos
                     </Button>
                   </div>
-                  <p className="text-[10px] text-muted-foreground px-1 leading-tight">
-                    essa falta do mês e mais a do dia tudo jutno vai virar uma confusão por isso traga apenas o do dia e só apareça do mês se eu pedi para mostrar conforme a escolha do filtro o padrão fixo é mostrar a falta do dia caso tenha sido feito a chamada ou seja a frequencia. e a parte para para filtra o mÊs, ano ou bimestre ao se escolido precisa aparecer separado a falta do mês mais precisa adicionar a opção para escolhe o mês que deseja filtrar as falta  por isso ajuste isso e melhore e deixe o painel mais moderno e preciso
-                  </p>
                 </div>
               )}
 
@@ -478,6 +494,10 @@ function AttendanceDashboard({
   alertPeriod,
   onAlertSaved,
   currentDate,
+  showStats,
+  setShowStats,
+  statsRefDate,
+  setStatsRefDate,
 }: {
   schoolId: string;
   classId: string;
@@ -492,6 +512,10 @@ function AttendanceDashboard({
   alertPeriod: AlertPeriod;
   onAlertSaved: () => void;
   currentDate: string;
+  showStats: boolean;
+  setShowStats: (v: boolean) => void;
+  statsRefDate: string;
+  setStatsRefDate: (v: string) => void;
 }) {
   const [openAlert, setOpenAlert] = useState(false);
   const [maxAbs, setMaxAbs] = useState(alertMax ?? 5);
@@ -537,10 +561,40 @@ function AttendanceDashboard({
           <div className="text-sm font-semibold flex items-center gap-2">
             <BellRing className="size-4 text-primary" /> Painel da turma
           </div>
-          <Button size="sm" variant="ghost" onClick={() => setOpenAlert(true)}>
-            <Settings2 className="size-4" /> Alerta
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button 
+              size="sm" 
+              variant={showStats ? "secondary" : "ghost"} 
+              className="h-8 text-xs gap-1"
+              onClick={() => setShowStats(!showStats)}
+            >
+              <Settings2 className="size-3.5" /> Estatísticas
+            </Button>
+            <Button size="sm" variant="ghost" className="h-8 text-xs gap-1" onClick={() => setOpenAlert(true)}>
+              Alerta
+            </Button>
+          </div>
         </div>
+
+        {showStats && (
+          <div className="flex flex-col gap-2 p-3 rounded-lg bg-muted/30 border border-muted-foreground/10 animate-in fade-in slide-in-from-top-2">
+            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Filtrar período para estatísticas</Label>
+            <div className="flex items-center gap-2">
+              <Input 
+                type={alertPeriod === "month" ? "month" : "date"} 
+                className="h-8 text-xs" 
+                value={alertPeriod === "month" ? statsRefDate.slice(0, 7) : statsRefDate}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setStatsRefDate(val.length === 7 ? `${val}-01` : val);
+                }}
+              />
+              <span className="text-[10px] text-muted-foreground whitespace-nowrap bg-background px-2 py-1 rounded border">
+                {alertPeriod === "month" ? "Mensal" : alertPeriod === "bimester" ? "Bimestral" : "Anual"}
+              </span>
+            </div>
+          </div>
+        )}
 
         {stats.atRisk.length > 0 && (
           <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-2 space-y-1.5">
@@ -601,57 +655,51 @@ function AttendanceDashboard({
           )}
         </div>
 
-        <div>
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
-            Mais faltosos ({stats.period === "month" ? "no mês" : stats.period === "bimester" ? "no bimestre" : "no ano"})
-          </div>
-          {stats.top.length === 0 ? (
-            <div className="text-xs text-muted-foreground">Ninguém com faltas — turma cheia!</div>
-          ) : (
-            <div className="space-y-1">
-              {stats.top.map((s) => (
-                <div key={s.id} className="flex items-center justify-between text-xs">
-                  <span className="truncate flex-1">{s.name}</span>
-                  <span className="tabular-nums text-muted-foreground">
-                    {s.total} <span className="opacity-60">({s.unjustified} sem justif.)</span>
-                  </span>
+        {showStats && (
+          <div className="space-y-4 pt-2 border-t border-muted/20 animate-in fade-in duration-500">
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
+                Mais faltosos ({stats.period === "month" ? "no mês" : stats.period === "bimester" ? "no bimestre" : "no ano"})
+              </div>
+              {stats.top.length === 0 ? (
+                <div className="text-xs text-muted-foreground italic bg-muted/10 p-2 rounded">Ninguém com faltas no período selecionado.</div>
+              ) : (
+                <div className="grid grid-cols-1 gap-1">
+                  {stats.top.map((s) => (
+                    <div key={s.id} className="flex items-center justify-between text-xs p-1.5 rounded bg-muted/20 hover:bg-muted/30 transition-colors">
+                      <span className="truncate flex-1 font-medium">{s.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="tabular-nums font-bold text-destructive">
+                          {s.total} <span className="text-[9px] font-normal opacity-70">faltas</span>
+                        </span>
+                        {s.unjustified > 0 && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-destructive/10 text-destructive font-semibold">
+                            {s.unjustified} sem justif.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          )}
-        </div>
 
-        {stats.topDays.length > 0 && (
-          <div>
-            <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1 flex items-center justify-between">
-              <span>Dias com mais faltas</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 text-[10px] gap-1 px-2"
-                onClick={async () => {
-                  const { buildAbsenceReport } = await import("@/lib/absenceReport");
-                  const { generateAbsenceReportPDF } = await import("@/lib/pdf/faltosos");
-                  const report = await buildAbsenceReport({
-                    schoolId,
-                    from: currentDate,
-                    to: currentDate,
-                    classId,
-                    minAbsences: 1,
-                  });
-                  generateAbsenceReportPDF(report);
-                }}
-              >
-                <Download className="size-3" /> PDF do dia
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {stats.topDays.map((d) => (
-                <span key={d.date} className="text-[11px] rounded-full bg-muted px-2 py-0.5 tabular-nums">
-                  {d.date} · {d.count}
-                </span>
-              ))}
-            </div>
+            {stats.topDays.length > 0 && (
+              <div>
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 flex items-center justify-between">
+                  <span>Dias com mais faltas</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {stats.topDays.map((d) => (
+                    <div key={d.date} className="flex flex-col items-center bg-muted/20 rounded-md p-2 min-w-[60px] border border-muted/30 hover:border-primary/30 transition-all">
+                      <span className="text-[10px] font-bold text-primary">{d.date.split('-').reverse().slice(0, 2).join('/')}</span>
+                      <span className="text-[11px] font-black text-destructive">{d.count}</span>
+                      <span className="text-[8px] uppercase opacity-60">faltas</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
