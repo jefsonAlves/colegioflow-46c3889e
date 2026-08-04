@@ -94,6 +94,9 @@ export function AbsenceReportSection({
       <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
         {title}
       </h2>
+      <p className="text-[11px] text-muted-foreground leading-relaxed px-1">
+        Filtre por datas, bimestre ou semestre para visualizar alunos faltosos e gerar arquivos detalhados para compartilhamento.
+      </p>
       <Card>
         <CardContent className="pt-4 pb-4 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
