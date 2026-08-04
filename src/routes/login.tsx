@@ -23,7 +23,7 @@ export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: `${APP_NAME} — Entrar` },
-      { name: "description", content: "Acesse o Colégio em Movimento com sua conta Google ou e-mail." },
+      { name: "description", content: "Acesse o Klassio com sua conta Google ou e-mail. Gestão escolar profissional e conectada." },
     ],
   }),
   component: LoginPage,
@@ -119,7 +119,7 @@ function LoginPage() {
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">{APP_NAME}</h1>
           <p className="text-muted-foreground text-sm">
-            Gestão escolar simples para professores, escolas e famílias.
+            Gestão escolar e acesso para professores e pais de fácil acesso.
           </p>
         </div>
 

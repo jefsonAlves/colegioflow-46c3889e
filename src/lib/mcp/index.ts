@@ -10,11 +10,11 @@ import searchStudentsTool from "./tools/search-students";
 const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "project-ref-unset";
 
 export default defineMcp({
-  name: "colegio-em-movimento-mcp",
-  title: "Colégio em Movimento",
+  name: "klassio-mcp",
+  title: "Klassio — Gestão Escolar",
   version: "0.1.0",
   instructions:
-    "Tools for the Colégio em Movimento school management app. Use `list_my_schools` first to discover the user's school_id, then read classes, students, and announcements, or post a new announcement.",
+    "Tools for the Klassio school management app. Use `list_my_schools` first to discover the user's school_id, then read classes, students, and announcements, or post a new announcement.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",
