@@ -9,6 +9,7 @@ export interface AbsenceRow {
   studentName: string;
   classId: string;
   className: string;
+  gradeLevel?: string | null;
   days: number;
   absences: number; // F
   justified: number; // J
@@ -64,6 +65,7 @@ export async function buildAbsenceReport(input: {
   if (error) throw error;
 
   const classNames = new Map(classes.map((c) => [c.id, c.name]));
+  const classGrades = new Map(classes.map((c) => [c.id, c.gradeLevel]));
   const studentNames = new Map(students.map((s) => [s.id, s.name]));
 
   const acc = new Map<string, AbsenceRow>();
@@ -78,6 +80,7 @@ export async function buildAbsenceReport(input: {
         classId,
         studentName: studentNames.get(studentId) ?? "Aluno",
         className: classNames.get(classId) ?? "Turma",
+        gradeLevel: classGrades.get(classId),
         days: 0,
         absences: 0,
         justified: 0,
