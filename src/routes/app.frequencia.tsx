@@ -323,25 +323,30 @@ function Frequencia({ schoolId }: { schoolId: string }) {
 
             <TabsContent value="chamada" className="space-y-2 mt-3">
               {attendanceQ.data && Object.keys(attendanceQ.data).length > 0 && (
-                <div className="flex items-center justify-between p-2 rounded-lg bg-secondary/10 border border-secondary/20">
-                  <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <Check className="size-3 text-secondary" /> Já existe chamada (mostrando faltas abaixo).
+                <div className="flex flex-col gap-2 p-2 rounded-lg bg-secondary/10 border border-secondary/20">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Check className="size-3 text-secondary" /> Já existe chamada (mostrando faltas abaixo).
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-[10px] gap-1"
+                      onClick={() => {
+                        const allSids = studentsQ.data?.map((s) => s.id) || [];
+                        const next = { ...marks };
+                        allSids.forEach((sid) => {
+                          if (!attendanceQ.data![sid]) next[sid] = "P";
+                        });
+                        setMarks(next);
+                      }}
+                    >
+                      Ver todos os alunos
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-[10px] gap-1"
-                    onClick={() => {
-                      const allSids = studentsQ.data?.map(s => s.id) || [];
-                      const next = { ...marks };
-                      allSids.forEach(sid => {
-                        if (!attendanceQ.data![sid]) next[sid] = "P";
-                      });
-                      setMarks(next);
-                    }}
-                  >
-                    Ver todos os alunos
-                  </Button>
+                  <p className="text-[10px] text-muted-foreground px-1">
+                    Filtre as datas e visualize os alunos faltosos daquela data, bimestre ou semestre para gerar arquivos detalhados e compartilhar.
+                  </p>
                 </div>
               )}
 
