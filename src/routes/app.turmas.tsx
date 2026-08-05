@@ -314,24 +314,26 @@ function ClassCard({
               style={{ width: `${pct}%` }}
             />
           </div>
-          <div className="text-[11px] text-muted-foreground">
-            {cls.gradeLevel ? `${cls.gradeLevel} · ` : ""}
-            {cls.year}
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-[11px] text-muted-foreground">
+              {cls.gradeLevel ? `${cls.gradeLevel} · ` : ""}
+              {cls.year}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="size-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove();
+              }}
+              title="Remover turma do perfil"
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
           </div>
         </div>
       </button>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="absolute top-4 right-4 size-8 p-0 text-muted-foreground hover:text-destructive group-hover:opacity-100 transition-opacity"
-        onClick={(e) => {
-          e.stopPropagation();
-          onRemove();
-        }}
-        title="Remover turma do perfil"
-      >
-        <Trash2 className="size-4" />
-      </Button>
     </div>
   );
 }
