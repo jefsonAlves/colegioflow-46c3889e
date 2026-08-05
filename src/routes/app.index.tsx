@@ -78,7 +78,7 @@ function AppHome() {
               }
             />
 
-            {userDoc.profileType === "school_admin" && (
+            {(userDoc.profileType === "school_admin" || userDoc.globalRole === "master") && (
               <SchoolUsageSummary schoolId={schoolId} compact />
             )}
 
