@@ -78,7 +78,7 @@ function AppHome() {
               }
             />
 
-            {(userDoc.profileType === "school_admin" || userDoc.globalRole === "master") && (
+            {userDoc.profileType === "school_admin" && (
               <SchoolUsageSummary schoolId={schoolId} compact />
             )}
 
@@ -119,7 +119,7 @@ function AppHome() {
             <section className="space-y-2">
               <AvisosLink schoolId={schoolId} />
 
-              {(userDoc.profileType === "school_admin" || userDoc.globalRole === "master") && (
+              {userDoc.profileType === "school_admin" && (
                 <Link to="/app/escola">
                   <Card className="transition active:scale-[0.99]">
                     <CardContent className="pt-4 pb-4 flex items-center gap-3">
