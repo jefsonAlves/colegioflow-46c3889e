@@ -88,6 +88,7 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
   const [newGrade, setNewGrade] = useState("");
   const [newYear, setNewYear] = useState<number>(new Date().getFullYear());
   const [openClass, setOpenClass] = useState<ClassDoc | null>(null);
+  const [removingClass, setRemovingClass] = useState<ClassDoc | null>(null);
 
   const classesQ = useQuery({
     queryKey: ["classes", schoolId],
