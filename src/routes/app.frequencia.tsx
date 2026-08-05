@@ -76,7 +76,7 @@ function todayISO() {
 }
 
 function Frequencia({ schoolId }: { schoolId: string }) {
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, userDoc } = useAuth();
   const qc = useQueryClient();
   const search = Route.useSearch();
   const [classId, setClassId] = useState<string | null>(search.classId ?? null);
