@@ -146,6 +146,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
       for (const s of studentsQ.data) next[s.id] = "P";
       setMarks(next);
     }
+    setIsDirty(false);
   }, [attendanceQ.data, studentsQ.data]);
 
   const counts = useMemo(() => {
