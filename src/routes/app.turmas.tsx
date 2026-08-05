@@ -273,12 +273,14 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
 function ClassCard({
   cls,
   onOpen,
+  onRemove,
   count,
   maxCount,
 }: {
   cls: ClassDoc;
   schoolId: string;
   onOpen: () => void;
+  onRemove: () => void;
   count: number;
   maxCount: number;
 }) {
@@ -291,32 +293,46 @@ function ClassCard({
   const pct = Math.max(6, Math.round((count / Math.max(1, maxCount)) * 100));
 
   return (
-    <button
-      onClick={onOpen}
-      className="w-full text-left rounded-xl border bg-card p-4 flex items-center gap-3 active:scale-[0.99]"
-    >
-      <div className="size-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-        <Users className="size-5" />
-      </div>
-      <div className="flex-1 min-w-0 space-y-1.5">
-        <div className="flex items-center justify-between gap-2">
-          <div className="font-semibold truncate">{displayName}</div>
-          <span className="shrink-0 rounded-full bg-primary/10 text-primary text-xs font-bold px-2 py-0.5">
-            {count} {count === 1 ? "aluno" : "alunos"}
-          </span>
+    <div className="relative group">
+      <button
+        onClick={onOpen}
+        className="w-full text-left rounded-xl border bg-card p-4 flex items-center gap-3 active:scale-[0.99]"
+      >
+        <div className="size-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+          <Users className="size-5" />
         </div>
-        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-          <div
-            className="h-full bg-primary/70 transition-all"
-            style={{ width: `${pct}%` }}
-          />
+        <div className="flex-1 min-w-0 space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="font-semibold truncate pr-8">{displayName}</div>
+            <span className="shrink-0 rounded-full bg-primary/10 text-primary text-xs font-bold px-2 py-0.5">
+              {count} {count === 1 ? "aluno" : "alunos"}
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full bg-primary/70 transition-all"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <div className="text-[11px] text-muted-foreground">
+            {cls.gradeLevel ? `${cls.gradeLevel} · ` : ""}
+            {cls.year}
+          </div>
         </div>
-        <div className="text-[11px] text-muted-foreground">
-          {cls.gradeLevel ? `${cls.gradeLevel} · ` : ""}
-          {cls.year}
-        </div>
-      </div>
-    </button>
+      </button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="absolute top-4 right-4 size-8 p-0 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
+        }}
+        title="Remover turma do perfil"
+      >
+        <Trash2 className="size-4" />
+      </Button>
+    </div>
   );
 }
 
