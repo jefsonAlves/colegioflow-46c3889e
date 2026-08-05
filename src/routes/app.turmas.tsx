@@ -149,7 +149,7 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
     if (!removingClass || !firebaseUser) return;
     try {
       await untaughtClass({ classId: removingClass.id, userId: firebaseUser.uid });
-      toast.success("Turma removida do seu perfil.");
+      toast.success("Turma excluída do seu painel.");
       setRemovingClass(null);
       qc.invalidateQueries({ queryKey: ["classes", schoolId] });
     } catch (e) {
@@ -261,7 +261,7 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
               onClick={doRemoveClass}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Remover
+              Excluir do painel
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
