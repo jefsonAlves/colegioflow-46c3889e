@@ -91,7 +91,7 @@ function SchoolAdminPage() {
 }
 
 function SchoolAdminCard({ school, onChanged }: { school: SchoolDoc; onChanged: () => void }) {
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, userDoc } = useAuth();
   const memsQ = useQuery({
     queryKey: ["school-memberships", school.id],
     queryFn: () => listMembershipsForSchool(school.id),
