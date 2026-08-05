@@ -194,7 +194,7 @@ export function NextClassCard({ schoolId }: { schoolId: string }) {
                     {c?.name ?? "Turma"}
                     {s.subject && <span className="text-muted-foreground"> · {s.subject}</span>}
                   </span>
-                  <Link to="/app/frequencia" search={{ classId: s.classId }}>
+                  <Link to="/app/frequencia" search={{ classId: s.classId, date: today_ }}>
                     <Button size="sm" variant="ghost" className="h-6 px-2 text-xs">
                       Chamada
                     </Button>
