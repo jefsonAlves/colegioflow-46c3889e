@@ -249,6 +249,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
       window.setTimeout(() => setSavedFlash(false), 1600);
       qc.invalidateQueries({ queryKey: ["attendance", schoolId, classId] });
       qc.invalidateQueries({ queryKey: ["attendance-all", schoolId, classId] });
+      setIsDirty(false);
     } catch (e) {
       console.error(e);
       toast.error("Erro ao salvar chamada.");
