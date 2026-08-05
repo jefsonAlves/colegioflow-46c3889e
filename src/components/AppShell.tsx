@@ -71,6 +71,11 @@ export function AppShell({
   const router = useRouter();
   const navigate = useNavigate();
   const handleBack = () => {
+    if (getHasUnsavedChanges()) {
+      if (!window.confirm("Você tem alterações não salvas. Deseja realmente sair sem salvar?")) {
+        return;
+      }
+    }
     if (typeof window !== "undefined" && window.history.length > 1) {
       router.history.back();
     } else {
