@@ -350,7 +350,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                 <div className="flex flex-col gap-2 p-2 rounded-lg bg-secondary/10 border border-secondary/20">
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <Check className="size-3 text-secondary" /> Já existe chamada (mostrando faltas abaixo).
+                      <Check className="size-3 text-secondary" /> Você já realizou a chamada para este dia.
                     </div>
                     <Button
                       variant="ghost"
