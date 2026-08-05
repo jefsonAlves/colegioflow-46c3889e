@@ -260,7 +260,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   if (allClasses.length === 0) {
     return <EmptyState title="Nenhuma turma" description="Crie uma turma para fazer chamada." />;
   }
-  if (classes.length === 0) {
+  if (classes.length === 0 && userDoc?.globalRole !== "master") {
     return (
       <EmptyState
         title="Você não leciona nenhuma turma"
