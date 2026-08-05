@@ -108,6 +108,22 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
       toast.error("Nome muito curto.");
       return;
     }
+
+    // Check for duplicates
+    const isDuplicate = classes.some(
+      (c) =>
+        c.name.toLowerCase() === newName.toLowerCase() &&
+        c.year === newYear &&
+        c.gradeLevel?.toLowerCase() === newGrade.toLowerCase()
+    );
+
+    if (isDuplicate) {
+      const confirm = window.confirm(
+        "Já existe uma turma com este nome e ano. Deseja criar uma duplicada mesmo assim?"
+      );
+      if (!confirm) return;
+    }
+
     try {
       await createClass(schoolId, {
         name: newName,
