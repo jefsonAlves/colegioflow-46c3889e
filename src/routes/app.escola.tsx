@@ -35,11 +35,28 @@ function SchoolAdminPage() {
   const { firebaseUser, userDoc } = useAuth();
   const qc = useQueryClient();
 
-  // School admin: find the school(s) they admin (approved membership as school_admin)
+  // School admin or Master: find the school(s) they admin
   const myMemQ = useQuery({
-    queryKey: ["my-memberships", firebaseUser?.uid],
-    queryFn: () => listMembershipsForUser(firebaseUser!.uid),
-    enabled: !!firebaseUser,
+    queryKey: ["my-memberships", firebaseUser?.uid, userDoc.globalRole],
+    queryFn: async () => {
+      if (userDoc.globalRole === "master") {
+        // Master can see all schools, but maybe only show schools they are linked to?
+        // Actually, for "Minha Escola", we should show all schools for master
+        // so they can approve users in any school.
+        const { listAllSchoolsForMaster } = await import("@/lib/schools");
+        const all = await listAllSchoolsForMaster();
+        return all.map(s => ({
+          id: `master-${s.id}`,
+          schoolId: s.id,
+          userId: firebaseUser!.uid,
+          roleInSchool: "school_admin" as const,
+          status: "approved" as const,
+          createdAt: Date.now()
+        }));
+      }
+      return listMembershipsForUser(firebaseUser!.uid);
+    },
+    enabled: !!firebaseUser && !!userDoc,
   });
 
   const adminSchoolIds = (myMemQ.data ?? [])
