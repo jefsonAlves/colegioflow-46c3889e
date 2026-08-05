@@ -37,9 +37,9 @@ function SchoolAdminPage() {
 
   // School admin or Master: find the school(s) they admin
   const myMemQ = useQuery({
-    queryKey: ["my-memberships", firebaseUser?.uid, userDoc.globalRole],
+    queryKey: ["my-memberships", firebaseUser?.uid, userDoc?.globalRole],
     queryFn: async () => {
-      if (userDoc.globalRole === "master") {
+      if (userDoc?.globalRole === "master") {
         // Master can see all schools, but maybe only show schools they are linked to?
         // Actually, for "Minha Escola", we should show all schools for master
         // so they can approve users in any school.
