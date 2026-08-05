@@ -363,6 +363,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                           if (!attendanceQ.data![sid]) next[sid] = "P";
                         });
                         setMarks(next);
+                        setIsDirty(true);
                       }}
                     >
                       Ver todos os alunos
