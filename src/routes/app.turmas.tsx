@@ -249,10 +249,10 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
       >
         <AlertDialogContent onClick={(e) => e.stopPropagation()}>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remover turma do seu perfil?</AlertDialogTitle>
+            <AlertDialogTitle>Deseja excluir a turma do seu painel?</AlertDialogTitle>
             <AlertDialogDescription>
               A turma "{removingClass?.name}" deixará de aparecer para você.
-              Isso não exclui a turma da escola, apenas remove seu vínculo com ela.
+              Isso não afeta os registros dos outros professores e você poderá adicioná-la novamente se necessário.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -327,7 +327,7 @@ function ClassCard({
                 e.stopPropagation();
                 onRemove();
               }}
-              title="Remover turma do perfil"
+              title="Excluir turma do seu painel"
             >
               <Trash2 className="size-3.5" />
             </Button>
