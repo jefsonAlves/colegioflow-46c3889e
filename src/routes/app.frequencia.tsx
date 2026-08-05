@@ -413,7 +413,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                         {(["P", "F", "J"] as const).map((opt) => (
                           <button
                             key={opt}
-                            onClick={() => setMarks((m) => ({ ...m, [s.id]: opt }))}
+                            onClick={() => { setMarks((m) => ({ ...m, [s.id]: opt })); setIsDirty(true); }}
                             className={`size-9 rounded-lg text-xs font-bold border transition-transform active:scale-95 ${
                               status === opt
                                 ? opt === "P"
