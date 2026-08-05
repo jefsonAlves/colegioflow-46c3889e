@@ -110,11 +110,13 @@ export async function getClassRegencyDates(
   schoolId: string,
   classId: string,
 ): Promise<string[]> {
+  const uid = await currentUid();
   const { data, error } = await supabase
     .from("attendance")
     .select("date")
     .eq("school_id", schoolId)
     .eq("class_id", classId)
+    .eq("recorded_by", uid)
     .order("date", { ascending: false });
 
   if (error) throw error;
