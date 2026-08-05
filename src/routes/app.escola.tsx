@@ -40,19 +40,18 @@ function SchoolAdminPage() {
     queryKey: ["my-memberships", firebaseUser?.uid, userDoc?.globalRole],
     queryFn: async () => {
       if (userDoc?.globalRole === "master") {
-        // Master can see all schools, but maybe only show schools they are linked to?
-        // Actually, for "Minha Escola", we should show all schools for master
-        // so they can approve users in any school.
         const { listAllSchoolsForMaster } = await import("@/lib/schools");
         const all = await listAllSchoolsForMaster();
-        return all.map(s => ({
-          id: `master-${s.id}`,
-          schoolId: s.id,
-          userId: firebaseUser!.uid,
-          roleInSchool: "school_admin" as const,
-          status: "approved" as const,
-          createdAt: Date.now()
-        }));
+        return all
+          .filter(s => s.status === "active")
+          .map(s => ({
+            id: `master-${s.id}`,
+            schoolId: s.id,
+            userId: firebaseUser!.uid,
+            roleInSchool: "school_admin" as const,
+            status: "approved" as const,
+            createdAt: Date.now()
+          }));
       }
       return listMembershipsForUser(firebaseUser!.uid);
     },
@@ -183,7 +182,7 @@ function SchoolAdminCard({ school, onChanged }: { school: SchoolDoc; onChanged: 
       <SchoolStaffSection schoolId={school.id} />
 
       <SchoolStudentsManager schoolId={school.id} />
-      <SchoolCertificatesSection schoolId={school.id} />
+      {userDoc?.globalRole !== "master" && <SchoolCertificatesSection schoolId={school.id} />}
       <ParentLinksSection schoolId={school.id} />
 
     </div>
