@@ -122,6 +122,20 @@ function MasterPage() {
 
       <SavedImportSourcesCard schools={active} />
 
+      <Link to="/app/escola" className="block">
+        <Card className="border-primary/30 hover:bg-primary/5 transition">
+          <CardContent className="pt-4 pb-4 flex items-center gap-3">
+            <Building2 className="size-5 text-primary" />
+            <div className="flex-1">
+              <div className="font-medium">Gestão de Escolas (Modo Admin)</div>
+              <div className="text-xs text-muted-foreground">
+                Aprovar membros, gerenciar alunos e certificados em todas as escolas
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+
       <AdminRequestsSection />
 
       <div className="grid grid-cols-3 gap-3">
