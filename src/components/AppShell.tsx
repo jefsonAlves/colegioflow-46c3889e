@@ -34,6 +34,13 @@ export function BottomNav() {
             <li key={it.to}>
               <Link
                 to={it.to}
+                onClick={(e) => {
+                  if (getHasUnsavedChanges()) {
+                    if (!window.confirm("Você tem alterações não salvas. Deseja realmente sair sem salvar?")) {
+                      e.preventDefault();
+                    }
+                  }
+                }}
                 className={cn(
                   "flex flex-col items-center gap-1 py-2.5 text-xs font-medium",
                   active ? "text-primary" : "text-muted-foreground",
