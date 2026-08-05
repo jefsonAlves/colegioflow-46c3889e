@@ -3,6 +3,7 @@ import { ChevronLeft, Home, School, Settings, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getHasUnsavedChanges } from "@/hooks/useUnsavedChanges";
 
 export function BottomNav() {
   const { userDoc } = useAuth();
@@ -33,6 +34,13 @@ export function BottomNav() {
             <li key={it.to}>
               <Link
                 to={it.to}
+                onClick={(e) => {
+                  if (getHasUnsavedChanges()) {
+                    if (!window.confirm("Você tem alterações não salvas. Deseja realmente sair sem salvar?")) {
+                      e.preventDefault();
+                    }
+                  }
+                }}
                 className={cn(
                   "flex flex-col items-center gap-1 py-2.5 text-xs font-medium",
                   active ? "text-primary" : "text-muted-foreground",
@@ -63,6 +71,11 @@ export function AppShell({
   const router = useRouter();
   const navigate = useNavigate();
   const handleBack = () => {
+    if (getHasUnsavedChanges()) {
+      if (!window.confirm("Você tem alterações não salvas. Deseja realmente sair sem salvar?")) {
+        return;
+      }
+    }
     if (typeof window !== "undefined" && window.history.length > 1) {
       router.history.back();
     } else {

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import {
   AlertTriangle,
   BellRing,
@@ -84,6 +85,8 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const [marks, setMarks] = useState<Record<string, AttendanceStatus>>({});
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  useUnsavedChanges(isDirty);
   const [tab, setTab] = useState<"chamada" | "conteudo" | "faltosos">("chamada");
   const [showPeriodStats, setShowPeriodStats] = useState(false);
   const [statsRefDate, setStatsRefDate] = useState(todayISO());
@@ -143,6 +146,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
       for (const s of studentsQ.data) next[s.id] = "P";
       setMarks(next);
     }
+    setIsDirty(false);
   }, [attendanceQ.data, studentsQ.data]);
 
   const counts = useMemo(() => {
@@ -245,6 +249,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
       window.setTimeout(() => setSavedFlash(false), 1600);
       qc.invalidateQueries({ queryKey: ["attendance", schoolId, classId] });
       qc.invalidateQueries({ queryKey: ["attendance-all", schoolId, classId] });
+      setIsDirty(false);
     } catch (e) {
       console.error(e);
       toast.error("Erro ao salvar chamada.");
@@ -358,6 +363,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                           if (!attendanceQ.data![sid]) next[sid] = "P";
                         });
                         setMarks(next);
+                        setIsDirty(true);
                       }}
                     >
                       Ver todos os alunos
@@ -408,7 +414,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                         {(["P", "F", "J"] as const).map((opt) => (
                           <button
                             key={opt}
-                            onClick={() => setMarks((m) => ({ ...m, [s.id]: opt }))}
+                            onClick={() => { setMarks((m) => ({ ...m, [s.id]: opt })); setIsDirty(true); }}
                             className={`size-9 rounded-lg text-xs font-bold border transition-transform active:scale-95 ${
                               status === opt
                                 ? opt === "P"
