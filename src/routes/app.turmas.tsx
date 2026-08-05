@@ -145,6 +145,19 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
     }
   };
 
+  const doRemoveClass = async () => {
+    if (!removingClass || !firebaseUser) return;
+    try {
+      await untaughtClass({ classId: removingClass.id, userId: firebaseUser.uid });
+      toast.success("Turma removida do seu perfil.");
+      setRemovingClass(null);
+      qc.invalidateQueries({ queryKey: ["classes", schoolId] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao remover turma.");
+    }
+  };
+
   if (classesQ.isLoading) return <Loading />;
   const classes = classesQ.data ?? [];
 
