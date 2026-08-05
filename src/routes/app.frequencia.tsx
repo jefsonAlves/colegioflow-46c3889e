@@ -76,7 +76,7 @@ function todayISO() {
 }
 
 function Frequencia({ schoolId }: { schoolId: string }) {
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, userDoc } = useAuth();
   const qc = useQueryClient();
   const search = Route.useSearch();
   const [classId, setClassId] = useState<string | null>(search.classId ?? null);
@@ -256,11 +256,11 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   if (classesQ.isLoading || myTaughtQ.isLoading) return <Loading />;
   const taughtIds = new Set((myTaughtQ.data ?? []).map((t) => t.classId));
   const allClasses = classesQ.data ?? [];
-  const classes = allClasses.filter((c) => taughtIds.has(c.id));
+  const classes = userDoc?.globalRole === "master" ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
   if (allClasses.length === 0) {
     return <EmptyState title="Nenhuma turma" description="Crie uma turma para fazer chamada." />;
   }
-  if (classes.length === 0) {
+  if (classes.length === 0 && userDoc?.globalRole !== "master") {
     return (
       <EmptyState
         title="Você não leciona nenhuma turma"
