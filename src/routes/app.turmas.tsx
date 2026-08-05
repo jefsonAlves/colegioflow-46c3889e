@@ -227,6 +227,7 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
                 count={counts[c.id] ?? 0}
                 maxCount={max}
                 onOpen={() => setOpenClass(c)}
+                onRemove={() => setRemovingClass(c)}
               />
             ));
           })()}
@@ -241,6 +242,30 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
           onClose={() => setOpenClass(null)}
         />
       )}
+
+      <AlertDialog
+        open={!!removingClass}
+        onOpenChange={(o) => !o && setRemovingClass(null)}
+      >
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover turma do seu perfil?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A turma "{removingClass?.name}" deixará de aparecer para você.
+              Isso não exclui a turma da escola, apenas remove seu vínculo com ela.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={doRemoveClass}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
