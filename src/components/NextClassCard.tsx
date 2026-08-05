@@ -163,7 +163,7 @@ export function NextClassCard({ schoolId }: { schoolId: string }) {
 
         <Link
           to="/app/frequencia"
-          search={{ classId: featured.sched.classId }}
+          search={{ classId: featured.sched.classId, date: today_ }}
           className="block"
         >
           <Button size="sm" className="w-full">
