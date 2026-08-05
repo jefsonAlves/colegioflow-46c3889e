@@ -323,7 +323,7 @@ function ClassCard({
       <Button
         variant="ghost"
         size="sm"
-        className="absolute top-4 right-4 size-8 p-0 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute top-4 right-4 size-8 p-0 text-muted-foreground hover:text-destructive group-hover:opacity-100 transition-opacity"
         onClick={(e) => {
           e.stopPropagation();
           onRemove();
