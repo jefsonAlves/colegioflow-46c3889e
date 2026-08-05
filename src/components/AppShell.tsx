@@ -3,6 +3,7 @@ import { ChevronLeft, Home, School, Settings, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getHasUnsavedChanges } from "@/hooks/useUnsavedChanges";
 
 export function BottomNav() {
   const { userDoc } = useAuth();
