@@ -9,6 +9,7 @@ import {
   Calendar,
   Check,
   ClipboardList,
+  Copy,
   Download,
   Heart,
   Paperclip,
@@ -16,6 +17,7 @@ import {
   Send,
   Settings2,
   Trash2,
+
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { AbsenceReportSection } from "@/components/AbsenceReportSection";
@@ -269,6 +271,55 @@ function Frequencia({ schoolId }: { schoolId: string }) {
     }
   };
 
+  const copyPreviousAttendance = async () => {
+    if (!classId || !scheduleId || !schedulesQ.data) return;
+    
+    // Find current schedule
+    const currentIdx = schedulesQ.data.findIndex(s => s.id === scheduleId);
+    if (currentIdx === -1) return;
+    
+    // We look for a previous schedule ON THE SAME DAY
+    // The schedules list is already filtered by weekday in the selector, 
+    // but the full list might not be.
+    const day = new Date(date + "T12:00:00").getDay();
+    const daySchedules = schedulesQ.data
+      .filter(s => s.weekday === day)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+    
+    const dayCurrentIdx = daySchedules.findIndex(s => s.id === scheduleId);
+    if (dayCurrentIdx <= 0) {
+      toast.error("Não há horário anterior neste dia para repetir.");
+      return;
+    }
+    
+    const prevSchedule = daySchedules[dayCurrentIdx - 1];
+    
+    try {
+      setSaving(true);
+      const prevData = await getAttendance(schoolId, classId, date, prevSchedule.id);
+      
+      if (Object.keys(prevData).length === 0) {
+        toast.error("Nenhuma chamada encontrada no horário anterior para copiar.");
+        return;
+      }
+      
+      const next: Record<string, AttendanceStatus> = {};
+      for (const [uid, v] of Object.entries(prevData)) {
+        next[uid] = v.status;
+      }
+      
+      setMarks(next);
+      setIsDirty(true);
+      toast.success(`Chamada copiada do horário ${prevSchedule.startTime}. Não esqueça de salvar.`);
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao copiar chamada anterior.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
   if (classesQ.isLoading || myTaughtQ.isLoading) return <Loading />;
   const taughtIds = new Set((myTaughtQ.data ?? []).map((t) => t.classId));
   const allClasses = classesQ.data ?? [];
@@ -391,15 +442,41 @@ function Frequencia({ schoolId }: { schoolId: string }) {
             </TabsList>
 
             <TabsContent value="chamada" className="space-y-2 mt-3">
-              {attendanceQ.data && Object.keys(attendanceQ.data).length > 0 && (
+              {attendanceQ.data && Object.keys(attendanceQ.data).length > 0 ? (
                 <div className="flex flex-col gap-2 p-2 rounded-lg bg-secondary/10 border border-secondary/20">
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                       <Check className="size-3 text-secondary" /> Chamada realizada para este horário.
                     </div>
+                    {scheduleId && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-7 text-[10px] gap-1"
+                        onClick={copyPreviousAttendance}
+                        disabled={saving}
+                      >
+                        <Copy className="size-3" /> Repetir chamada anterior
+                      </Button>
+                    )}
                   </div>
                 </div>
+              ) : (
+                scheduleId && (
+                  <div className="flex justify-end mb-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 text-xs gap-1.5"
+                      onClick={copyPreviousAttendance}
+                      disabled={saving}
+                    >
+                      <Copy className="size-3.5" /> Repetir chamada anterior
+                    </Button>
+                  </div>
+                )
               )}
+
 
               {studentsQ.isLoading ? (
                 <Loading />
