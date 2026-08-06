@@ -184,12 +184,6 @@ function Frequencia({ schoolId }: { schoolId: string }) {
     }
   }, [attendanceQ.data, studentsQ.data, isDirty, ignoreDirtyForEffect]);
 
-  useEffect(() => {
-    if (ignoreDirtyForEffect) {
-      setIsDirty(false);
-      setIgnoreDirtyForEffect(false);
-    }
-  }, [ignoreDirtyForEffect]);
 
   const counts = useMemo(() => {
     let p = 0, f = 0, j = 0;
