@@ -84,6 +84,79 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
+const StudentAttendanceRow = memo(({ 
+  student, 
+  index, 
+  status, 
+  intervention, 
+  onStatusChange, 
+  onInterventionClick 
+}: { 
+  student: any; 
+  index: number; 
+  status: AttendanceStatus; 
+  intervention?: string; 
+  onStatusChange: (status: AttendanceStatus) => void; 
+  onInterventionClick: () => void;
+}) => {
+  return (
+    <div className="rounded-xl border bg-card p-3 flex items-center gap-2">
+      <span className="text-xs text-muted-foreground w-5 shrink-0">{index + 1}</span>
+      <div className="flex-1 min-w-0 flex items-center gap-2">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className={cn(
+            "size-9 shrink-0", 
+            intervention ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary"
+          )}
+          onClick={onInterventionClick}
+          title="Intervenção Pedagógica Individual"
+        >
+          <BookOpen className="size-4" />
+        </Button>
+
+        <div className="flex flex-col min-w-0 flex-1">
+          <span className="font-medium text-sm block truncate w-full">{student.name}</span>
+          {intervention && (
+            <span className="text-[10px] text-primary font-medium flex items-center gap-1">
+              <BookOpen className="size-2.5" /> Intervenção registrada
+            </span>
+          )}
+        </div>
+        {student.specialNeeds && (
+          <Heart
+            className="size-3.5 text-primary shrink-0"
+            aria-label={student.specialNeedsNote ?? "Necessidade especial"}
+          />
+        )}
+      </div>
+
+      {(["P", "F", "J"] as const).map((opt) => (
+        <button
+          key={opt}
+          type="button"
+          onClick={() => onStatusChange(opt)}
+          className={cn(
+            "size-9 rounded-lg text-xs font-bold border transition-all active:scale-95",
+            status === opt
+              ? opt === "P"
+                ? "bg-secondary text-secondary-foreground border-secondary"
+                : opt === "F"
+                  ? "bg-destructive text-destructive-foreground border-destructive"
+                  : "bg-accent text-accent-foreground border-accent"
+              : "bg-muted/30 text-muted-foreground"
+          )}
+        >
+          {opt}
+        </button>
+      ))}
+    </div>
+  );
+});
+
+StudentAttendanceRow.displayName = "StudentAttendanceRow";
+
 function Frequencia({ schoolId }: { schoolId: string }) {
   const { firebaseUser, userDoc } = useAuth();
   const qc = useQueryClient();
