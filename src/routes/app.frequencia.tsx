@@ -642,7 +642,7 @@ function AttendanceDashboard({
 
         <div>
           <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1 flex items-center justify-between">
-            <span>Faltosos ({currentDate}{scheduleId ? ` · ${schedulesQ.data?.find(s => s.id === scheduleId)?.startTime}` : ""})</span>
+            <span>Faltosos ({currentDate}{scheduleId ? ` · ${schedules?.find((s: any) => s.id === scheduleId)?.startTime}` : ""})</span>
             {stats.selectedDateAbsentees.length > 0 && (
               <Button
                 variant="ghost"
