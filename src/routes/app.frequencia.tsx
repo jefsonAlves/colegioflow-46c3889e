@@ -426,9 +426,14 @@ function Frequencia({ schoolId }: { schoolId: string }) {
               <select
                 className="w-full h-10 rounded-md border bg-background px-3 text-sm"
                 value={scheduleId ?? ""}
-                onChange={(e) => {
+                onChange={async (e) => {
+                  if (isDirty) {
+                    const ok = window.confirm("Você tem alterações não salvas na chamada atual. Deseja mudar de horário e perder o que não foi salvo?");
+                    if (!ok) return;
+                  }
                   setScheduleId(e.target.value || null);
                   setIgnoreDirtyForEffect(true);
+                  setIsDirty(false);
                 }}
               >
                 <option value="">Chamada Padrão (Sem horário)</option>
