@@ -405,8 +405,13 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                 value={date}
                 onChange={(e) => {
                   if (e.target.value) {
+                    if (isDirty) {
+                      const ok = window.confirm("Você tem alterações não salvas na chamada atual. Deseja mudar de data e perder o que não foi salvo?");
+                      if (!ok) return;
+                    }
                     setDate(e.target.value);
                     setInternalDate(e.target.value);
+                    setIsDirty(false);
                   }
                 }}
               >
