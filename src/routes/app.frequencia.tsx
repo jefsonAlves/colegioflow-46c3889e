@@ -120,15 +120,15 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   });
 
   const attendanceQ = useQuery({
-    queryKey: ["attendance", schoolId, classId, date, scheduleId],
-    queryFn: () => getAttendance(schoolId, classId!, date, scheduleId),
-    enabled: !!classId,
+    queryKey: ["attendance", schoolId, classId, date, scheduleId, firebaseUser?.uid],
+    queryFn: () => getAttendance(schoolId, classId!, date, scheduleId, firebaseUser?.uid),
+    enabled: !!classId && !!firebaseUser,
   });
 
   const allAttendanceQ = useQuery({
-    queryKey: ["attendance-all", schoolId, classId, scheduleId],
-    queryFn: () => getClassAttendanceAll(schoolId, classId!, scheduleId),
-    enabled: !!classId,
+    queryKey: ["attendance-all", schoolId, classId, scheduleId, firebaseUser?.uid],
+    queryFn: () => getClassAttendanceAll(schoolId, classId!, scheduleId, firebaseUser?.uid),
+    enabled: !!classId && !!firebaseUser,
   });
 
   const alertQ = useQuery({
@@ -138,9 +138,9 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   });
 
   const regencyDatesQ = useQuery({
-    queryKey: ["regency-dates", schoolId, classId, scheduleId],
-    queryFn: () => getClassRegencyDates(schoolId, classId!, scheduleId),
-    enabled: !!classId,
+    queryKey: ["regency-dates", schoolId, classId, scheduleId, firebaseUser?.uid],
+    queryFn: () => getClassRegencyDates(schoolId, classId!, scheduleId, firebaseUser?.uid),
+    enabled: !!classId && !!firebaseUser,
   });
 
   const schedulesQ = useQuery({
@@ -262,7 +262,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
       const payload = Object.fromEntries(
         Object.entries(full).map(([uid, s]) => [uid, { status: s, by: firebaseUser.uid, at: now }]),
       );
-      await setAttendance(schoolId, classId, date, payload, scheduleId);
+      await setAttendance(schoolId, classId, date, payload, scheduleId, firebaseUser.uid);
       toast.success(
         autoCount > 0
           ? `Frequência salva · ${autoCount} aluno(s) marcado(s) como presente automaticamente.`
@@ -307,7 +307,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
     
     try {
       setSaving(true);
-      const prevData = await getAttendance(schoolId, classId, date, prevSchedule.id);
+      const prevData = await getAttendance(schoolId, classId, date, prevSchedule.id, firebaseUser?.uid);
       
       if (Object.keys(prevData).length === 0) {
         toast.error("Nenhuma chamada encontrada no horário anterior para copiar.");
