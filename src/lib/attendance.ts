@@ -118,6 +118,9 @@ export async function getClassAttendanceAll(
     query = query.eq("schedule_id", scheduleId);
   }
 
+  const { data, error } = await query;
+  if (error) throw error;
+
   if (error) throw error;
   const out: Record<string, Record<string, AttendanceEntry>> = {};
   for (const r of data ?? []) {
@@ -151,6 +154,8 @@ export async function getClassRegencyDates(
 
   const { data, error } = await query
     .order("date", { ascending: false });
+
+  if (error) throw error;
 
   if (error) throw error;
   
