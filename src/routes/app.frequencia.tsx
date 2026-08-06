@@ -95,7 +95,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const [savedFlash, setSavedFlash] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [ignoreDirtyForEffect, setIgnoreDirtyForEffect] = useState(false);
-  useUnsavedChanges(isDirty);
+  const { confirmNavigation } = useUnsavedChanges(isDirty);
   const [tab, setTab] = useState<"chamada" | "conteudo" | "faltosos">("chamada");
   const [showPeriodStats, setShowPeriodStats] = useState(false);
   const [statsRefDate, setStatsRefDate] = useState(todayISO());
