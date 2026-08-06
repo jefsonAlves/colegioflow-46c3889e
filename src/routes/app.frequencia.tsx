@@ -86,11 +86,13 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const search = Route.useSearch();
   const [classId, setClassId] = useState<string | null>(search.classId ?? null);
   const [date, setDate] = useState(search.date ?? todayISO());
+  const [internalDate, setInternalDate] = useState(date);
   const [marks, setMarks] = useState<Record<string, AttendanceStatus>>({});
   const [scheduleId, setScheduleId] = useState<string | null>(search.scheduleId ?? null);
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [ignoreDirtyForEffect, setIgnoreDirtyForEffect] = useState(false);
   useUnsavedChanges(isDirty);
   const [tab, setTab] = useState<"chamada" | "conteudo" | "faltosos">("chamada");
   const [showPeriodStats, setShowPeriodStats] = useState(false);
@@ -152,13 +154,21 @@ function Frequencia({ schoolId }: { schoolId: string }) {
       const next: Record<string, AttendanceStatus> = {};
       for (const [uid, v] of Object.entries(attendanceQ.data)) next[uid] = v.status;
       setMarks(next);
+      setIgnoreDirtyForEffect(true);
     } else if (studentsQ.data) {
       const next: Record<string, AttendanceStatus> = {};
       for (const s of studentsQ.data) next[s.id] = "P";
       setMarks(next);
+      setIgnoreDirtyForEffect(true);
     }
-    setIsDirty(false);
   }, [attendanceQ.data, studentsQ.data]);
+
+  useEffect(() => {
+    if (ignoreDirtyForEffect) {
+      setIsDirty(false);
+      setIgnoreDirtyForEffect(false);
+    }
+  }, [ignoreDirtyForEffect]);
 
   const counts = useMemo(() => {
     let p = 0, f = 0, j = 0;
@@ -262,6 +272,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
       window.setTimeout(() => setSavedFlash(false), 1600);
       qc.invalidateQueries({ queryKey: ["attendance", schoolId, classId] });
       qc.invalidateQueries({ queryKey: ["attendance-all", schoolId, classId] });
+      qc.invalidateQueries({ queryKey: ["regency-dates", schoolId, classId] });
       setIsDirty(false);
     } catch (e) {
       console.error(e);
@@ -360,7 +371,13 @@ function Frequencia({ schoolId }: { schoolId: string }) {
               <Label>Data</Label>
               <div className="relative">
                 <Calendar className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input type="date" className="pl-9" value={date} onChange={(e) => setDate(e.target.value)} />
+                <Input 
+                  type="date" 
+                  className="pl-9" 
+                  value={internalDate} 
+                  onChange={(e) => setInternalDate(e.target.value)}
+                  onBlur={() => setDate(internalDate)}
+                />
               </div>
             </div>
             <div className="space-y-1.5">
@@ -369,7 +386,10 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                 className="w-full h-10 rounded-md border bg-background px-3 text-sm"
                 value={date}
                 onChange={(e) => {
-                  if (e.target.value) setDate(e.target.value);
+                  if (e.target.value) {
+                    setDate(e.target.value);
+                    setInternalDate(e.target.value);
+                  }
                 }}
               >
                 <option value="">Escolha uma data...</option>
@@ -390,7 +410,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                 value={scheduleId ?? ""}
                 onChange={(e) => {
                   setScheduleId(e.target.value || null);
-                  setIsDirty(false);
+                  setIgnoreDirtyForEffect(true);
                 }}
               >
                 <option value="">Chamada Padrão (Sem horário)</option>
