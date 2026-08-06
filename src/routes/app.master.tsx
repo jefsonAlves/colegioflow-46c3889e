@@ -7,12 +7,14 @@ import {
   Check,
   Database,
   Download,
+  FileDown,
   Merge,
   Pencil,
   Play,
   Plus,
   ShieldCheck,
   Trash2,
+  User,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -43,6 +45,7 @@ import {
   upsertImportSource,
   type ImportSourceRow,
 } from "@/lib/import.functions";
+import { getMasterBackup } from "@/lib/backup.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { setMembershipStatus } from "@/lib/memberships";
 import { getUserDoc } from "@/lib/users";
@@ -117,6 +120,8 @@ function MasterPage() {
           </CardContent>
         </Card>
       </Link>
+
+      <MasterBackupCard schools={active} />
 
       <ImportExternalCard schools={active} />
 
@@ -807,6 +812,140 @@ function SavedImportSourcesCard({ schools }: { schools: SchoolDoc[] }) {
                 <Plus className="size-4" /> Adicionar fonte
               </Button>
             )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function MasterBackupCard({ schools }: { schools: SchoolDoc[] }) {
+  const [open, setOpen] = useState(false);
+  const [schoolId, setSchoolId] = useState<string>("");
+  const [teacherId, setTeacherId] = useState<string>("");
+  const [downloading, setDownloading] = useState(false);
+  const runBackup = useServerFn(getMasterBackup);
+
+  const teachersQ = useQuery({
+    queryKey: ["all-teachers-for-backup", schoolId],
+    queryFn: async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
+        .from("school_memberships")
+        .select("user_id")
+        .eq("school_id", schoolId)
+        .eq("status", "approved");
+      if (error) throw error;
+      
+      const uids = (data ?? []).map(d => d.user_id);
+      if (uids.length === 0) return [];
+
+      const { data: profiles, error: pErr } = await supabase
+        .from("profiles")
+        .select("id, name")
+        .in("id", uids);
+      if (pErr) throw pErr;
+      return profiles || [];
+    },
+    enabled: !!schoolId && open
+  });
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const data = await runBackup({ data: { 
+        schoolId: schoolId || undefined, 
+        teacherId: teacherId || undefined 
+      } });
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `backup-klassio-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success("Backup gerado e baixado com sucesso!");
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao gerar backup.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <Card className="border-primary/30">
+      <CardContent className="pt-4 pb-4 space-y-3">
+        <button
+          className="w-full flex items-center gap-3 text-left"
+          onClick={() => setOpen((v) => !v)}
+        >
+          <FileDown className="size-5 text-primary" />
+          <div className="flex-1">
+            <div className="font-medium">Backup Geral de Dados</div>
+            <div className="text-xs text-muted-foreground">
+              Extrair JSON com alunos, frequências, notas e médias para segurança
+            </div>
+          </div>
+        </button>
+
+        {open && (
+          <div className="space-y-3 pt-2 border-t">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Filtrar por Escola</Label>
+                <select
+                  value={schoolId}
+                  onChange={(e) => {
+                    setSchoolId(e.target.value);
+                    setTeacherId("");
+                  }}
+                  className="w-full border rounded-md h-10 px-3 bg-background text-sm"
+                >
+                  <option value="">Todas as Escolas</option>
+                  {schools.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Filtrar por Professor</Label>
+                <select
+                  value={teacherId}
+                  onChange={(e) => setTeacherId(e.target.value)}
+                  disabled={!schoolId || teachersQ.isLoading}
+                  className="w-full border rounded-md h-10 px-3 bg-background text-sm disabled:opacity-50"
+                >
+                  <option value="">Todos os Professores</option>
+                  {(teachersQ.data ?? []).map((t: any) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+                {!schoolId && <p className="text-[10px] text-muted-foreground italic">Selecione uma escola primeiro</p>}
+              </div>
+            </div>
+
+            <Button 
+              className="w-full gap-2" 
+              onClick={handleDownload}
+              disabled={downloading}
+            >
+              <Download className="size-4" /> 
+              {downloading ? "Processando Backup..." : "Baixar Backup em JSON"}
+            </Button>
+            
+            <p className="text-[10px] text-muted-foreground text-center">
+              Este arquivo contém todos os registros de Alunos, Chamadas e Notas. Guarde-o em local seguro.
+            </p>
           </div>
         )}
       </CardContent>
