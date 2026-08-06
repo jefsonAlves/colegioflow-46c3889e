@@ -17,7 +17,7 @@ import {
   Send,
   Settings2,
   Trash2,
-
+  BookOpen,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { AbsenceReportSection } from "@/components/AbsenceReportSection";
@@ -88,6 +88,8 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const [date, setDate] = useState(search.date ?? todayISO());
   const [internalDate, setInternalDate] = useState(date);
   const [marks, setMarks] = useState<Record<string, AttendanceStatus>>({});
+  const [individualInterventions, setIndividualInterventions] = useState<Record<string, string>>({});
+  const [interventionDialog, setInterventionDialog] = useState<{ sid: string; name: string } | null>(null);
   const [scheduleId, setScheduleId] = useState<string | null>(search.scheduleId ?? null);
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
@@ -152,8 +154,13 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   useEffect(() => {
     if (attendanceQ.data && Object.keys(attendanceQ.data).length > 0) {
       const next: Record<string, AttendanceStatus> = {};
-      for (const [uid, v] of Object.entries(attendanceQ.data)) next[uid] = v.status;
+      const nextInt: Record<string, string> = {};
+      for (const [uid, v] of Object.entries(attendanceQ.data)) {
+        next[uid] = v.status;
+        if (v.pedagogicalIntervention) nextInt[uid] = v.pedagogicalIntervention;
+      }
       setMarks(next);
+      setIndividualInterventions(nextInt);
       setIgnoreDirtyForEffect(true);
     } else if (studentsQ.data) {
       const next: Record<string, AttendanceStatus> = {};
@@ -260,7 +267,15 @@ function Frequencia({ schoolId }: { schoolId: string }) {
         }
       }
       const payload = Object.fromEntries(
-        Object.entries(full).map(([uid, s]) => [uid, { status: s, by: firebaseUser.uid, at: now }]),
+        Object.entries(full).map(([uid, s]) => [
+          uid, 
+          { 
+            status: s, 
+            by: firebaseUser.uid, 
+            at: now,
+            pedagogicalIntervention: individualInterventions[uid] || null
+          }
+        ]),
       );
       await setAttendance(schoolId, classId, date, payload, scheduleId, firebaseUser.uid);
       toast.success(
@@ -523,7 +538,14 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                       <div key={s.id} className="rounded-xl border bg-card p-3 flex items-center gap-2">
                         <span className="text-xs text-muted-foreground w-5">{i + 1}</span>
                         <div className="flex-1 min-w-0 flex items-center gap-1.5">
-                          <span className="font-medium text-sm truncate">{s.name}</span>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-sm truncate">{s.name}</span>
+                            {individualInterventions[s.id] && (
+                              <span className="text-[10px] text-primary font-medium flex items-center gap-1">
+                                <BookOpen className="size-2.5" /> Intervenção registrada
+                              </span>
+                            )}
+                          </div>
                           {s.specialNeeds && (
                             <Heart
                               className="size-3.5 text-primary shrink-0"
@@ -531,6 +553,17 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                             />
                           )}
                         </div>
+                        
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className={`size-9 shrink-0 ${individualInterventions[s.id] ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary"}`}
+                          onClick={() => setInterventionDialog({ sid: s.id, name: s.name })}
+                          title="Intervenção Pedagógica Individual"
+                        >
+                          <BookOpen className="size-4" />
+                        </Button>
+
                         {(["P", "F", "J"] as const).map((opt) => (
                           <button
                             key={opt}
@@ -599,6 +632,41 @@ function Frequencia({ schoolId }: { schoolId: string }) {
               />
             </TabsContent>
           </Tabs>
+
+          <Dialog open={!!interventionDialog} onOpenChange={(o) => !o && setInterventionDialog(null)}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <BookOpen className="size-5 text-primary" />
+                  Intervenção Pedagógica
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground">
+                  Registrar acompanhamento individual para <span className="font-bold">{interventionDialog?.name}</span>
+                </p>
+              </DialogHeader>
+              <div className="py-4">
+                <Label htmlFor="intervention-text" className="mb-2 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Descreva a intervenção realizada
+                </Label>
+                <Textarea
+                  id="intervention-text"
+                  placeholder="Ex: Reforço em leitura silábica, acompanhamento diferenciado durante atividade..."
+                  className="min-h-[120px] resize-none"
+                  value={interventionDialog ? (individualInterventions[interventionDialog.sid] || "") : ""}
+                  onChange={(e) => {
+                    if (interventionDialog) {
+                      setIndividualInterventions(prev => ({ ...prev, [interventionDialog.sid]: e.target.value }));
+                      setIsDirty(true);
+                    }
+                  }}
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setInterventionDialog(null)}>Fechar</Button>
+                <Button onClick={() => setInterventionDialog(null)}>Confirmar</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </>
       )}
     </>
@@ -888,6 +956,7 @@ function ContentLogPanel({
   const [objective, setObjective] = useState("");
   const [reaction, setReaction] = useState("");
   const [success, setSuccess] = useState<SuccessLevel>("yes");
+  const [pedagogicalIntervention, setPedagogicalIntervention] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -906,10 +975,11 @@ function ContentLogPanel({
       await createContentLog({
         schoolId, classId, date,
         title, description, objective, reaction, success,
+        pedagogicalIntervention,
         file,
       });
       toast.success("Conteúdo salvo!");
-      setTitle(""); setDescription(""); setObjective(""); setReaction(""); setFile(null);
+      setTitle(""); setDescription(""); setObjective(""); setReaction(""); setPedagogicalIntervention(""); setFile(null);
       qc.invalidateQueries({ queryKey: ["content-logs", schoolId, classId] });
     } catch (e) {
       console.error(e);
@@ -947,6 +1017,7 @@ function ContentLogPanel({
           <Textarea placeholder="Descrição do que foi trabalhado" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
           <Textarea placeholder="Objetivo pedagógico" value={objective} onChange={(e) => setObjective(e.target.value)} rows={2} />
           <Textarea placeholder="Como a turma reagiu?" value={reaction} onChange={(e) => setReaction(e.target.value)} rows={2} />
+          <Textarea placeholder="Intervenção pedagógica realizada" value={pedagogicalIntervention} onChange={(e) => setPedagogicalIntervention(e.target.value)} rows={2} />
           <div>
             <Label className="text-xs">Houve êxito?</Label>
             <div className="grid grid-cols-3 gap-2 mt-1">
@@ -1010,6 +1081,7 @@ function ContentLogPanel({
                 {l.description && <p className="text-xs text-muted-foreground">{l.description}</p>}
                 {l.objective && <p className="text-xs"><span className="font-medium">Objetivo:</span> {l.objective}</p>}
                 {l.reaction && <p className="text-xs"><span className="font-medium">Reação:</span> {l.reaction}</p>}
+                {l.pedagogicalIntervention && <p className="text-xs text-primary font-medium"><span className="font-bold">Intervenção:</span> {l.pedagogicalIntervention}</p>}
                 {l.success && (
                   <span className={`inline-block text-[10px] uppercase font-bold rounded px-1.5 py-0.5 ${
                     l.success === "yes" ? "bg-secondary/20 text-secondary-foreground"
