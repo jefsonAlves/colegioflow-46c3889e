@@ -167,15 +167,15 @@ export async function setStudentGradeMap(input: {
   if (subjectKeys.length === 0) return;
   const uid = (await supabase.auth.getUser()).data.user?.id ?? "";
 
+  // Using upsert with conflict resolution instead of explicit delete+insert
+  // for atomic reliability and cleaner logic.
+  // Legacy code:
+  /*
   const { error: delError } = await supabase
     .from("grades")
     .delete()
-    .eq("school_id", schoolId)
-    .eq("class_id", classId)
-    .eq("student_id", studentId)
-    .eq("trimester", bimestre)
-    .in("subject", subjectKeys);
-  if (delError) throw delError;
+    ...
+  */
 
   const rows = subjectKeys
     .filter((k) => typeof values[k] === "number" && !Number.isNaN(values[k] as number))
@@ -190,6 +190,8 @@ export async function setStudentGradeMap(input: {
       updated_by: uid,
     }));
   if (rows.length === 0) return;
-  const { error } = await supabase.from("grades").insert(rows);
+  const { error } = await supabase.from("grades").upsert(rows, {
+    onConflict: 'student_id,trimester,subject,class_id'
+  });
   if (error) throw error;
 }

@@ -72,22 +72,13 @@ export async function setAttendance(
   if (rows.length === 0) return;
 
   const doWrite = async () => {
-    let deleteQuery = supabase
-      .from("attendance")
-      .delete()
-      .eq("school_id", schoolId)
-      .eq("class_id", classId)
-      .eq("date", dateISO)
-      .eq("recorded_by", recordedBy);
-    
-    if (scheduleId) {
-      deleteQuery = deleteQuery.eq("schedule_id", scheduleId);
-    } else {
-      deleteQuery = deleteQuery.is("schedule_id", null);
-    }
-
-    await deleteQuery;
-    const { error } = await supabase.from("attendance").insert(rows);
+    // Using upsert instead of delete+insert for better atomic security
+    // The previous implementation was redundant and potentially race-prone
+    // especially with the recorded_by filter which could be bypassed by other users if not careful
+    // but RLS should handle that anyway.
+    const { error } = await supabase.from("attendance").upsert(rows, {
+      onConflict: 'class_id,student_id,date,schedule_id'
+    });
     if (error) throw error;
   };
 

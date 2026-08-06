@@ -69,11 +69,14 @@ export const Route = createFileRoute("/app/frequencia")({
     date: typeof s.date === "string" ? s.date : undefined,
     scheduleId: typeof s.scheduleId === "string" ? s.scheduleId : undefined,
   }),
-  component: () => (
-    <AppShell title="Frequência">
-      <SchoolGate>{({ schoolId }) => <Frequencia schoolId={schoolId} />}</SchoolGate>
-    </AppShell>
-  ),
+  component: () => {
+    const search = Route.useSearch();
+    return (
+      <AppShell title="Frequência">
+        <SchoolGate>{({ schoolId }) => <Frequencia schoolId={schoolId} />}</SchoolGate>
+      </AppShell>
+    );
+  },
 });
 
 function todayISO() {
@@ -95,7 +98,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const [savedFlash, setSavedFlash] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [ignoreDirtyForEffect, setIgnoreDirtyForEffect] = useState(false);
-  useUnsavedChanges(isDirty);
+  const { confirmNavigation } = useUnsavedChanges(isDirty);
   const [tab, setTab] = useState<"chamada" | "conteudo" | "faltosos">("chamada");
   const [showPeriodStats, setShowPeriodStats] = useState(false);
   const [statsRefDate, setStatsRefDate] = useState(todayISO());
@@ -402,8 +405,13 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                 value={date}
                 onChange={(e) => {
                   if (e.target.value) {
+                    if (isDirty) {
+                      const ok = window.confirm("Você tem alterações não salvas na chamada atual. Deseja mudar de data e perder o que não foi salvo?");
+                      if (!ok) return;
+                    }
                     setDate(e.target.value);
                     setInternalDate(e.target.value);
+                    setIsDirty(false);
                   }
                 }}
               >
@@ -423,9 +431,14 @@ function Frequencia({ schoolId }: { schoolId: string }) {
               <select
                 className="w-full h-10 rounded-md border bg-background px-3 text-sm"
                 value={scheduleId ?? ""}
-                onChange={(e) => {
+                onChange={async (e) => {
+                  if (isDirty) {
+                    const ok = window.confirm("Você tem alterações não salvas na chamada atual. Deseja mudar de horário e perder o que não foi salvo?");
+                    if (!ok) return;
+                  }
                   setScheduleId(e.target.value || null);
                   setIgnoreDirtyForEffect(true);
+                  setIsDirty(false);
                 }}
               >
                 <option value="">Chamada Padrão (Sem horário)</option>

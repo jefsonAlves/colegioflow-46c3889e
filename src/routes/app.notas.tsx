@@ -43,6 +43,8 @@ function Notas({ schoolId }: { schoolId: string }) {
   const [dirty, setDirty] = useState<Record<string, boolean>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
+  const dirtyIds = useMemo(() => Object.keys(dirty).filter((id) => dirty[id]), [dirty]);
+  useUnsavedChanges(dirtyIds.length > 0);
 
   const classesQ = useQuery({
     queryKey: ["classes", schoolId],
@@ -134,11 +136,13 @@ function Notas({ schoolId }: { schoolId: string }) {
     }
   };
 
-  const dirtyIds = Object.keys(dirty).filter((id) => dirty[id]);
-  useUnsavedChanges(dirtyIds.length > 0);
+  // Moved to top of component for consistent hook order
+  // const dirtyIds = Object.keys(dirty).filter((id) => dirty[id]);
+  // useUnsavedChanges(dirtyIds.length > 0);
 
   const saveAll = async () => {
     for (const id of dirtyIds) await saveRow(id);
+    setDirty({});
   };
 
   if (classesQ.isLoading) return <Loading />;

@@ -13,6 +13,7 @@ import {
   Trash2,
   UserCog,
 } from "lucide-react";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { AppShell } from "@/components/AppShell";
 import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
@@ -198,6 +199,8 @@ function StudentDesempenho({
   const [adaptationDesc, setAdaptationDesc] = useState("");
   const [contentRef, setContentRef] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  useUnsavedChanges(isDirty);
 
   const logsQ = useQuery({
     queryKey: ["performance-logs", classId, student.id],
@@ -264,6 +267,7 @@ function StudentDesempenho({
       setAdaptationDesc("");
       setNeedsAdaptation(false);
       setContentRef("");
+      setIsDirty(false);
       qc.invalidateQueries({ queryKey: ["performance-logs", classId, student.id] });
     } catch (e) {
       console.error(e);
@@ -422,7 +426,10 @@ function StudentDesempenho({
             <Textarea
               rows={3}
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(e) => {
+                setNotes(e.target.value);
+                setIsDirty(true);
+              }}
               placeholder="O que o aluno demonstrou, dificuldades, avanços..."
             />
           </div>
