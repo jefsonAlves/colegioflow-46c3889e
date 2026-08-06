@@ -156,23 +156,33 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   });
 
   useEffect(() => {
-    if (attendanceQ.data && Object.keys(attendanceQ.data).length > 0) {
-      const next: Record<string, AttendanceStatus> = {};
-      const nextInt: Record<string, string> = {};
-      for (const [uid, v] of Object.entries(attendanceQ.data)) {
-        next[uid] = v.status;
-        if (v.pedagogicalIntervention) nextInt[uid] = v.pedagogicalIntervention;
+    // Only sync from query data if we don't have local unsaved changes
+    // or if we just finished a save operation (handled by query invalidation)
+    if (!isDirty || ignoreDirtyForEffect) {
+      if (attendanceQ.data && Object.keys(attendanceQ.data).length > 0) {
+        const next: Record<string, AttendanceStatus> = {};
+        const nextInt: Record<string, string> = {};
+        for (const [uid, v] of Object.entries(attendanceQ.data)) {
+          next[uid] = v.status;
+          if (v.pedagogicalIntervention) nextInt[uid] = v.pedagogicalIntervention;
+        }
+        setMarks(next);
+        setIndividualInterventions(nextInt);
+        if (ignoreDirtyForEffect) {
+          setIsDirty(false);
+          setIgnoreDirtyForEffect(false);
+        }
+      } else if (studentsQ.data) {
+        const next: Record<string, AttendanceStatus> = {};
+        for (const s of studentsQ.data) next[s.id] = "P";
+        setMarks(next);
+        if (ignoreDirtyForEffect) {
+          setIsDirty(false);
+          setIgnoreDirtyForEffect(false);
+        }
       }
-      setMarks(next);
-      setIndividualInterventions(nextInt);
-      setIgnoreDirtyForEffect(true);
-    } else if (studentsQ.data) {
-      const next: Record<string, AttendanceStatus> = {};
-      for (const s of studentsQ.data) next[s.id] = "P";
-      setMarks(next);
-      setIgnoreDirtyForEffect(true);
     }
-  }, [attendanceQ.data, studentsQ.data]);
+  }, [attendanceQ.data, studentsQ.data, isDirty, ignoreDirtyForEffect]);
 
   useEffect(() => {
     if (ignoreDirtyForEffect) {
