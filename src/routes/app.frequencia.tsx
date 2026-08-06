@@ -86,6 +86,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const search = Route.useSearch();
   const [classId, setClassId] = useState<string | null>(search.classId ?? null);
   const [date, setDate] = useState(search.date ?? todayISO());
+  const [internalDate, setInternalDate] = useState(date);
   const [marks, setMarks] = useState<Record<string, AttendanceStatus>>({});
   const [scheduleId, setScheduleId] = useState<string | null>(search.scheduleId ?? null);
   const [saving, setSaving] = useState(false);
@@ -370,7 +371,13 @@ function Frequencia({ schoolId }: { schoolId: string }) {
               <Label>Data</Label>
               <div className="relative">
                 <Calendar className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input type="date" className="pl-9" value={date} onChange={(e) => setDate(e.target.value)} />
+                <Input 
+                  type="date" 
+                  className="pl-9" 
+                  value={internalDate} 
+                  onChange={(e) => setInternalDate(e.target.value)}
+                  onBlur={() => setDate(internalDate)}
+                />
               </div>
             </div>
             <div className="space-y-1.5">
