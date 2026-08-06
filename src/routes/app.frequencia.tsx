@@ -379,6 +379,8 @@ function Frequencia({ schoolId }: { schoolId: string }) {
             setShowStats={setShowPeriodStats}
             statsRefDate={statsRefDate}
             setStatsRefDate={setStatsRefDate}
+            scheduleId={scheduleId}
+            schedules={schedulesQ.data ?? []}
           />
 
           <Tabs value={tab} onValueChange={(v) => setTab(v as "chamada" | "conteudo" | "faltosos")}>
@@ -538,6 +540,8 @@ function AttendanceDashboard({
   setShowStats: (v: boolean) => void;
   statsRefDate: string;
   setStatsRefDate: (v: string) => void;
+  scheduleId?: string | null;
+  schedules?: any[];
 }) {
   const [openAlert, setOpenAlert] = useState(false);
   const [maxAbs, setMaxAbs] = useState(alertMax ?? 5);
