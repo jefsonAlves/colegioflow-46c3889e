@@ -163,7 +163,7 @@ export function NextClassCard({ schoolId }: { schoolId: string }) {
 
         <Link
           to="/app/frequencia"
-          search={{ classId: featured.sched.classId, date: today_ }}
+          search={{ classId: featured.sched.classId, date: today_, scheduleId: featured.sched.id }}
           className="block"
         >
           <Button size="sm" className="w-full">
@@ -194,7 +194,7 @@ export function NextClassCard({ schoolId }: { schoolId: string }) {
                     {c?.name ?? "Turma"}
                     {s.subject && <span className="text-muted-foreground"> · {s.subject}</span>}
                   </span>
-                  <Link to="/app/frequencia" search={{ classId: s.classId, date: today_ }}>
+                  <Link to="/app/frequencia" search={{ classId: s.classId, date: today_, scheduleId: s.id }}>
                     <Button size="sm" variant="ghost" className="h-6 px-2 text-xs">
                       Chamada
                     </Button>

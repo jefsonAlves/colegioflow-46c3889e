@@ -7,6 +7,7 @@ export interface AttendanceEntry {
   status: AttendanceStatus;
   by?: string;
   at?: number;
+  pedagogicalIntervention?: string | null;
 }
 
 export async function getAttendance(
@@ -18,7 +19,7 @@ export async function getAttendance(
 ): Promise<Record<string, AttendanceEntry>> {
   let query = supabase
     .from("attendance")
-    .select("student_id, status, recorded_by, created_at, schedule_id")
+    .select("student_id, status, recorded_by, created_at, schedule_id, pedagogical_intervention")
     .eq("school_id", schoolId)
     .eq("class_id", classId)
     .eq("date", dateISO);
@@ -41,6 +42,7 @@ export async function getAttendance(
       status: (r.status as AttendanceStatus) ?? "P",
       by: (r.recorded_by as string) ?? undefined,
       at: r.created_at ? new Date(r.created_at as string).getTime() : undefined,
+      pedagogicalIntervention: (r.pedagogical_intervention as string) ?? null,
     };
   }
   return out;
@@ -65,6 +67,7 @@ export async function setAttendance(
     present: e.status === "P",
     recorded_by: recordedBy,
     schedule_id: scheduleId || null,
+    pedagogical_intervention: e.pedagogicalIntervention || null,
   }));
   if (rows.length === 0) return;
 
@@ -108,7 +111,7 @@ export async function getClassAttendanceAll(
 ): Promise<Record<string, Record<string, AttendanceEntry>>> {
   let query = supabase
     .from("attendance")
-    .select("student_id, status, recorded_by, created_at, date, schedule_id")
+    .select("student_id, status, recorded_by, created_at, date, schedule_id, pedagogical_intervention")
     .eq("school_id", schoolId)
     .eq("class_id", classId);
 
@@ -132,6 +135,7 @@ export async function getClassAttendanceAll(
       status: (r.status as AttendanceStatus) ?? "P",
       by: (r.recorded_by as string) ?? undefined,
       at: r.created_at ? new Date(r.created_at as string).getTime() : undefined,
+      pedagogicalIntervention: (r.pedagogical_intervention as string) ?? null,
     };
   }
   return out;
