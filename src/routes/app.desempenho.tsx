@@ -13,6 +13,7 @@ import {
   Trash2,
   UserCog,
 } from "lucide-react";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { AppShell } from "@/components/AppShell";
 import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
