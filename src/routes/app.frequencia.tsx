@@ -69,11 +69,14 @@ export const Route = createFileRoute("/app/frequencia")({
     date: typeof s.date === "string" ? s.date : undefined,
     scheduleId: typeof s.scheduleId === "string" ? s.scheduleId : undefined,
   }),
-  component: () => (
-    <AppShell title="Frequência">
-      <SchoolGate>{({ schoolId }) => <Frequencia schoolId={schoolId} />}</SchoolGate>
-    </AppShell>
-  ),
+  component: () => {
+    const search = Route.useSearch();
+    return (
+      <AppShell title="Frequência">
+        <SchoolGate>{({ schoolId }) => <Frequencia schoolId={schoolId} />}</SchoolGate>
+      </AppShell>
+    );
+  },
 });
 
 function todayISO() {
