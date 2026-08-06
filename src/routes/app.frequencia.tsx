@@ -91,6 +91,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [ignoreDirtyForEffect, setIgnoreDirtyForEffect] = useState(false);
   useUnsavedChanges(isDirty);
   const [tab, setTab] = useState<"chamada" | "conteudo" | "faltosos">("chamada");
   const [showPeriodStats, setShowPeriodStats] = useState(false);
@@ -152,13 +153,21 @@ function Frequencia({ schoolId }: { schoolId: string }) {
       const next: Record<string, AttendanceStatus> = {};
       for (const [uid, v] of Object.entries(attendanceQ.data)) next[uid] = v.status;
       setMarks(next);
+      setIgnoreDirtyForEffect(true);
     } else if (studentsQ.data) {
       const next: Record<string, AttendanceStatus> = {};
       for (const s of studentsQ.data) next[s.id] = "P";
       setMarks(next);
+      setIgnoreDirtyForEffect(true);
     }
-    setIsDirty(false);
   }, [attendanceQ.data, studentsQ.data]);
+
+  useEffect(() => {
+    if (ignoreDirtyForEffect) {
+      setIsDirty(false);
+      setIgnoreDirtyForEffect(false);
+    }
+  }, [ignoreDirtyForEffect]);
 
   const counts = useMemo(() => {
     let p = 0, f = 0, j = 0;
@@ -262,6 +271,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
       window.setTimeout(() => setSavedFlash(false), 1600);
       qc.invalidateQueries({ queryKey: ["attendance", schoolId, classId] });
       qc.invalidateQueries({ queryKey: ["attendance-all", schoolId, classId] });
+      qc.invalidateQueries({ queryKey: ["regency-dates", schoolId, classId] });
       setIsDirty(false);
     } catch (e) {
       console.error(e);
@@ -390,7 +400,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                 value={scheduleId ?? ""}
                 onChange={(e) => {
                   setScheduleId(e.target.value || null);
-                  setIsDirty(false);
+                  setIgnoreDirtyForEffect(true);
                 }}
               >
                 <option value="">Chamada Padrão (Sem horário)</option>
