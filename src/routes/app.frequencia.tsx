@@ -522,6 +522,8 @@ function AttendanceDashboard({
   setShowStats,
   statsRefDate,
   setStatsRefDate,
+  scheduleId,
+  schedules,
 }: {
   schoolId: string;
   classId: string;
