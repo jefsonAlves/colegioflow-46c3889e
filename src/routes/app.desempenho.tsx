@@ -425,7 +425,10 @@ function StudentDesempenho({
             <Textarea
               rows={3}
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(e) => {
+                setNotes(e.target.value);
+                setIsDirty(true);
+              }}
               placeholder="O que o aluno demonstrou, dificuldades, avanços..."
             />
           </div>
