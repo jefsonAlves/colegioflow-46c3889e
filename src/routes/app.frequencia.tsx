@@ -602,31 +602,27 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                     );
                   })}
 
-                  <div className="relative">
+                  <div className="pt-2">
                     <Button
-                      className={`w-full h-12 transition-colors ${
-                        savedFlash ? "bg-secondary text-secondary-foreground" : ""
-                      }`}
+                      className={cn(
+                        "w-full h-12 transition-all duration-300",
+                        savedFlash ? "bg-secondary hover:bg-secondary text-secondary-foreground" : ""
+                      )}
                       onClick={save}
                       disabled={saving}
                     >
-                      {savedFlash ? (
-                        <>
-                          <Check className="size-5 animate-in zoom-in-50 duration-300" /> Salvo!
-                        </>
-                      ) : saving ? (
+                      {saving ? (
                         "Salvando..."
+                      ) : savedFlash ? (
+                        <span className="flex items-center gap-2">
+                          <Check className="size-5" /> Salvo com sucesso!
+                        </span>
                       ) : (
-                        <>
+                        <span className="flex items-center gap-2">
                           <Save className="size-4" /> Salvar chamada
-                        </>
+                        </span>
                       )}
                     </Button>
-                    {savedFlash && (
-                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                        <span className="absolute inline-flex h-16 w-16 rounded-full bg-secondary/40 animate-ping" />
-                      </div>
-                    )}
                   </div>
                   <p className="text-[11px] text-muted-foreground text-center">
                     Alunos sem marcação serão salvos como Presente.
