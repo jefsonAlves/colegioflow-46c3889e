@@ -386,7 +386,10 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                 className="w-full h-10 rounded-md border bg-background px-3 text-sm"
                 value={date}
                 onChange={(e) => {
-                  if (e.target.value) setDate(e.target.value);
+                  if (e.target.value) {
+                    setDate(e.target.value);
+                    setInternalDate(e.target.value);
+                  }
                 }}
               >
                 <option value="">Escolha uma data...</option>
