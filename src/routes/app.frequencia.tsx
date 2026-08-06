@@ -549,9 +549,19 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                     const status = marks[s.id] ?? "P";
                     return (
                       <div key={s.id} className="rounded-xl border bg-card p-3 flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground w-5">{i + 1}</span>
-                        <div className="flex-1 min-w-0 flex items-center gap-1.5">
-                          <div className="flex flex-col">
+                        <span className="text-xs text-muted-foreground w-5 shrink-0">{i + 1}</span>
+                        <div className="flex-1 min-w-0 flex items-center gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className={`size-9 shrink-0 ${individualInterventions[s.id] ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary"}`}
+                            onClick={() => setInterventionDialog({ sid: s.id, name: s.name })}
+                            title="Intervenção Pedagógica Individual"
+                          >
+                            <BookOpen className="size-4" />
+                          </Button>
+
+                          <div className="flex flex-col min-w-0 flex-1">
                             <span className="font-medium text-sm truncate">{s.name}</span>
                             {individualInterventions[s.id] && (
                               <span className="text-[10px] text-primary font-medium flex items-center gap-1">
@@ -566,16 +576,6 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                             />
                           )}
                         </div>
-                        
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className={`size-9 shrink-0 ${individualInterventions[s.id] ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary"}`}
-                          onClick={() => setInterventionDialog({ sid: s.id, name: s.name })}
-                          title="Intervenção Pedagógica Individual"
-                        >
-                          <BookOpen className="size-4" />
-                        </Button>
 
                         {(["P", "F", "J"] as const).map((opt) => (
                           <button
