@@ -9,30 +9,27 @@ export interface AttendanceEntry {
   at?: number;
 }
 
-async function currentUid(): Promise<string> {
-  return (await supabase.auth.getUser()).data.user?.id ?? "";
-}
-
 export async function getAttendance(
   schoolId: string,
   classId: string,
   dateISO: string,
   scheduleId?: string | null,
+  recordedBy?: string,
 ): Promise<Record<string, AttendanceEntry>> {
-  const uid = await currentUid();
   let query = supabase
     .from("attendance")
     .select("student_id, status, recorded_by, created_at, schedule_id")
     .eq("school_id", schoolId)
     .eq("class_id", classId)
-    .eq("date", dateISO)
-    .eq("recorded_by", uid);
+    .eq("date", dateISO);
+  
+  if (recordedBy) {
+    query = query.eq("recorded_by", recordedBy);
+  }
   
   if (scheduleId) {
     query = query.eq("schedule_id", scheduleId);
   } else {
-    // If no scheduleId provided, we might want to default to entries with no schedule_id 
-    // or handle it in the UI. For backward compatibility, we'll allow nulls too if not specified.
     query = query.is("schedule_id", null);
   }
 
@@ -55,8 +52,10 @@ export async function setAttendance(
   dateISO: string,
   map: Record<string, AttendanceEntry>,
   scheduleId?: string | null,
+  recordedBy?: string,
 ) {
-  const uid = await currentUid();
+  if (!recordedBy) throw new Error("recordedBy is required");
+  
   const rows = Object.entries(map).map(([studentId, e]) => ({
     school_id: schoolId,
     class_id: classId,
@@ -64,7 +63,7 @@ export async function setAttendance(
     date: dateISO,
     status: e.status,
     present: e.status === "P",
-    recorded_by: uid,
+    recorded_by: recordedBy,
     schedule_id: scheduleId || null,
   }));
   if (rows.length === 0) return;
@@ -76,7 +75,7 @@ export async function setAttendance(
       .eq("school_id", schoolId)
       .eq("class_id", classId)
       .eq("date", dateISO)
-      .eq("recorded_by", uid);
+      .eq("recorded_by", recordedBy);
     
     if (scheduleId) {
       deleteQuery = deleteQuery.eq("schedule_id", scheduleId);
@@ -90,13 +89,13 @@ export async function setAttendance(
   };
 
   if (typeof navigator !== "undefined" && !navigator.onLine) {
-    await enqueue({ kind: "attendance", payload: { schoolId, classId, dateISO, uid, rows } });
+    await enqueue({ kind: "attendance", payload: { schoolId, classId, dateISO, recordedBy, rows, scheduleId } });
     return;
   }
   try {
     await doWrite();
   } catch (e) {
-    await enqueue({ kind: "attendance", payload: { schoolId, classId, dateISO, uid, rows } });
+    await enqueue({ kind: "attendance", payload: { schoolId, classId, dateISO, recordedBy, rows, scheduleId } });
     throw e;
   }
 }
@@ -105,14 +104,17 @@ export async function getClassAttendanceAll(
   schoolId: string,
   classId: string,
   scheduleId?: string | null,
+  recordedBy?: string,
 ): Promise<Record<string, Record<string, AttendanceEntry>>> {
-  const uid = await currentUid();
   let query = supabase
     .from("attendance")
     .select("student_id, status, recorded_by, created_at, date, schedule_id")
     .eq("school_id", schoolId)
-    .eq("class_id", classId)
-    .eq("recorded_by", uid);
+    .eq("class_id", classId);
+
+  if (recordedBy) {
+    query = query.eq("recorded_by", recordedBy);
+  }
 
   if (scheduleId) {
     query = query.eq("schedule_id", scheduleId);
@@ -139,14 +141,17 @@ export async function getClassRegencyDates(
   schoolId: string,
   classId: string,
   scheduleId?: string | null,
+  recordedBy?: string,
 ): Promise<string[]> {
-  const uid = await currentUid();
   let query = supabase
     .from("attendance")
     .select("date")
     .eq("school_id", schoolId)
-    .eq("class_id", classId)
-    .eq("recorded_by", uid);
+    .eq("class_id", classId);
+  
+  if (recordedBy) {
+    query = query.eq("recorded_by", recordedBy);
+  }
   
   if (scheduleId) {
     query = query.eq("schedule_id", scheduleId);
