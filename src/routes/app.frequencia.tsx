@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, memo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
@@ -19,6 +19,7 @@ import {
   Trash2,
   BookOpen,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/AppShell";
 import { AbsenceReportSection } from "@/components/AbsenceReportSection";
 import { SchoolGate } from "@/components/SchoolGate";
@@ -82,6 +83,79 @@ export const Route = createFileRoute("/app/frequencia")({
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
+
+const StudentAttendanceRow = memo(({ 
+  student, 
+  index, 
+  status, 
+  intervention, 
+  onStatusChange, 
+  onInterventionClick 
+}: { 
+  student: any; 
+  index: number; 
+  status: AttendanceStatus; 
+  intervention?: string; 
+  onStatusChange: (status: AttendanceStatus) => void; 
+  onInterventionClick: () => void;
+}) => {
+  return (
+    <div className="rounded-xl border bg-card p-3 flex items-center gap-2">
+      <span className="text-xs text-muted-foreground w-5 shrink-0">{index + 1}</span>
+      <div className="flex-1 min-w-0 flex items-center gap-2">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className={cn(
+            "size-9 shrink-0", 
+            intervention ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary"
+          )}
+          onClick={onInterventionClick}
+          title="Intervenção Pedagógica Individual"
+        >
+          <BookOpen className="size-4" />
+        </Button>
+
+        <div className="flex flex-col min-w-0 flex-1">
+          <span className="font-medium text-sm block truncate w-full">{student.name}</span>
+          {intervention && (
+            <span className="text-[10px] text-primary font-medium flex items-center gap-1">
+              <BookOpen className="size-2.5" /> Intervenção registrada
+            </span>
+          )}
+        </div>
+        {student.specialNeeds && (
+          <Heart
+            className="size-3.5 text-primary shrink-0"
+            aria-label={student.specialNeedsNote ?? "Necessidade especial"}
+          />
+        )}
+      </div>
+
+      {(["P", "F", "J"] as const).map((opt) => (
+        <button
+          key={opt}
+          type="button"
+          onClick={() => onStatusChange(opt)}
+          className={cn(
+            "size-9 rounded-lg text-xs font-bold border transition-all active:scale-95",
+            status === opt
+              ? opt === "P"
+                ? "bg-secondary text-secondary-foreground border-secondary"
+                : opt === "F"
+                  ? "bg-destructive text-destructive-foreground border-destructive"
+                  : "bg-accent text-accent-foreground border-accent"
+              : "bg-muted/30 text-muted-foreground"
+          )}
+        >
+          {opt}
+        </button>
+      ))}
+    </div>
+  );
+});
+
+StudentAttendanceRow.displayName = "StudentAttendanceRow";
 
 function Frequencia({ schoolId }: { schoolId: string }) {
   const { firebaseUser, userDoc } = useAuth();
@@ -155,30 +229,34 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   });
 
   useEffect(() => {
-    if (attendanceQ.data && Object.keys(attendanceQ.data).length > 0) {
-      const next: Record<string, AttendanceStatus> = {};
-      const nextInt: Record<string, string> = {};
-      for (const [uid, v] of Object.entries(attendanceQ.data)) {
-        next[uid] = v.status;
-        if (v.pedagogicalIntervention) nextInt[uid] = v.pedagogicalIntervention;
+    // Only sync from query data if we don't have local unsaved changes
+    // or if we just finished a save operation (handled by query invalidation)
+    if (!isDirty || ignoreDirtyForEffect) {
+      if (attendanceQ.data && Object.keys(attendanceQ.data).length > 0) {
+        const next: Record<string, AttendanceStatus> = {};
+        const nextInt: Record<string, string> = {};
+        for (const [uid, v] of Object.entries(attendanceQ.data)) {
+          next[uid] = v.status;
+          if (v.pedagogicalIntervention) nextInt[uid] = v.pedagogicalIntervention;
+        }
+        setMarks(next);
+        setIndividualInterventions(nextInt);
+        if (ignoreDirtyForEffect) {
+          setIsDirty(false);
+          setIgnoreDirtyForEffect(false);
+        }
+      } else if (studentsQ.data) {
+        const next: Record<string, AttendanceStatus> = {};
+        for (const s of studentsQ.data) next[s.id] = "P";
+        setMarks(next);
+        if (ignoreDirtyForEffect) {
+          setIsDirty(false);
+          setIgnoreDirtyForEffect(false);
+        }
       }
-      setMarks(next);
-      setIndividualInterventions(nextInt);
-      setIgnoreDirtyForEffect(true);
-    } else if (studentsQ.data) {
-      const next: Record<string, AttendanceStatus> = {};
-      for (const s of studentsQ.data) next[s.id] = "P";
-      setMarks(next);
-      setIgnoreDirtyForEffect(true);
     }
-  }, [attendanceQ.data, studentsQ.data]);
+  }, [attendanceQ.data, studentsQ.data, isDirty, ignoreDirtyForEffect]);
 
-  useEffect(() => {
-    if (ignoreDirtyForEffect) {
-      setIsDirty(false);
-      setIgnoreDirtyForEffect(false);
-    }
-  }, [ignoreDirtyForEffect]);
 
   const counts = useMemo(() => {
     let p = 0, f = 0, j = 0;
@@ -257,7 +335,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   }, [allAttendanceQ.data, studentsQ.data, alertQ.data, date]);
 
   const save = async () => {
-    if (!classId || !firebaseUser) return;
+    if (!classId || !firebaseUser || saving) return;
     setSaving(true);
     try {
       const now = Date.now();
@@ -288,9 +366,12 @@ function Frequencia({ schoolId }: { schoolId: string }) {
       );
       setSavedFlash(true);
       window.setTimeout(() => setSavedFlash(false), 1600);
-      qc.invalidateQueries({ queryKey: ["attendance", schoolId, classId] });
-      qc.invalidateQueries({ queryKey: ["attendance-all", schoolId, classId] });
-      qc.invalidateQueries({ queryKey: ["regency-dates", schoolId, classId] });
+      // Invalidate queries after a short delay to allow the "Salvo!" flash to render stably
+      setTimeout(() => {
+        qc.invalidateQueries({ queryKey: ["attendance", schoolId, classId] });
+        qc.invalidateQueries({ queryKey: ["attendance-all", schoolId, classId] });
+        qc.invalidateQueries({ queryKey: ["regency-dates", schoolId, classId] });
+      }, 100);
       setIsDirty(false);
     } catch (e) {
       console.error(e);
@@ -549,84 +630,42 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                     <span className="ml-auto text-muted-foreground">Total: {counts.total}</span>
                   </div>
 
-                  {studentsQ.data!.map((s, i) => {
-                    const status = marks[s.id] ?? "P";
-                    return (
-                      <div key={s.id} className="rounded-xl border bg-card p-3 flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground w-5 shrink-0">{i + 1}</span>
-                        <div className="flex-1 min-w-0 flex items-center gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className={`size-9 shrink-0 ${individualInterventions[s.id] ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary"}`}
-                            onClick={() => setInterventionDialog({ sid: s.id, name: s.name })}
-                            title="Intervenção Pedagógica Individual"
-                          >
-                            <BookOpen className="size-4" />
-                          </Button>
+                  {studentsQ.data!.map((s, i) => (
+                    <StudentAttendanceRow
+                      key={s.id}
+                      student={s}
+                      index={i}
+                      status={marks[s.id] ?? "P"}
+                      intervention={individualInterventions[s.id]}
+                      onStatusChange={(opt: AttendanceStatus) => {
+                        setMarks((m) => ({ ...m, [s.id]: opt }));
+                        setIsDirty(true);
+                      }}
+                      onInterventionClick={() => setInterventionDialog({ sid: s.id, name: s.name })}
+                    />
+                  ))}
 
-                          <div className="flex flex-col min-w-0 flex-1">
-                            <span className="font-medium text-sm block truncate w-full">{s.name}</span>
-                            {individualInterventions[s.id] && (
-                              <span className="text-[10px] text-primary font-medium flex items-center gap-1">
-                                <BookOpen className="size-2.5" /> Intervenção registrada
-                              </span>
-                            )}
-                          </div>
-                          {s.specialNeeds && (
-                            <Heart
-                              className="size-3.5 text-primary shrink-0"
-                              aria-label={s.specialNeedsNote ?? "Necessidade especial"}
-                            />
-                          )}
-                        </div>
-
-                        {(["P", "F", "J"] as const).map((opt) => (
-                          <button
-                            key={opt}
-                            onClick={() => { setMarks((m) => ({ ...m, [s.id]: opt })); setIsDirty(true); }}
-                            className={`size-9 rounded-lg text-xs font-bold border transition-transform active:scale-95 ${
-                              status === opt
-                                ? opt === "P"
-                                  ? "bg-secondary text-secondary-foreground border-secondary"
-                                  : opt === "F"
-                                    ? "bg-destructive text-destructive-foreground border-destructive"
-                                    : "bg-accent text-accent-foreground border-accent"
-                                : "bg-muted/30 text-muted-foreground"
-                            }`}
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    );
-                  })}
-
-                  <div className="relative">
+                  <div className="pt-2">
                     <Button
-                      className={`w-full h-12 transition-colors ${
-                        savedFlash ? "bg-secondary text-secondary-foreground" : ""
-                      }`}
+                      className={cn(
+                        "w-full h-12 transition-all duration-300",
+                        savedFlash ? "bg-secondary hover:bg-secondary text-secondary-foreground" : ""
+                      )}
                       onClick={save}
                       disabled={saving}
                     >
-                      {savedFlash ? (
-                        <>
-                          <Check className="size-5 animate-in zoom-in-50 duration-300" /> Salvo!
-                        </>
-                      ) : saving ? (
+                      {saving ? (
                         "Salvando..."
+                      ) : savedFlash ? (
+                        <span className="flex items-center gap-2">
+                          <Check className="size-5" /> Salvo com sucesso!
+                        </span>
                       ) : (
-                        <>
+                        <span className="flex items-center gap-2">
                           <Save className="size-4" /> Salvar chamada
-                        </>
+                        </span>
                       )}
                     </Button>
-                    {savedFlash && (
-                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                        <span className="absolute inline-flex h-16 w-16 rounded-full bg-secondary/40 animate-ping" />
-                      </div>
-                    )}
                   </div>
                   <p className="text-[11px] text-muted-foreground text-center">
                     Alunos sem marcação serão salvos como Presente.
