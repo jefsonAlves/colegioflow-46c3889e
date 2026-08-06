@@ -14,6 +14,7 @@ export interface ContentLog {
   reaction: string | null;
   success: SuccessLevel | null;
   attachmentPath: string | null;
+  pedagogicalIntervention: string | null;
   createdAt: number;
 }
 
@@ -29,6 +30,7 @@ type Row = {
   reaction: string | null;
   success: SuccessLevel | null;
   attachment_path: string | null;
+  pedagogical_intervention: string | null;
   created_at: string;
 };
 
@@ -44,6 +46,7 @@ const toDoc = (r: Row): ContentLog => ({
   reaction: r.reaction,
   success: r.success,
   attachmentPath: r.attachment_path,
+  pedagogicalIntervention: r.pedagogical_intervention,
   createdAt: new Date(r.created_at).getTime(),
 });
 
@@ -99,6 +102,7 @@ export async function createContentLog(input: {
       reaction: input.reaction?.trim() || null,
       success: input.success ?? null,
       attachment_path: attachmentPath,
+      pedagogical_intervention: input.pedagogicalIntervention?.trim() || null,
     })
     .select("*")
     .single();
