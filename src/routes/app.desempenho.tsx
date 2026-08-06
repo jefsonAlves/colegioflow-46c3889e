@@ -198,6 +198,8 @@ function StudentDesempenho({
   const [adaptationDesc, setAdaptationDesc] = useState("");
   const [contentRef, setContentRef] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  useUnsavedChanges(isDirty);
 
   const logsQ = useQuery({
     queryKey: ["performance-logs", classId, student.id],
