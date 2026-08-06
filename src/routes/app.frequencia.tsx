@@ -19,6 +19,7 @@ import {
   Trash2,
   BookOpen,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/AppShell";
 import { AbsenceReportSection } from "@/components/AbsenceReportSection";
 import { SchoolGate } from "@/components/SchoolGate";
