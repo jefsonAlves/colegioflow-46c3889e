@@ -76,8 +76,19 @@ export function AppShell({
         return;
       }
     }
-    if (typeof window !== "undefined") {
+    
+    // Primary navigation check: go back in history if possible
+    if (typeof window !== "undefined" && window.history.length > 1) {
       window.history.back();
+      
+      // Safety timeout: if history.back didn't move us (e.g. at the start of app session)
+      // then we fallback to navigating to /app
+      setTimeout(() => {
+        if (window.location.pathname.startsWith('/app') && 
+            (window.location.pathname === router.state.location.pathname)) {
+          navigate({ to: "/app" });
+        }
+      }, 100);
     } else {
       navigate({ to: "/app" });
     }
