@@ -483,11 +483,6 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                     Alunos sem marcação serão salvos como Presente.
                   </p>
 
-                  {attendanceQ.data && Object.keys(attendanceQ.data).length > 0 && (
-                    <p className="text-xs text-muted-foreground text-center">
-                      Exibindo apenas alunos com falta ou justificativa por padrão.
-                    </p>
-                  )}
                 </div>
               )}
             </TabsContent>
@@ -643,7 +638,7 @@ function AttendanceDashboard({
 
         <div>
           <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1 flex items-center justify-between">
-            <span>Faltosos do dia ({currentDate})</span>
+            <span>Faltosos ({currentDate}{scheduleId ? ` · ${schedulesQ.data?.find(s => s.id === scheduleId)?.startTime}` : ""})</span>
             {stats.selectedDateAbsentees.length > 0 && (
               <Button
                 variant="ghost"
