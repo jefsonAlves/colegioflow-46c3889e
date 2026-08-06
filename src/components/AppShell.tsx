@@ -76,8 +76,8 @@ export function AppShell({
         return;
       }
     }
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.history.back();
+    if (typeof window !== "undefined") {
+      window.history.back();
     } else {
       navigate({ to: "/app" });
     }
