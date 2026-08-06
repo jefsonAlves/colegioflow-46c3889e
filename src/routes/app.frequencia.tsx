@@ -59,11 +59,13 @@ import {
   type SuccessLevel,
 } from "@/lib/classContent";
 import { createAnnouncement } from "@/lib/announcements";
+import { listSchedulesByClass } from "@/lib/classSchedules";
 
 export const Route = createFileRoute("/app/frequencia")({
   validateSearch: (s: Record<string, unknown>) => ({
     classId: typeof s.classId === "string" ? s.classId : undefined,
     date: typeof s.date === "string" ? s.date : undefined,
+    scheduleId: typeof s.scheduleId === "string" ? s.scheduleId : undefined,
   }),
   component: () => (
     <AppShell title="Frequência">
@@ -83,6 +85,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const [classId, setClassId] = useState<string | null>(search.classId ?? null);
   const [date, setDate] = useState(search.date ?? todayISO());
   const [marks, setMarks] = useState<Record<string, AttendanceStatus>>({});
+  const [scheduleId, setScheduleId] = useState<string | null>(search.scheduleId ?? null);
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -113,14 +116,14 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   });
 
   const attendanceQ = useQuery({
-    queryKey: ["attendance", schoolId, classId, date],
-    queryFn: () => getAttendance(schoolId, classId!, date),
+    queryKey: ["attendance", schoolId, classId, date, scheduleId],
+    queryFn: () => getAttendance(schoolId, classId!, date, scheduleId),
     enabled: !!classId,
   });
 
   const allAttendanceQ = useQuery({
-    queryKey: ["attendance-all", schoolId, classId],
-    queryFn: () => getClassAttendanceAll(schoolId, classId!),
+    queryKey: ["attendance-all", schoolId, classId, scheduleId],
+    queryFn: () => getClassAttendanceAll(schoolId, classId!, scheduleId),
     enabled: !!classId,
   });
 
@@ -131,8 +134,14 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   });
 
   const regencyDatesQ = useQuery({
-    queryKey: ["regency-dates", schoolId, classId],
-    queryFn: () => getClassRegencyDates(schoolId, classId!),
+    queryKey: ["regency-dates", schoolId, classId, scheduleId],
+    queryFn: () => getClassRegencyDates(schoolId, classId!, scheduleId),
+    enabled: !!classId,
+  });
+
+  const schedulesQ = useQuery({
+    queryKey: ["class-schedules", classId],
+    queryFn: () => listSchedulesByClass(classId!),
     enabled: !!classId,
   });
 
@@ -151,12 +160,14 @@ function Frequencia({ schoolId }: { schoolId: string }) {
 
   const counts = useMemo(() => {
     let p = 0, f = 0, j = 0;
-    for (const v of Object.values(marks)) {
+    const sids = (studentsQ.data ?? []).map(s => s.id);
+    for (const sid of sids) {
+      const v = marks[sid] || "P";
       if (v === "P") p++;
       else if (v === "F") f++;
       else if (v === "J") j++;
     }
-    return { p, f, j, total: (studentsQ.data ?? []).length };
+    return { p, f, j, total: sids.length };
   }, [marks, studentsQ.data]);
 
   // Absentee analytics for the alert period
@@ -239,7 +250,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
       const payload = Object.fromEntries(
         Object.entries(full).map(([uid, s]) => [uid, { status: s, by: firebaseUser.uid, at: now }]),
       );
-      await setAttendance(schoolId, classId, date, payload);
+      await setAttendance(schoolId, classId, date, payload, scheduleId);
       toast.success(
         autoCount > 0
           ? `Frequência salva · ${autoCount} aluno(s) marcado(s) como presente automaticamente.`
@@ -319,6 +330,38 @@ function Frequencia({ schoolId }: { schoolId: string }) {
               </select>
             </div>
           </div>
+
+          {classId && schedulesQ.data && schedulesQ.data.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Horário da Aula</Label>
+              <select
+                className="w-full h-10 rounded-md border bg-background px-3 text-sm"
+                value={scheduleId ?? ""}
+                onChange={(e) => {
+                  setScheduleId(e.target.value || null);
+                  setIsDirty(false);
+                }}
+              >
+                <option value="">Chamada Padrão (Sem horário)</option>
+                {schedulesQ.data
+                  .filter((s) => {
+                    // Filter by weekday if date is selected
+                    const day = new Date(date + "T12:00:00").getDay();
+                    return s.weekday === day;
+                  })
+                  .map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.startTime} - {s.endTime} {s.subject ? `(${s.subject})` : ""}
+                    </option>
+                  ))}
+              </select>
+              {schedulesQ.data.filter(s => s.weekday === new Date(date + "T12:00:00").getDay()).length === 0 && (
+                <p className="text-[10px] text-muted-foreground italic">
+                  Nenhum horário cadastrado para este dia da semana.
+                </p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -350,24 +393,8 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                 <div className="flex flex-col gap-2 p-2 rounded-lg bg-secondary/10 border border-secondary/20">
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <Check className="size-3 text-secondary" /> Você já realizou a chamada para este dia.
+                      <Check className="size-3 text-secondary" /> Chamada realizada para este horário.
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-[10px] gap-1"
-                      onClick={() => {
-                        const allSids = studentsQ.data?.map((s) => s.id) || [];
-                        const next = { ...marks };
-                        allSids.forEach((sid) => {
-                          if (!attendanceQ.data![sid]) next[sid] = "P";
-                        });
-                        setMarks(next);
-                        setIsDirty(true);
-                      }}
-                    >
-                      Ver todos os alunos
-                    </Button>
                   </div>
                 </div>
               )}
@@ -391,13 +418,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                     <span className="ml-auto text-muted-foreground">Total: {counts.total}</span>
                   </div>
 
-                  {studentsQ.data!.filter(s => {
-                    const hasAttendanceForDay = attendanceQ.data && Object.keys(attendanceQ.data).length > 0;
-                    if (!hasAttendanceForDay) return true;
-                    // Se já houve chamada, mostramos por padrão apenas quem faltou ou foi justificado
-                    const status = marks[s.id] ?? "P";
-                    return status === "F" || status === "J";
-                  }).map((s, i) => {
+                  {studentsQ.data!.map((s, i) => {
                     const status = marks[s.id] ?? "P";
                     return (
                       <div key={s.id} className="rounded-xl border bg-card p-3 flex items-center gap-2">
