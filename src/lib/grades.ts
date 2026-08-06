@@ -190,6 +190,8 @@ export async function setStudentGradeMap(input: {
       updated_by: uid,
     }));
   if (rows.length === 0) return;
-  const { error } = await supabase.from("grades").insert(rows);
+  const { error } = await supabase.from("grades").upsert(rows, {
+    onConflict: 'student_id,trimester,subject,class_id'
+  });
   if (error) throw error;
 }
