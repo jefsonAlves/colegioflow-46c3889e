@@ -335,7 +335,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   }, [allAttendanceQ.data, studentsQ.data, alertQ.data, date]);
 
   const save = async () => {
-    if (!classId || !firebaseUser) return;
+    if (!classId || !firebaseUser || saving) return;
     setSaving(true);
     try {
       const now = Date.now();
