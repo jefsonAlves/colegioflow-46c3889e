@@ -366,9 +366,12 @@ function Frequencia({ schoolId }: { schoolId: string }) {
       );
       setSavedFlash(true);
       window.setTimeout(() => setSavedFlash(false), 1600);
-      qc.invalidateQueries({ queryKey: ["attendance", schoolId, classId] });
-      qc.invalidateQueries({ queryKey: ["attendance-all", schoolId, classId] });
-      qc.invalidateQueries({ queryKey: ["regency-dates", schoolId, classId] });
+      // Invalidate queries after a short delay to allow the "Salvo!" flash to render stably
+      setTimeout(() => {
+        qc.invalidateQueries({ queryKey: ["attendance", schoolId, classId] });
+        qc.invalidateQueries({ queryKey: ["attendance-all", schoolId, classId] });
+        qc.invalidateQueries({ queryKey: ["regency-dates", schoolId, classId] });
+      }, 100);
       setIsDirty(false);
     } catch (e) {
       console.error(e);
