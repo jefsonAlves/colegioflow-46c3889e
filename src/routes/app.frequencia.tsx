@@ -301,15 +301,13 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   };
 
   const copyPreviousAttendance = async () => {
-    if (!classId || !scheduleId || !schedulesQ.data) return;
+    if (!classId || !scheduleId || !schedulesQ.data || !firebaseUser) return;
     
     // Find current schedule
     const currentIdx = schedulesQ.data.findIndex(s => s.id === scheduleId);
     if (currentIdx === -1) return;
     
     // We look for a previous schedule ON THE SAME DAY
-    // The schedules list is already filtered by weekday in the selector, 
-    // but the full list might not be.
     const day = new Date(date + "T12:00:00").getDay();
     const daySchedules = schedulesQ.data
       .filter(s => s.weekday === day)
@@ -325,19 +323,25 @@ function Frequencia({ schoolId }: { schoolId: string }) {
     
     try {
       setSaving(true);
-      const prevData = await getAttendance(schoolId, classId, date, prevSchedule.id, firebaseUser?.uid);
+      const prevData = await getAttendance(schoolId, classId, date, prevSchedule.id, firebaseUser.uid);
       
       if (Object.keys(prevData).length === 0) {
         toast.error("Nenhuma chamada encontrada no horário anterior para copiar.");
         return;
       }
       
-      const next: Record<string, AttendanceStatus> = {};
+      const next: Record<string, AttendanceStatus> = { ...marks };
+      const nextInt: Record<string, string> = { ...individualInterventions };
+      
       for (const [uid, v] of Object.entries(prevData)) {
         next[uid] = v.status;
+        if (v.pedagogicalIntervention) {
+          nextInt[uid] = v.pedagogicalIntervention;
+        }
       }
       
       setMarks(next);
+      setIndividualInterventions(nextInt);
       setIsDirty(true);
       toast.success(`Chamada copiada do horário ${prevSchedule.startTime}. Não esqueça de salvar.`);
     } catch (e) {
@@ -562,7 +566,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                           </Button>
 
                           <div className="flex flex-col min-w-0 flex-1">
-                            <span className="font-medium text-sm truncate">{s.name}</span>
+                            <span className="font-medium text-sm block truncate w-full">{s.name}</span>
                             {individualInterventions[s.id] && (
                               <span className="text-[10px] text-primary font-medium flex items-center gap-1">
                                 <BookOpen className="size-2.5" /> Intervenção registrada
