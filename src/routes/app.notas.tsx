@@ -139,6 +139,7 @@ function Notas({ schoolId }: { schoolId: string }) {
 
   const saveAll = async () => {
     for (const id of dirtyIds) await saveRow(id);
+    setDirty({});
   };
 
   if (classesQ.isLoading) return <Loading />;
