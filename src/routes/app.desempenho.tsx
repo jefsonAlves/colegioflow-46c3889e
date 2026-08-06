@@ -267,6 +267,7 @@ function StudentDesempenho({
       setAdaptationDesc("");
       setNeedsAdaptation(false);
       setContentRef("");
+      setIsDirty(false);
       qc.invalidateQueries({ queryKey: ["performance-logs", classId, student.id] });
     } catch (e) {
       console.error(e);
