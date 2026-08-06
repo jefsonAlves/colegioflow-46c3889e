@@ -167,6 +167,7 @@ export type Database = {
           date: string
           external_id: string | null
           id: string
+          pedagogical_intervention: string | null
           present: boolean | null
           recorded_by: string
           schedule_id: string | null
@@ -180,6 +181,7 @@ export type Database = {
           date: string
           external_id?: string | null
           id?: string
+          pedagogical_intervention?: string | null
           present?: boolean | null
           recorded_by: string
           schedule_id?: string | null
@@ -193,6 +195,7 @@ export type Database = {
           date?: string
           external_id?: string | null
           id?: string
+          pedagogical_intervention?: string | null
           present?: boolean | null
           recorded_by?: string
           schedule_id?: string | null
@@ -278,6 +281,7 @@ export type Database = {
           description: string | null
           id: string
           objective: string | null
+          pedagogical_intervention: string | null
           reaction: string | null
           school_id: string
           success: string | null
@@ -293,6 +297,7 @@ export type Database = {
           description?: string | null
           id?: string
           objective?: string | null
+          pedagogical_intervention?: string | null
           reaction?: string | null
           school_id: string
           success?: string | null
@@ -308,6 +313,7 @@ export type Database = {
           description?: string | null
           id?: string
           objective?: string | null
+          pedagogical_intervention?: string | null
           reaction?: string | null
           school_id?: string
           success?: string | null
