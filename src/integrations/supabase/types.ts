@@ -169,6 +169,7 @@ export type Database = {
           id: string
           present: boolean | null
           recorded_by: string
+          schedule_id: string | null
           school_id: string
           status: string
           student_id: string
@@ -181,6 +182,7 @@ export type Database = {
           id?: string
           present?: boolean | null
           recorded_by: string
+          schedule_id?: string | null
           school_id: string
           status?: string
           student_id: string
@@ -193,6 +195,7 @@ export type Database = {
           id?: string
           present?: boolean | null
           recorded_by?: string
+          schedule_id?: string | null
           school_id?: string
           status?: string
           student_id?: string
@@ -203,6 +206,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "class_schedules"
             referencedColumns: ["id"]
           },
           {
