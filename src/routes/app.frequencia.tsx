@@ -442,12 +442,11 @@ function Frequencia({ schoolId }: { schoolId: string }) {
             </TabsList>
 
             <TabsContent value="chamada" className="space-y-2 mt-3">
-              {attendanceQ.data && Object.keys(attendanceQ.data).length > 0 && (
+              {attendanceQ.data && Object.keys(attendanceQ.data).length > 0 ? (
                 <div className="flex flex-col gap-2 p-2 rounded-lg bg-secondary/10 border border-secondary/20">
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                       <Check className="size-3 text-secondary" /> Chamada realizada para este horário.
-                    </div>
                     </div>
                     {scheduleId && (
                       <Button 
@@ -461,8 +460,23 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                       </Button>
                     )}
                   </div>
-
+                </div>
+              ) : (
+                scheduleId && (
+                  <div className="flex justify-end mb-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 text-xs gap-1.5"
+                      onClick={copyPreviousAttendance}
+                      disabled={saving}
+                    >
+                      <Copy className="size-3.5" /> Repetir chamada anterior
+                    </Button>
+                  </div>
+                )
               )}
+
 
               {studentsQ.isLoading ? (
                 <Loading />
