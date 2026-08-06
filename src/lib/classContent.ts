@@ -75,6 +75,7 @@ export async function createContentLog(input: {
   objective?: string;
   reaction?: string;
   success?: SuccessLevel;
+  pedagogicalIntervention?: string;
   file?: File | null;
 }): Promise<ContentLog> {
   const uid = (await supabase.auth.getUser()).data.user?.id;
