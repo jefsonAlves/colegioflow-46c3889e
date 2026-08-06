@@ -634,7 +634,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
                       index={i}
                       status={marks[s.id] ?? "P"}
                       intervention={individualInterventions[s.id]}
-                      onStatusChange={(opt) => {
+                      onStatusChange={(opt: AttendanceStatus) => {
                         setMarks((m) => ({ ...m, [s.id]: opt }));
                         setIsDirty(true);
                       }}
