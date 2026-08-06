@@ -87,7 +87,9 @@ export async function setAttendance(
     }
 
     await deleteQuery;
-    const { error } = await supabase.from("attendance").insert(rows);
+    const { error } = await supabase.from("attendance").upsert(rows, {
+      onConflict: 'class_id,student_id,date,schedule_id'
+    });
     if (error) throw error;
   };
 
