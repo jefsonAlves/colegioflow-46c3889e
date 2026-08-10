@@ -25,11 +25,17 @@ function toUser(u: { id: string; email?: string | null; user_metadata?: Record<s
 export async function signInWithGoogle(redirectUri?: string) {
   const redirect_uri =
     redirectUri ?? (typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined);
+  
+  // Basic validation: ensure the redirect URI matches current origin for custom domains
+  if (typeof window !== "undefined" && redirect_uri && !redirect_uri.startsWith(window.location.origin)) {
+    console.error("[Auth] Redirect URI mismatch:", redirect_uri, "Origin:", window.location.origin);
+    throw new Error("configuração do domínio: a URL de redirecionamento não coincide com a origem atual.");
+  }
+
   console.log("[Auth] Starting Google Sign-In with redirect:", redirect_uri);
   const result = await lovable.auth.signInWithOAuth("google", { redirect_uri });
   if (result?.error) {
     console.error("[Auth] Sign-In error:", result.error);
-    // Standardizing auth error messaging
     throw new Error("Não foi possível autenticar com o Google. Verifique as configurações do domínio.");
   }
 }

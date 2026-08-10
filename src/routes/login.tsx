@@ -40,6 +40,9 @@ function translateError(message?: string): string {
   if (/already registered|already exists/i.test(message)) return "Este e-mail já está cadastrado. Faça login.";
   if (/weak.?password|at least 6/i.test(message)) return "Senha muito fraca. Use 6+ caracteres.";
   if (/network/i.test(message)) return "Sem conexão. Verifique sua internet.";
+  if (/configuração do domínio/i.test(message)) {
+    return "Erro de configuração: o redirecionamento do Google não está autorizado para este domínio. Contate o suporte.";
+  }
   return message;
 }
 
