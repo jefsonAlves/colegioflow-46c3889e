@@ -75,8 +75,8 @@ function LoginPage() {
     try {
       setSubmitting(true);
       const target = safeNext(next);
-      // Construct a fixed redirect URL that always points to /login or a callback
-      const redirect = `${window.location.origin}/login${target ? `?next=${encodeURIComponent(target)}` : ""}`;
+      // Construct a fixed redirect URL that always points to /auth/callback
+      const redirect = `${window.location.origin}/auth/callback${target ? `?next=${encodeURIComponent(target)}` : ""}`;
       console.log("LoginPage: handleGoogle redirecting to:", redirect);
       await signInWithGoogle(redirect);
     } catch (e) {
