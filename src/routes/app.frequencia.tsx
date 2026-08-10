@@ -379,7 +379,8 @@ function Frequencia({ schoolId }: { schoolId: string }) {
       setIsDirty(false);
     } catch (e) {
       console.error(e);
-      toast.error("Erro ao salvar chamada.");
+      // Removed generic retry request text
+      toast.error("Erro ao salvar chamada. Verifique sua conexão.");
     } finally {
       setSaving(false);
     }
