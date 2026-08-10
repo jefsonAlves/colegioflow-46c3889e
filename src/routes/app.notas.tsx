@@ -268,17 +268,16 @@ function Notas({ schoolId }: { schoolId: string }) {
                           <span className="text-xs text-muted-foreground">
                             Total:
                           </span>
-                            <span
-                              className={`font-bold ${
-                                filled === 0
-                                  ? "text-muted-foreground"
-                                  : media >= 6
-                                    ? "text-primary"
-                                    : "text-destructive"
-                                }`}
-                            >
-                              {sum.toFixed(1)}
-                            </span>
+                          <span
+                            className={`font-bold ${
+                              filled === 0
+                                ? "text-muted-foreground"
+                                : media >= 6
+                                  ? "text-primary"
+                                  : "text-destructive"
+                            }`}
+                          >
+                            {sum.toFixed(1)}
                           </span>
                         </div>
                       </div>
