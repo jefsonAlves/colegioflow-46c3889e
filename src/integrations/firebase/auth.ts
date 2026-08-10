@@ -24,7 +24,7 @@ function toUser(u: { id: string; email?: string | null; user_metadata?: Record<s
 
 export async function signInWithGoogle(redirectUri?: string) {
   const redirect_uri =
-    redirectUri ?? (typeof window !== "undefined" ? `${window.location.origin}/login` : undefined);
+    redirectUri ?? (typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined);
   console.log("[Auth] Starting Google Sign-In with redirect:", redirect_uri);
   const result = await lovable.auth.signInWithOAuth("google", { redirect_uri });
   if (result?.error) {
