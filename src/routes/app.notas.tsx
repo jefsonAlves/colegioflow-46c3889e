@@ -266,10 +266,7 @@ function Notas({ schoolId }: { schoolId: string }) {
                         </div>
                         <div className="text-xs text-muted-foreground flex gap-2 shrink-0">
                           <span>
-                            Σ <span className="font-semibold">{sum.toFixed(1)}</span>
-                          </span>
-                          <span>
-                            Média:{" "}
+                            Total:{" "}
                             <span
                               className={`font-bold ${
                                 filled === 0
@@ -277,9 +274,9 @@ function Notas({ schoolId }: { schoolId: string }) {
                                   : media >= 6
                                     ? "text-primary"
                                     : "text-destructive"
-                              }`}
+                                }`}
                             >
-                              {media.toFixed(1)}
+                              {sum.toFixed(1)}
                             </span>
                           </span>
                         </div>
