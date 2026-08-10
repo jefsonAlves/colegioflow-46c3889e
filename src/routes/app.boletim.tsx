@@ -184,7 +184,7 @@ function StudentBoletim({
                   <th className="py-2 px-2">P1</th>
                   <th className="py-2 px-2">P2</th>
                   <th className="py-2 px-2">Ativ.</th>
-                  <th className="text-right py-2 pl-2">Média</th>
+                  <th className="text-right py-2 pl-2">Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -201,7 +201,7 @@ function StudentBoletim({
                           (g?.media ?? 0) >= 6 ? "" : "text-destructive"
                         }`}
                       >
-                        {g?.media != null ? g.media.toFixed(1) : "—"}
+                        {g?.media != null ? ((g.p1 || 0) + (g.p2 || 0) + (g.atividade || 0)).toFixed(1) : "—"}
                       </td>
                     </tr>
                   );
