@@ -119,7 +119,7 @@ function LoginPage() {
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">{APP_NAME}</h1>
           <p className="text-muted-foreground text-sm">
-            Gestão escolar e acesso para professores e pais de fácil acesso.
+            Gestão escolar profissional e conectada.
           </p>
         </div>
 

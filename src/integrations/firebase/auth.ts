@@ -29,7 +29,8 @@ export async function signInWithGoogle(redirectUri?: string) {
   const result = await lovable.auth.signInWithOAuth("google", { redirect_uri });
   if (result?.error) {
     console.error("[Auth] Sign-In error:", result.error);
-    throw result.error;
+    // Standardizing auth error messaging
+    throw new Error("Não foi possível autenticar com o Google. Verifique as configurações do domínio.");
   }
 }
 
