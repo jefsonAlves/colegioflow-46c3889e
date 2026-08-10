@@ -63,7 +63,7 @@ function LoginPage() {
     if (firebaseUser && userDoc) {
       const target = safeNext(next);
       if (target) {
-        window.location.href = target;
+        navigate({ to: target });
         return;
       }
       navigate({ to: userDoc.onboardingComplete ? "/app" : "/onboarding" });

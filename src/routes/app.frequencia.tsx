@@ -246,16 +246,19 @@ function Frequencia({ schoolId }: { schoolId: string }) {
           setIgnoreDirtyForEffect(false);
         }
       } else if (studentsQ.data) {
-        const next: Record<string, AttendanceStatus> = {};
-        for (const s of studentsQ.data) next[s.id] = "P";
-        setMarks(next);
-        if (ignoreDirtyForEffect) {
-          setIsDirty(false);
-          setIgnoreDirtyForEffect(false);
+        // Default to all present only if there's no data yet and it's not a historical record loading
+        if (!attendanceQ.isFetching) {
+          const next: Record<string, AttendanceStatus> = {};
+          for (const s of studentsQ.data) next[s.id] = "P";
+          setMarks(next);
+          if (ignoreDirtyForEffect) {
+            setIsDirty(false);
+            setIgnoreDirtyForEffect(false);
+          }
         }
       }
     }
-  }, [attendanceQ.data, studentsQ.data, isDirty, ignoreDirtyForEffect]);
+  }, [attendanceQ.data, attendanceQ.isFetching, studentsQ.data, isDirty, ignoreDirtyForEffect]);
 
 
   const counts = useMemo(() => {
@@ -371,6 +374,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
         qc.invalidateQueries({ queryKey: ["attendance", schoolId, classId] });
         qc.invalidateQueries({ queryKey: ["attendance-all", schoolId, classId] });
         qc.invalidateQueries({ queryKey: ["regency-dates", schoolId, classId] });
+        qc.invalidateQueries({ queryKey: ["attendance-today", schoolId, classId] });
       }, 100);
       setIsDirty(false);
     } catch (e) {
