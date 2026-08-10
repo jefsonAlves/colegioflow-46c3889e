@@ -83,7 +83,7 @@ function drawStudent(doc: jsPDF, b: StudentBoletim, startY: number): number {
   });
   autoTable(doc, {
     startY: startY + 3,
-    head: [["Bim.", "P1", "P2", "Ativ.", "Média"]],
+    head: [["Bim.", "P1", "P2", "Ativ.", "Total"]],
     body: rows,
     styles: { fontSize: 10 },
     headStyles: { fillColor: [30, 64, 175] },
@@ -94,7 +94,7 @@ function drawStudent(doc: jsPDF, b: StudentBoletim, startY: number): number {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.text(
-    `Média final: ${b.finalMedia.toFixed(1)}  ·  Frequência: ${b.freqPct}% (${b.absences} falta(s) em ${b.totalDays} dia(s))  ·  Situação: ${b.situation}`,
+    `Frequência: ${b.freqPct}% (${b.absences} falta(s) em ${b.totalDays} dia(s))  ·  Situação: ${b.situation}`,
     14,
     afterY,
   );
