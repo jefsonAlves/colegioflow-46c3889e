@@ -1397,7 +1397,7 @@ export type Database = {
       global_role: "master" | "user"
       membership_status: "pending" | "approved" | "rejected" | "blocked"
       profile_type: "teacher" | "school_admin" | "parent"
-      role_in_school: "school_admin" | "teacher" | "coordinator"
+      role_in_school: "school_admin" | "teacher" | "coordinator" | "master"
       school_status: "active" | "pending" | "blocked" | "merged_into"
     }
     CompositeTypes: {
@@ -1530,7 +1530,7 @@ export const Constants = {
       global_role: ["master", "user"],
       membership_status: ["pending", "approved", "rejected", "blocked"],
       profile_type: ["teacher", "school_admin", "parent"],
-      role_in_school: ["school_admin", "teacher", "coordinator"],
+      role_in_school: ["school_admin", "teacher", "coordinator", "master"],
       school_status: ["active", "pending", "blocked", "merged_into"],
     },
   },

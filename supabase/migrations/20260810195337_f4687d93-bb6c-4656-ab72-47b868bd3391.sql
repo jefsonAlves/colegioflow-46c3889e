@@ -1,0 +1,1 @@
+ALTER TYPE public.role_in_school ADD VALUE IF NOT EXISTS 'master';
