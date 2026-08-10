@@ -94,7 +94,7 @@ function drawStudent(doc: jsPDF, b: StudentBoletim, startY: number): number {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.text(
-    `Média final: ${b.finalMedia.toFixed(1)}  ·  Frequência: ${b.freqPct}% (${b.absences} falta(s) em ${b.totalDays} dia(s))  ·  Situação: ${b.situation}`,
+    `Total final: ${b.finalMedia.toFixed(1)}  ·  Frequência: ${b.freqPct}% (${b.absences} falta(s) em ${b.totalDays} dia(s))  ·  Situação: ${b.situation}`,
     14,
     afterY,
   );

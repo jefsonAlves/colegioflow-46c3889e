@@ -265,8 +265,9 @@ function Notas({ schoolId }: { schoolId: string }) {
                           )}
                         </div>
                         <div className="text-xs text-muted-foreground flex gap-2 shrink-0">
-                          <span>
-                            Total:{" "}
+                          <span className="text-xs text-muted-foreground">
+                            Total:
+                          </span>
                             <span
                               className={`font-bold ${
                                 filled === 0
