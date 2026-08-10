@@ -9,43 +9,33 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as McpRouteImport } from './routes/mcp'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppIndexRouteImport } from './routes/app.index'
-import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
-import { Route as AppTurmasRouteImport } from './routes/app.turmas'
-import { Route as AppRelatoriosRouteImport } from './routes/app.relatorios'
-import { Route as AppPerfilRouteImport } from './routes/app.perfil'
-import { Route as AppNotasRouteImport } from './routes/app.notas'
-import { Route as AppMasterRouteImport } from './routes/app.master'
-import { Route as AppFrequenciaRouteImport } from './routes/app.frequencia'
-import { Route as AppEscolaRouteImport } from './routes/app.escola'
-import { Route as AppDesempenhoRouteImport } from './routes/app.desempenho'
-import { Route as AppBoletimRouteImport } from './routes/app.boletim'
-import { Route as AppAvisosRouteImport } from './routes/app.avisos'
-import { Route as AppAdvertenciasRouteImport } from './routes/app.advertencias'
-import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as AppRouteImport } from './routes/app'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as McpRouteImport } from './routes/mcp'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
-import { Route as AppMasterMigracaoRouteImport } from './routes/app.master.migracao'
-import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppAdvertenciasRouteImport } from './routes/app.advertencias'
+import { Route as AppAvisosRouteImport } from './routes/app.avisos'
+import { Route as AppBoletimRouteImport } from './routes/app.boletim'
+import { Route as AppDesempenhoRouteImport } from './routes/app.desempenho'
+import { Route as AppEscolaRouteImport } from './routes/app.escola'
+import { Route as AppFrequenciaRouteImport } from './routes/app.frequencia'
+import { Route as AppMasterRouteImport } from './routes/app.master'
+import { Route as AppNotasRouteImport } from './routes/app.notas'
+import { Route as AppPerfilRouteImport } from './routes/app.perfil'
+import { Route as AppRelatoriosRouteImport } from './routes/app.relatorios'
+import { Route as AppTurmasRouteImport } from './routes/app.turmas'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as AppMasterMigracaoRouteImport } from './routes/app.master.migracao'
 
-const OnboardingRoute = OnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -53,69 +43,36 @@ const AppRoute = AppRouteImport.update({
   path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Char91DotmcpChar93ListToolsRoute =
+  Char91DotmcpChar93ListToolsRouteImport.update({
+    id: '/.mcp/list-tools',
+    path: '/.mcp/list-tools',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AppRoute,
-} as any)
-const AuthCallbackRoute = AuthCallbackRouteImport.update({
-  id: '/auth/callback',
-  path: '/auth/callback',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppTurmasRoute = AppTurmasRouteImport.update({
-  id: '/turmas',
-  path: '/turmas',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
-  id: '/relatorios',
-  path: '/relatorios',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppPerfilRoute = AppPerfilRouteImport.update({
-  id: '/perfil',
-  path: '/perfil',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppNotasRoute = AppNotasRouteImport.update({
-  id: '/notas',
-  path: '/notas',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppMasterRoute = AppMasterRouteImport.update({
-  id: '/master',
-  path: '/master',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppFrequenciaRoute = AppFrequenciaRouteImport.update({
-  id: '/frequencia',
-  path: '/frequencia',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppEscolaRoute = AppEscolaRouteImport.update({
-  id: '/escola',
-  path: '/escola',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppDesempenhoRoute = AppDesempenhoRouteImport.update({
-  id: '/desempenho',
-  path: '/desempenho',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppBoletimRoute = AppBoletimRouteImport.update({
-  id: '/boletim',
-  path: '/boletim',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAvisosRoute = AppAvisosRouteImport.update({
-  id: '/avisos',
-  path: '/avisos',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAdvertenciasRoute = AppAdvertenciasRouteImport.update({
@@ -123,22 +80,65 @@ const AppAdvertenciasRoute = AppAdvertenciasRouteImport.update({
   path: '/advertencias',
   getParentRoute: () => AppRoute,
 } as any)
-const Char91DotwellKnownChar93OauthProtectedResourceRoute =
-  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
-    id: '/.well-known/oauth-protected-resource',
-    path: '/.well-known/oauth-protected-resource',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const Char91DotmcpChar93ListToolsRoute =
-  Char91DotmcpChar93ListToolsRouteImport.update({
-    id: '/.mcp/list-tools',
-    path: '/.mcp/list-tools',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const AppMasterMigracaoRoute = AppMasterMigracaoRouteImport.update({
-  id: '/migracao',
-  path: '/migracao',
-  getParentRoute: () => AppMasterRoute,
+const AppAvisosRoute = AppAvisosRouteImport.update({
+  id: '/avisos',
+  path: '/avisos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBoletimRoute = AppBoletimRouteImport.update({
+  id: '/boletim',
+  path: '/boletim',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDesempenhoRoute = AppDesempenhoRouteImport.update({
+  id: '/desempenho',
+  path: '/desempenho',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEscolaRoute = AppEscolaRouteImport.update({
+  id: '/escola',
+  path: '/escola',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFrequenciaRoute = AppFrequenciaRouteImport.update({
+  id: '/frequencia',
+  path: '/frequencia',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMasterRoute = AppMasterRouteImport.update({
+  id: '/master',
+  path: '/master',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotasRoute = AppNotasRouteImport.update({
+  id: '/notas',
+  path: '/notas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPerfilRoute = AppPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTurmasRoute = AppTurmasRouteImport.update({
+  id: '/turmas',
+  path: '/turmas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
   Char91DotmcpChar93InvokeToolToolRouteImport.update({
@@ -146,10 +146,10 @@ const Char91DotmcpChar93InvokeToolToolRoute =
     path: '/.mcp/invoke-tool/$tool',
     getParentRoute: () => rootRouteImport,
   } as any)
-const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
-  id: '/.lovable/oauth/consent',
-  path: '/.lovable/oauth/consent',
-  getParentRoute: () => rootRouteImport,
+const AppMasterMigracaoRoute = AppMasterMigracaoRouteImport.update({
+  id: '/migracao',
+  path: '/migracao',
+  getParentRoute: () => AppMasterRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -319,25 +319,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -347,109 +333,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app/': {
-      id: '/app/'
-      path: '/'
-      fullPath: '/app/'
-      preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/auth/callback': {
-      id: '/auth/callback'
-      path: '/auth/callback'
-      fullPath: '/auth/callback'
-      preLoaderRoute: typeof AuthCallbackRouteImport
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app/turmas': {
-      id: '/app/turmas'
-      path: '/turmas'
-      fullPath: '/app/turmas'
-      preLoaderRoute: typeof AppTurmasRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/relatorios': {
-      id: '/app/relatorios'
-      path: '/relatorios'
-      fullPath: '/app/relatorios'
-      preLoaderRoute: typeof AppRelatoriosRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/perfil': {
-      id: '/app/perfil'
-      path: '/perfil'
-      fullPath: '/app/perfil'
-      preLoaderRoute: typeof AppPerfilRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/notas': {
-      id: '/app/notas'
-      path: '/notas'
-      fullPath: '/app/notas'
-      preLoaderRoute: typeof AppNotasRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/master': {
-      id: '/app/master'
-      path: '/master'
-      fullPath: '/app/master'
-      preLoaderRoute: typeof AppMasterRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/frequencia': {
-      id: '/app/frequencia'
-      path: '/frequencia'
-      fullPath: '/app/frequencia'
-      preLoaderRoute: typeof AppFrequenciaRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/escola': {
-      id: '/app/escola'
-      path: '/escola'
-      fullPath: '/app/escola'
-      preLoaderRoute: typeof AppEscolaRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/desempenho': {
-      id: '/app/desempenho'
-      path: '/desempenho'
-      fullPath: '/app/desempenho'
-      preLoaderRoute: typeof AppDesempenhoRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/boletim': {
-      id: '/app/boletim'
-      path: '/boletim'
-      fullPath: '/app/boletim'
-      preLoaderRoute: typeof AppBoletimRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/avisos': {
-      id: '/app/avisos'
-      path: '/avisos'
-      fullPath: '/app/avisos'
-      preLoaderRoute: typeof AppAvisosRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/advertencias': {
-      id: '/app/advertencias'
-      path: '/advertencias'
-      fullPath: '/app/advertencias'
-      preLoaderRoute: typeof AppAdvertenciasRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/.well-known/oauth-protected-resource': {
-      id: '/.well-known/oauth-protected-resource'
-      path: '/.well-known/oauth-protected-resource'
-      fullPath: '/.well-known/oauth-protected-resource'
-      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.mcp/list-tools': {
@@ -459,18 +361,102 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app/master/migracao': {
-      id: '/app/master/migracao'
-      path: '/migracao'
-      fullPath: '/app/master/migracao'
-      preLoaderRoute: typeof AppMasterMigracaoRouteImport
-      parentRoute: typeof AppMasterRoute
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/.mcp/invoke-tool/$tool': {
-      id: '/.mcp/invoke-tool/$tool'
-      path: '/.mcp/invoke-tool/$tool'
-      fullPath: '/.mcp/invoke-tool/$tool'
-      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/advertencias': {
+      id: '/app/advertencias'
+      path: '/advertencias'
+      fullPath: '/app/advertencias'
+      preLoaderRoute: typeof AppAdvertenciasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/avisos': {
+      id: '/app/avisos'
+      path: '/avisos'
+      fullPath: '/app/avisos'
+      preLoaderRoute: typeof AppAvisosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/boletim': {
+      id: '/app/boletim'
+      path: '/boletim'
+      fullPath: '/app/boletim'
+      preLoaderRoute: typeof AppBoletimRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/desempenho': {
+      id: '/app/desempenho'
+      path: '/desempenho'
+      fullPath: '/app/desempenho'
+      preLoaderRoute: typeof AppDesempenhoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/escola': {
+      id: '/app/escola'
+      path: '/escola'
+      fullPath: '/app/escola'
+      preLoaderRoute: typeof AppEscolaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/frequencia': {
+      id: '/app/frequencia'
+      path: '/frequencia'
+      fullPath: '/app/frequencia'
+      preLoaderRoute: typeof AppFrequenciaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/master': {
+      id: '/app/master'
+      path: '/master'
+      fullPath: '/app/master'
+      preLoaderRoute: typeof AppMasterRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/notas': {
+      id: '/app/notas'
+      path: '/notas'
+      fullPath: '/app/notas'
+      preLoaderRoute: typeof AppNotasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/perfil': {
+      id: '/app/perfil'
+      path: '/perfil'
+      fullPath: '/app/perfil'
+      preLoaderRoute: typeof AppPerfilRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/relatorios': {
+      id: '/app/relatorios'
+      path: '/relatorios'
+      fullPath: '/app/relatorios'
+      preLoaderRoute: typeof AppRelatoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/turmas': {
+      id: '/app/turmas'
+      path: '/turmas'
+      fullPath: '/app/turmas'
+      preLoaderRoute: typeof AppTurmasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.lovable/oauth/consent': {
@@ -479,6 +465,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/.lovable/oauth/consent'
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/invoke-tool/$tool': {
+      id: '/.mcp/invoke-tool/$tool'
+      path: '/.mcp/invoke-tool/$tool'
+      fullPath: '/.mcp/invoke-tool/$tool'
+      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/master/migracao': {
+      id: '/app/master/migracao'
+      path: '/migracao'
+      fullPath: '/app/master/migracao'
+      preLoaderRoute: typeof AppMasterMigracaoRouteImport
+      parentRoute: typeof AppMasterRoute
     }
   }
 }
