@@ -70,7 +70,7 @@ const formatLong = (iso: string) =>
   fromISO(iso).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
 
 function Advertencias({ schoolId }: { schoolId: string }) {
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, userDoc } = useAuth();
   const qc = useQueryClient();
 
   const [date, setDate] = useState(toISO(new Date()));
