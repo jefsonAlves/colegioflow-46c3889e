@@ -64,7 +64,7 @@ function Desempenho({ schoolId }: { schoolId: string }) {
 
   const myTaughtQ = useQuery({
     queryKey: ["my-taught-classes", userDoc?.id],
-    queryFn: () => listMyTaughtClasses(userDoc!.id).then((list: any[]) => list.filter((t: any) => t.active)),
+    queryFn: () => listMyTaughtClasses(userDoc!.id).then((list: any[]) => list.filter((t: any) => t.active === true)),
     enabled: !!userDoc,
   });
 
@@ -96,7 +96,7 @@ function Desempenho({ schoolId }: { schoolId: string }) {
 
   if (classesQ.isLoading || myTaughtQ.isLoading) return <Loading />;
   
-  const taughtIds = new Set((myTaughtQ.data ?? []).filter(t => t.active).map((t: any) => t.classId));
+  const taughtIds = new Set((myTaughtQ.data ?? []).filter(t => t.active === true).map((t: any) => t.classId));
   const allClasses = classesQ.data ?? [];
   const classes = isAdmin ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
 
