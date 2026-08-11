@@ -6,6 +6,8 @@ export interface ClassTeacher {
   userId: string;
   schoolId: string;
   createdAt: number;
+  active: boolean;
+  subject?: string;
 }
 
 type Row = {
@@ -16,12 +18,14 @@ type Row = {
   created_at: string;
 };
 
-const toDoc = (r: Row): ClassTeacher => ({
+const toDoc = (r: any): ClassTeacher => ({
   id: r.id,
   classId: r.class_id,
   userId: r.user_id,
   schoolId: r.school_id,
   createdAt: new Date(r.created_at).getTime(),
+  active: r.active !== false,
+  subject: r.subject,
 });
 
 export async function listClassTeachers(classId: string): Promise<ClassTeacher[]> {
@@ -64,5 +68,14 @@ export async function untaughtClass(input: {
     .delete()
     .eq("class_id", input.classId)
     .eq("user_id", input.userId);
+  if (error) throw error;
+}
+
+export async function toggleClassActive(classId: string, userId: string, active: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("class_teachers")
+    .update({ active })
+    .eq("class_id", classId)
+    .eq("user_id", userId);
   if (error) throw error;
 }
