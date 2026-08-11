@@ -43,3 +43,15 @@ export function getCurrentTerm(): number {
   // If after last term
   return 4;
 }
+
+export function isTermClosed(termNumber: number): boolean {
+  const now = new Date();
+  const year = now.getFullYear();
+  const term = TERM_DATES.find(t => t.term === termNumber);
+  if (!term) return false;
+
+  const [endDay, endMonth] = term.end.split("/").map(Number);
+  const endDate = new Date(year, endMonth - 1, endDay, 23, 59, 59);
+
+  return now > endDate;
+}

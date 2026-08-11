@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FileDown, Send, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
-import { TERM_DATES } from "@/lib/terms";
+import { TERM_DATES, isTermClosed } from "@/lib/terms";
 import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -162,7 +162,7 @@ function StudentBoletim({
   }
   const freq = totalDays === 0 ? 0 : Math.round((present / totalDays) * 100);
 
-  const allMedias = [1, 2, 3, 4].map((b) => grades[b]?.media);
+  const allMedias = [1, 2, 3, 4].map((b) => isTermClosed(b) ? grades[b]?.media : null);
   const valid = allMedias.filter((m): m is number => typeof m === "number");
   const mediaFinal =
     valid.length === 0 ? 0 : Math.round((valid.reduce((a, b) => a + b, 0) / valid.length) * 10) / 10;
@@ -195,6 +195,7 @@ function StudentBoletim({
                 {[1, 2, 3, 4].map((b) => {
                   const g = grades[b];
                   const termInfo = TERM_DATES.find(t => t.term === b);
+                  const closed = isTermClosed(b);
                   return (
                     <tr key={b} className="border-b last:border-0">
                       <td className="py-2 pr-2 font-medium">{b}º Bimestre</td>
@@ -206,7 +207,7 @@ function StudentBoletim({
                           (g?.media ?? 0) >= 6 ? "" : "text-destructive"
                         }`}
                       >
-                        {g?.media != null ? ((g.p1 || 0) + (g.p2 || 0) + (g.atividade || 0)).toFixed(1) : "—"}
+                        {closed && g?.media != null ? ((g.p1 || 0) + (g.p2 || 0) + (g.atividade || 0)).toFixed(1) : "—"}
                       </td>
                     </tr>
                   );
