@@ -28,6 +28,16 @@ function thisMonth() {
 }
 
 function Relatorios({ schoolId }: { schoolId: string }) {
+  const { userDoc } = useAuth();
+  const { membership } = useActiveSchool();
+  const isAdmin = userDoc?.globalRole === "master" || membership?.roleInSchool === "school_admin" || membership?.roleInSchool === "coordinator";
+
+  const myTaughtQ = useQuery({
+    queryKey: ["my-taught-classes", userDoc?.id],
+    queryFn: () => listMyTaughtClasses(userDoc!.id).then((list: any[]) => list.filter((t: any) => t.active)),
+    enabled: !!userDoc,
+  });
+
   const classesQ = useQuery({
     queryKey: ["classes", schoolId],
     queryFn: () => listClasses(schoolId),
