@@ -164,6 +164,9 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const { membership } = useActiveSchool();
   const qc = useQueryClient();
   const search = Route.useSearch();
+
+  const isOffice = membership?.roleInSchool === "school_admin" || membership?.roleInSchool === "coordinator" || membership?.roleInSchool === "master";
+
   const [classId, setClassId] = useState<string | null>(search.classId ?? null);
   const [date, setDate] = useState(search.date ?? todayISO());
   const [internalDate, setInternalDate] = useState(date);
@@ -202,14 +205,14 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   });
 
   const attendanceQ = useQuery({
-    queryKey: ["attendance", schoolId, classId, date, scheduleId],
-    queryFn: () => getAttendance(schoolId, classId!, date, scheduleId),
+    queryKey: ["attendance", schoolId, classId, date, scheduleId, isOffice ? "office" : firebaseUser?.uid],
+    queryFn: () => getAttendance(schoolId, classId!, date, scheduleId, isOffice ? undefined : firebaseUser?.uid),
     enabled: !!classId,
   });
 
   const allAttendanceQ = useQuery({
-    queryKey: ["attendance-all", schoolId, classId, scheduleId],
-    queryFn: () => getClassAttendanceAll(schoolId, classId!, scheduleId),
+    queryKey: ["attendance-all", schoolId, classId, scheduleId, isOffice ? "office" : firebaseUser?.uid],
+    queryFn: () => getClassAttendanceAll(schoolId, classId!, scheduleId, isOffice ? undefined : firebaseUser?.uid),
     enabled: !!classId,
   });
 
@@ -220,8 +223,8 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   });
 
   const regencyDatesQ = useQuery({
-    queryKey: ["regency-dates", schoolId, classId, scheduleId],
-    queryFn: () => getClassRegencyDates(schoolId, classId!, scheduleId),
+    queryKey: ["regency-dates", schoolId, classId, scheduleId, isOffice ? "office" : firebaseUser?.uid],
+    queryFn: () => getClassRegencyDates(schoolId, classId!, scheduleId, isOffice ? undefined : firebaseUser?.uid),
     enabled: !!classId,
   });
 
