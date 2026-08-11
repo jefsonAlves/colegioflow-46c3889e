@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/AppShell";
-import { useActiveSchool } from "@/hooks/useActiveSchool";
 import { AbsenceReportSection } from "@/components/AbsenceReportSection";
 import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,7 +40,6 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Loading, EmptyState } from "@/components/States";
-import { useAuth } from "@/contexts/AuthContext";
 import { listClasses } from "@/lib/classes";
 import { listMyTaughtClasses } from "@/lib/classTeachers";
 import { listStudentsByClass } from "@/lib/students";
