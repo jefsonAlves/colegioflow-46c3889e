@@ -43,7 +43,12 @@ function Boletim({ schoolId }: { schoolId: string }) {
   if (classesQ.isLoading) return <Loading />;
   const classes = classesQ.data ?? [];
   if (classes.length === 0)
-    return <EmptyState title="Nenhuma turma" description="Crie turmas para gerar boletins." />;
+    return (
+      <EmptyState 
+        title="Nenhuma turma" 
+        description="no painel perfil do professor possui uma opção de nome Minha Turmas nela possui uma função para ativar e cadastrar materias e horário quando a turma se encontrar desativada adicione a função ou condição que não seja exibido na opção frequencia dentro de turma ou em qualquer funcionalidade as turmas que não estão ativa igual mostra na imagem" 
+      />
+    );
 
   if (studentId && classId) {
     return (
