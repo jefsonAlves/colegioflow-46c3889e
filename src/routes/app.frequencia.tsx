@@ -358,10 +358,10 @@ function Frequencia({ schoolId }: { schoolId: string }) {
       }
       const payload = Object.fromEntries(
         Object.entries(full).map(([uid, s]) => [
-          uid, 
-          { 
-            status: s, 
-            by: firebaseUser.uid, 
+          uid,
+          {
+            status: s,
+            by: firebaseUser.uid,
             at: now,
             pedagogicalIntervention: individualInterventions[uid] || null
           }
