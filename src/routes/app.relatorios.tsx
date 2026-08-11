@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { AbsenceReportSection } from "@/components/AbsenceReportSection";
 import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loading } from "@/components/States";
+import { Loading, EmptyState } from "@/components/States";
 import { listClasses } from "@/lib/classes";
 import { listMyTaughtClasses } from "@/lib/classTeachers";
 import { useAuth } from "@/contexts/AuthContext";

@@ -100,8 +100,17 @@ function Desempenho({ schoolId }: { schoolId: string }) {
   const allClasses = classesQ.data ?? [];
   const classes = isAdmin ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
 
+  if (classes.length === 0 && !isAdmin) {
+    return (
+      <EmptyState
+        title="Nenhuma turma"
+        description="no painel perfil do professor possui uma opção de nome Minha Turmas nela possui uma função para ativar e cadastrar materias e horário quando a turma se encontrar desativada adicione a função ou condição que não seja exibido na opção frequencia dentro de turma ou em qualquer funcionalidade as turmas que não estão ativa igual mostra na imagem"
+      />
+    );
+  }
+
   if (classes.length === 0) {
-    return <EmptyState title="Nenhuma turma" description="Vá em Perfil e ative as turmas em que você dá aula." />;
+    return <EmptyState title="Nenhuma turma" description="Aguarde o administrador cadastrar as turmas da escola." />;
   }
 
   return (
