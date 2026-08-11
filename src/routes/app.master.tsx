@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   Building2,
   Check,
+  ClipboardList,
   Database,
   Download,
   FileDown,
@@ -135,6 +136,20 @@ function MasterPage() {
               <div className="font-medium text-destructive">Controle de Membros (Modo Master)</div>
               <div className="text-xs text-muted-foreground">
                 Aprovar/rejeitar professores e administradores em qualquer escola ativa
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+
+      <Link to="/app/frequencia" search={{}} className="block">
+        <Card className="border-primary/30 hover:bg-primary/5 transition">
+          <CardContent className="pt-4 pb-4 flex items-center gap-3">
+            <ClipboardList className="size-5 text-primary" />
+            <div className="flex-1">
+              <div className="font-medium">Gestão de Frequência (Modo Master)</div>
+              <div className="text-xs text-muted-foreground">
+                Visualizar e corrigir frequências em qualquer escola do sistema
               </div>
             </div>
           </CardContent>

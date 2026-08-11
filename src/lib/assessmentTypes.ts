@@ -50,8 +50,9 @@ export async function listAssessmentTypes(
   schoolId: string,
   classId: string,
   bimester: number,
+  teacherId?: string,
 ): Promise<AssessmentType[]> {
-  const uid = (await supabase.auth.getUser()).data.user?.id;
+  const uid = teacherId || (await supabase.auth.getUser()).data.user?.id;
   if (!uid) return [];
   const { data, error } = await supabase
     .from("assessment_types")
@@ -74,10 +75,11 @@ export async function ensureAssessmentTypes(
   schoolId: string,
   classId: string,
   bimester: number,
+  teacherId?: string,
 ): Promise<AssessmentType[]> {
-  const existing = await listAssessmentTypes(schoolId, classId, bimester);
+  const existing = await listAssessmentTypes(schoolId, classId, bimester, teacherId);
   if (existing.length > 0) return existing;
-  const uid = (await supabase.auth.getUser()).data.user?.id;
+  const uid = teacherId || (await supabase.auth.getUser()).data.user?.id;
   if (!uid) return [];
   const rows = LEGACY_TYPES.map((t, i) => ({
     teacher_id: uid,

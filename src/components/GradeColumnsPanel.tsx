@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { useActiveSchool } from "@/hooks/useActiveSchool";
 import { ArrowDown, ArrowUp, Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +40,7 @@ export function GradeColumnsPanel({ schoolId, classId, bimester, types }: Props)
   const [draftName, setDraftName] = useState("");
   const [draftWeight, setDraftWeight] = useState(1);
   const [draftMax, setDraftMax] = useState(10);
+  const { membership } = useActiveSchool();
   const [open, setOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newWeight, setNewWeight] = useState(1);
@@ -160,7 +163,9 @@ export function GradeColumnsPanel({ schoolId, classId, bimester, types }: Props)
         </div>
 
         <ul className="space-y-1.5">
-          {types.map((t, i) => (
+          {types.map((t, i) => {
+            const canEditMax = membership?.roleInSchool === "school_admin" || membership?.roleInSchool === "master";
+            return (
             <li key={t.id} className="rounded-md border bg-card px-2.5 py-2">
               {editingId === t.id ? (
                 <div className="space-y-2">
@@ -190,6 +195,7 @@ export function GradeColumnsPanel({ schoolId, classId, bimester, types }: Props)
                         min={1}
                         value={draftMax}
                         onChange={(e) => setDraftMax(Number(e.target.value) || 10)}
+                        disabled={!canEditMax}
                         className="h-9"
                       />
                     </div>
@@ -254,7 +260,8 @@ export function GradeColumnsPanel({ schoolId, classId, bimester, types }: Props)
                 </div>
               )}
             </li>
-          ))}
+            );
+          })}
         </ul>
 
         <Dialog open={open} onOpenChange={setOpen}>
@@ -311,6 +318,17 @@ export function GradeColumnsPanel({ schoolId, classId, bimester, types }: Props)
                     Todas as minhas turmas
                   </button>
                 </div>
+              </div>
+              <div>
+                <Label>Nota máxima</Label>
+                <Input
+                  type="number"
+                  step="0.5"
+                  min={1}
+                  disabled={membership?.roleInSchool !== "school_admin" && membership?.roleInSchool !== "master"}
+                  value={newMax}
+                  onChange={(e) => setNewMax(Number(e.target.value) || 10)}
+                />
               </div>
             </div>
             <DialogFooter>

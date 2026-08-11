@@ -1,7 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, memo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { useActiveSchool } from "@/hooks/useActiveSchool";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import {
   AlertTriangle,
@@ -18,6 +20,7 @@ import {
   Settings2,
   Trash2,
   BookOpen,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/AppShell";
@@ -37,7 +40,6 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Loading, EmptyState } from "@/components/States";
-import { useAuth } from "@/contexts/AuthContext";
 import { listClasses } from "@/lib/classes";
 import { listMyTaughtClasses } from "@/lib/classTeachers";
 import { listStudentsByClass } from "@/lib/students";
@@ -159,8 +161,12 @@ StudentAttendanceRow.displayName = "StudentAttendanceRow";
 
 function Frequencia({ schoolId }: { schoolId: string }) {
   const { firebaseUser, userDoc } = useAuth();
+  const { membership } = useActiveSchool();
   const qc = useQueryClient();
   const search = Route.useSearch();
+
+  const isOffice = userDoc?.globalRole === "master" || membership?.roleInSchool === "school_admin" || membership?.roleInSchool === "coordinator";
+
   const [classId, setClassId] = useState<string | null>(search.classId ?? null);
   const [date, setDate] = useState(search.date ?? todayISO());
   const [internalDate, setInternalDate] = useState(date);
@@ -199,15 +205,15 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   });
 
   const attendanceQ = useQuery({
-    queryKey: ["attendance", schoolId, classId, date, scheduleId, firebaseUser?.uid],
-    queryFn: () => getAttendance(schoolId, classId!, date, scheduleId, firebaseUser?.uid),
-    enabled: !!classId && !!firebaseUser,
+    queryKey: ["attendance", schoolId, classId, date, scheduleId, isOffice ? "office" : firebaseUser?.uid],
+    queryFn: () => getAttendance(schoolId, classId!, date, scheduleId, isOffice ? undefined : firebaseUser?.uid),
+    enabled: !!classId,
   });
 
   const allAttendanceQ = useQuery({
-    queryKey: ["attendance-all", schoolId, classId, scheduleId, firebaseUser?.uid],
-    queryFn: () => getClassAttendanceAll(schoolId, classId!, scheduleId, firebaseUser?.uid),
-    enabled: !!classId && !!firebaseUser,
+    queryKey: ["attendance-all", schoolId, classId, scheduleId, isOffice ? "office" : firebaseUser?.uid],
+    queryFn: () => getClassAttendanceAll(schoolId, classId!, scheduleId, isOffice ? undefined : firebaseUser?.uid),
+    enabled: !!classId,
   });
 
   const alertQ = useQuery({
@@ -217,9 +223,9 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   });
 
   const regencyDatesQ = useQuery({
-    queryKey: ["regency-dates", schoolId, classId, scheduleId, firebaseUser?.uid],
-    queryFn: () => getClassRegencyDates(schoolId, classId!, scheduleId, firebaseUser?.uid),
-    enabled: !!classId && !!firebaseUser,
+    queryKey: ["regency-dates", schoolId, classId, scheduleId, isOffice ? "office" : firebaseUser?.uid],
+    queryFn: () => getClassRegencyDates(schoolId, classId!, scheduleId, isOffice ? undefined : firebaseUser?.uid),
+    enabled: !!classId,
   });
 
   const schedulesQ = useQuery({
@@ -352,16 +358,16 @@ function Frequencia({ schoolId }: { schoolId: string }) {
       }
       const payload = Object.fromEntries(
         Object.entries(full).map(([uid, s]) => [
-          uid, 
-          { 
-            status: s, 
-            by: firebaseUser.uid, 
+          uid,
+          {
+            status: s,
+            by: firebaseUser.uid,
             at: now,
             pedagogicalIntervention: individualInterventions[uid] || null
           }
         ]),
       );
-      await setAttendance(schoolId, classId, date, payload, scheduleId, firebaseUser.uid);
+      await setAttendance(schoolId, classId, date, payload, scheduleId, firebaseUser.uid, isOffice);
       toast.success(
         autoCount > 0
           ? `Frequência salva · ${autoCount} aluno(s) marcado(s) como presente automaticamente.`
@@ -409,7 +415,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
     
     try {
       setSaving(true);
-      const prevData = await getAttendance(schoolId, classId, date, prevSchedule.id, firebaseUser.uid);
+      const prevData = await getAttendance(schoolId, classId, date, prevSchedule.id, isOffice ? undefined : firebaseUser.uid);
       
       if (Object.keys(prevData).length === 0) {
         toast.error("Nenhuma chamada encontrada no horário anterior para copiar.");
@@ -439,14 +445,13 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   };
 
 
-  if (classesQ.isLoading || myTaughtQ.isLoading) return <Loading />;
   const taughtIds = new Set((myTaughtQ.data ?? []).map((t) => t.classId));
   const allClasses = classesQ.data ?? [];
-  const classes = userDoc?.globalRole === "master" ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
+  const classes = isOffice ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
   if (allClasses.length === 0) {
     return <EmptyState title="Nenhuma turma" description="Crie uma turma para fazer chamada." />;
   }
-  if (classes.length === 0 && userDoc?.globalRole !== "master") {
+  if (classes.length === 0 && !isOffice) {
     return (
       <EmptyState
         title="Você não leciona nenhuma turma"

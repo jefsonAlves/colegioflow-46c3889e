@@ -15,6 +15,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { useActiveSchool } from "@/hooks/useActiveSchool";
 import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,6 +83,7 @@ function TurmasPage() {
 
 function TurmasContent({ schoolId }: { schoolId: string }) {
   const { firebaseUser, userDoc } = useAuth();
+  const { membership } = useActiveSchool();
   const qc = useQueryClient();
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -101,7 +103,7 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
     staleTime: 30_000,
   });
 
-  const canCreate = !!userDoc && userDoc.globalRole !== undefined;
+  const canCreate = !!userDoc && (userDoc.globalRole === "master" || membership?.roleInSchool === "school_admin");
 
   const save = async () => {
     if (!firebaseUser) return;
@@ -238,7 +240,7 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
         <ClassDetail
           cls={openClass}
           schoolId={schoolId}
-          canEdit={canCreate || openClass.teacherUid === firebaseUser?.uid}
+          canEdit={canCreate || openClass.teacherUid === firebaseUser?.uid || membership?.roleInSchool === "school_admin" || userDoc?.globalRole === "master"}
           onClose={() => setOpenClass(null)}
         />
       )}
