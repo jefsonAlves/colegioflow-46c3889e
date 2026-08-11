@@ -180,10 +180,7 @@ function StudentBoletim({
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-muted-foreground border-b">
-                  <th className="text-left py-2 pr-2">Bim.</th>
-                  <th className="py-2 px-2">P1</th>
-                  <th className="py-2 px-2">P2</th>
-                  <th className="py-2 px-2">Ativ.</th>
+                  <th className="text-left py-2 pr-2">Bimestre</th>
                   <th className="text-right py-2 pl-2">Total</th>
                 </tr>
               </thead>
@@ -193,9 +190,6 @@ function StudentBoletim({
                   return (
                     <tr key={b} className="border-b last:border-0">
                       <td className="py-2 pr-2 font-medium">{b}º</td>
-                      <td className="py-2 px-2 text-center">{g?.p1 ?? "—"}</td>
-                      <td className="py-2 px-2 text-center">{g?.p2 ?? "—"}</td>
-                      <td className="py-2 px-2 text-center">{g?.atividade ?? "—"}</td>
                       <td
                         className={`py-2 pl-2 text-right font-bold ${
                           (g?.media ?? 0) >= 6 ? "" : "text-destructive"
