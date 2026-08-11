@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Heart, Save } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { AppShell } from "@/components/AppShell";
 import { SchoolGate } from "@/components/SchoolGate";
@@ -14,6 +15,7 @@ import { Loading, EmptyState } from "@/components/States";
 import { useActiveSchool } from "@/hooks/useActiveSchool";
 import { listClasses } from "@/lib/classes";
 import { listStudentsByClass } from "@/lib/students";
+import { listMyTaughtClasses } from "@/lib/classTeachers";
 import {
   calcWeightedMedia,
   getClassGradeMap,
@@ -38,6 +40,7 @@ type RowDraft = Record<string, string>; // subjectKey -> typed text
 
 function Notas({ schoolId }: { schoolId: string }) {
   const qc = useQueryClient();
+  const { userDoc } = useAuth();
   const { membership } = useActiveSchool();
   const [classId, setClassId] = useState<string | null>(null);
   const [bimestre, setBimestre] = useState<number>(1);
@@ -48,10 +51,19 @@ function Notas({ schoolId }: { schoolId: string }) {
   const dirtyIds = useMemo(() => Object.keys(dirty).filter((id) => dirty[id]), [dirty]);
   useUnsavedChanges(dirtyIds.length > 0);
 
+  const isOffice = userDoc?.globalRole === "master" || membership?.roleInSchool === "school_admin" || membership?.roleInSchool === "coordinator";
+
+  const myTaughtQ = useQuery({
+    queryKey: ["my-taught-classes", userDoc?.id],
+    queryFn: () => listMyTaughtClasses(userDoc!.id),
+    enabled: !!userDoc,
+  });
+
   const classesQ = useQuery({
     queryKey: ["classes", schoolId],
     queryFn: () => listClasses(schoolId),
   });
+
   const studentsQ = useQuery({
     queryKey: ["students", schoolId, classId],
     queryFn: () => listStudentsByClass(schoolId, classId!),
@@ -147,11 +159,10 @@ function Notas({ schoolId }: { schoolId: string }) {
     setDirty({});
   };
 
-  if (classesQ.isLoading) return <Loading />;
+  if (classesQ.isLoading || myTaughtQ.isLoading) return <Loading />;
+  const taughtIds = new Set((myTaughtQ.data ?? []).map((t) => t.classId));
   const allClasses = classesQ.data ?? [];
-  const isOffice = membership?.roleInSchool === "school_admin" || membership?.roleInSchool === "coordinator" || membership?.roleInSchool === "master";
-  const classes = isOffice ? allClasses : allClasses; // For grades, we usually show all classes the user has access to or filter by taught classes. 
-  // Wait, let's keep the filter consistency if needed, but the user asked for office to see everything.
+  const classes = isOffice ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
   
   if (allClasses.length === 0) {
     return <EmptyState title="Nenhuma turma" description="Crie uma turma para lançar notas." />;
