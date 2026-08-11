@@ -191,7 +191,7 @@ function SchoolAdminCard({ school, onChanged }: { school: SchoolDoc; onChanged: 
               Visualize ou corrija a frequência de qualquer professor da escola selecionando a turma abaixo.
             </p>
             <Button asChild variant="outline" className="w-full">
-              <Link to="/app/frequencia" search={{}}>
+              <Link to="/app/frequencia" search={{ classId: undefined, date: undefined, scheduleId: undefined }}>
                 <ClipboardList className="size-4 mr-2" /> Acessar Painel de Frequência
               </Link>
             </Button>
