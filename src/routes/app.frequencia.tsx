@@ -194,7 +194,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
 
   const myTaughtQ = useQuery({
     queryKey: ["my-taught-classes", firebaseUser?.uid],
-    queryFn: () => listMyTaughtClasses(firebaseUser!.uid).then(list => list.filter(t => (t as any).active !== false)),
+    queryFn: () => listMyTaughtClasses(firebaseUser!.uid).then(list => list.filter(t => t.active)),
     enabled: !!firebaseUser,
   });
 

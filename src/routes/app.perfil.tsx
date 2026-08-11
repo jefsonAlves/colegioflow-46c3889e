@@ -305,7 +305,7 @@ function MyTaughtClassesSection({ schools }: { schools: string[] }) {
       } else {
         await untaughtClass({ classId, userId: firebaseUser.uid });
       }
-      qc.invalidateQueries({ queryKey: ["my-taught-classes", firebaseUser.uid] });
+      qc.invalidateQueries({ queryKey: ["my-taught-classes"] });
       qc.invalidateQueries({ queryKey: ["class-teachers", classId] });
       qc.invalidateQueries({ queryKey: ["classes"] });
     } catch (e) {
@@ -318,7 +318,7 @@ function MyTaughtClassesSection({ schools }: { schools: string[] }) {
     if (!firebaseUser) return;
     try {
       await toggleClassActive(classId, firebaseUser.uid, active);
-      qc.invalidateQueries({ queryKey: ["my-taught-classes", firebaseUser.uid] });
+      qc.invalidateQueries({ queryKey: ["my-taught-classes"] });
       qc.invalidateQueries({ queryKey: ["classes"] });
     } catch (e) {
       console.error(e);
