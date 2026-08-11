@@ -73,21 +73,20 @@ function drawStudent(doc: jsPDF, b: StudentBoletim, startY: number): number {
   doc.text(b.name, 14, startY);
   const rows = [1, 2, 3, 4].map((n) => {
     const g = b.bimesters[n];
+    const total = g?.media != null ? (g.p1 || 0) + (g.p2 || 0) + (g.atividade || 0) : null;
     return [
       `${n}º`,
-      g?.p1 != null ? String(g.p1) : "—",
-      g?.p2 != null ? String(g.p2) : "—",
-      g?.atividade != null ? String(g.atividade) : "—",
-      g?.media != null ? (g.p1 || 0) + (g.p2 || 0) + (g.atividade || 0) : "—",
+      total != null ? total.toFixed(1) : "—",
     ];
   });
   autoTable(doc, {
     startY: startY + 3,
-    head: [["Bim.", "P1", "P2", "Ativ.", "Total"]],
+    head: [["Bimestre", "Total"]],
     body: rows,
     styles: { fontSize: 10 },
     headStyles: { fillColor: [30, 64, 175] },
     margin: { left: 14, right: 14 },
+    theme: "striped",
   });
   // @ts-expect-error autotable augments jsPDF
   const afterY = (doc.lastAutoTable?.finalY ?? startY + 30) + 4;
