@@ -116,9 +116,11 @@ function Advertencias({ schoolId }: { schoolId: string }) {
   );
   const classes = useMemo(() => {
     const all = classesQ.data ?? [];
+    const isTeacher = userDoc?.profileType === "teacher";
     const mine = all.filter((c) => taughtIds.has(c.id));
+    if (isTeacher) return mine;
     return mine.length > 0 ? mine : all;
-  }, [classesQ.data, taughtIds]);
+  }, [classesQ.data, taughtIds, userDoc]);
 
   if (classes.length === 0 && firebaseUser?.uid && !taughtIds.size) {
     return (
