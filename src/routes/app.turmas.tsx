@@ -35,7 +35,7 @@ import {
   updateStudent,
   type StudentDoc,
 } from "@/lib/students";
-import { listClassTeachers, teachClass, untaughtClass } from "@/lib/classTeachers";
+import { listClassTeachers, listMyTaughtClasses, teachClass, untaughtClass } from "@/lib/classTeachers";
 import {
   createSchedule,
   deleteSchedule,
