@@ -25,7 +25,8 @@ import { Switch } from "@/components/ui/switch";
 import { Loading, EmptyState } from "@/components/States";
 import { StudentSearchInput, matchesInitial } from "@/components/StudentSearchInput";
 import { useAuth } from "@/contexts/AuthContext";
-import { listClasses } from "@/lib/classes";
+import { createClass, listClasses } from "@/lib/classes";
+import { listMyTaughtClasses } from "@/lib/classTeachers";
 import { countStudentsBySchool, listStudentsByClass, type StudentDoc } from "@/lib/students";
 import {
   createPerformanceLog,
