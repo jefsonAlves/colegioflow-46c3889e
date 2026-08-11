@@ -25,7 +25,8 @@ import { Switch } from "@/components/ui/switch";
 import { Loading, EmptyState } from "@/components/States";
 import { StudentSearchInput, matchesInitial } from "@/components/StudentSearchInput";
 import { useAuth } from "@/contexts/AuthContext";
-import { listClasses } from "@/lib/classes";
+import { createClass, listClasses } from "@/lib/classes";
+import { listMyTaughtClasses } from "@/lib/classTeachers";
 import { countStudentsBySchool, listStudentsByClass, type StudentDoc } from "@/lib/students";
 import {
   createPerformanceLog,
@@ -61,6 +62,12 @@ function Desempenho({ schoolId }: { schoolId: string }) {
   const [studentId, setStudentId] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
 
+  const myTaughtQ = useQuery({
+    queryKey: ["my-taught-classes", userDoc?.id],
+    queryFn: () => listMyTaughtClasses(userDoc!.id).then((list: any[]) => list.filter((t: any) => t.active)),
+    enabled: !!userDoc,
+  });
+
   const classesQ = useQuery({
     queryKey: ["classes", schoolId],
     queryFn: () => listClasses(schoolId),
@@ -87,10 +94,14 @@ function Desempenho({ schoolId }: { schoolId: string }) {
   const currentClass = (classesQ.data ?? []).find((c) => c.id === classId) ?? null;
   const currentStudent = (studentsQ.data ?? []).find((s) => s.id === studentId) ?? null;
 
-  if (classesQ.isLoading) return <Loading />;
-  const classes = classesQ.data ?? [];
+  if (classesQ.isLoading || myTaughtQ.isLoading) return <Loading />;
+  
+  const taughtIds = new Set((myTaughtQ.data ?? []).map((t: any) => t.classId));
+  const allClasses = classesQ.data ?? [];
+  const classes = isAdmin ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
+
   if (classes.length === 0) {
-    return <EmptyState title="Nenhuma turma" description="Crie uma turma primeiro." />;
+    return <EmptyState title="Nenhuma turma" description="Vá em Perfil e ative as turmas em que você dá aula." />;
   }
 
   return (

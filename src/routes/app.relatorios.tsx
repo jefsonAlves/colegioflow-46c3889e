@@ -7,6 +7,9 @@ import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loading } from "@/components/States";
 import { listClasses } from "@/lib/classes";
+import { listMyTaughtClasses } from "@/lib/classTeachers";
+import { useAuth } from "@/contexts/AuthContext";
+import { useActiveSchool } from "@/hooks/useActiveSchool";
 import { listStudents } from "@/lib/students";
 import { getClassAttendanceAll } from "@/lib/attendance";
 import { getGrades } from "@/lib/grades";
@@ -25,6 +28,16 @@ function thisMonth() {
 }
 
 function Relatorios({ schoolId }: { schoolId: string }) {
+  const { userDoc } = useAuth();
+  const { membership } = useActiveSchool();
+  const isAdmin = userDoc?.globalRole === "master" || membership?.roleInSchool === "school_admin" || membership?.roleInSchool === "coordinator";
+
+  const myTaughtQ = useQuery({
+    queryKey: ["my-taught-classes", userDoc?.id],
+    queryFn: () => listMyTaughtClasses(userDoc!.id).then((list: any[]) => list.filter((t: any) => t.active)),
+    enabled: !!userDoc,
+  });
+
   const classesQ = useQuery({
     queryKey: ["classes", schoolId],
     queryFn: () => listClasses(schoolId),
@@ -79,11 +92,16 @@ function Relatorios({ schoolId }: { schoolId: string }) {
     },
   });
 
-  if (classesQ.isLoading || studentsQ.isLoading) return <Loading />;
-  const summaries = summariesQ.data ?? [];
+  if (classesQ.isLoading || studentsQ.isLoading || myTaughtQ.isLoading) return <Loading />;
+  
+  const taughtIds = new Set((myTaughtQ.data ?? []).map((t: any) => t.classId));
+  const allClasses = classesQ.data ?? [];
+  const classes = isAdmin ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
+  
+  const summaries = (summariesQ.data ?? []).filter(s => isAdmin || taughtIds.has(s.classId));
 
-  const totalClasses = (classesQ.data ?? []).length;
-  const totalStudents = (studentsQ.data ?? []).filter((s) => s.active !== false).length;
+  const totalClasses = classes.length;
+  const totalStudents = (studentsQ.data ?? []).filter((s) => s.active !== false && (isAdmin || taughtIds.has(s.classId))).length;
   const avgFreq =
     summaries.length === 0
       ? 0
