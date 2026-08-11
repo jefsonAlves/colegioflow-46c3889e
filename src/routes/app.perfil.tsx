@@ -364,22 +364,15 @@ function MyTaughtClassesSection({ schools }: { schools: string[] }) {
                       </div>
                       <Switch
                         checked={isSelected}
-                        onCheckedChange={(v) => toggle(c.id, c.schoolId, v)}
+                        onCheckedChange={(v) => {
+                          toggle(c.id, c.schoolId, v);
+                          if (v) {
+                            // Automatically set to active when selected if it's the only button
+                            toggleActive(c.id, true);
+                          }
+                        }}
                       />
                     </div>
-                    
-                    {isSelected && (
-                      <div className="flex items-center justify-between pl-6 pt-1 border-t mt-1">
-                        <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-tight">
-                          Visível na Frequência?
-                        </span>
-                        <Switch
-                          className="scale-75 origin-right"
-                          checked={isActive}
-                          onCheckedChange={(v) => toggleActive(c.id, v)}
-                        />
-                      </div>
-                    )}
                   </li>
                 );
               })}
