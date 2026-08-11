@@ -142,7 +142,7 @@ function MasterPage() {
         </Card>
       </Link>
 
-      <Link to="/app/frequencia" className="block">
+      <Link to="/app/frequencia" search={{ classId: undefined, date: undefined, scheduleId: undefined }} className="block">
         <Card className="border-primary/30 hover:bg-primary/5 transition">
           <CardContent className="pt-4 pb-4 flex items-center gap-3">
             <ClipboardList className="size-5 text-primary" />

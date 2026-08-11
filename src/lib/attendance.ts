@@ -78,7 +78,7 @@ export async function setAttendance(
     // especially with the recorded_by filter which could be bypassed by other users if not careful
     // but RLS should handle that anyway.
     const { error } = await supabase.from("attendance").upsert(rows, {
-      onConflict: isOffice ? 'class_id,student_id,date,schedule_id' : 'class_id,student_id,date,schedule_id,recorded_by'
+      onConflict: 'class_id,student_id,date,schedule_id'
     });
     if (error) throw error;
   };

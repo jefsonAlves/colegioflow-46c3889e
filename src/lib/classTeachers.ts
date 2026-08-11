@@ -6,6 +6,8 @@ export interface ClassTeacher {
   userId: string;
   schoolId: string;
   createdAt: number;
+  active: boolean;
+  subject?: string;
 }
 
 type Row = {
@@ -14,6 +16,8 @@ type Row = {
   user_id: string;
   school_id: string;
   created_at: string;
+  active: boolean;
+  subject: string | null;
 };
 
 const toDoc = (r: Row): ClassTeacher => ({
@@ -22,6 +26,8 @@ const toDoc = (r: Row): ClassTeacher => ({
   userId: r.user_id,
   schoolId: r.school_id,
   createdAt: new Date(r.created_at).getTime(),
+  active: r.active !== false,
+  subject: r.subject ?? undefined,
 });
 
 export async function listClassTeachers(classId: string): Promise<ClassTeacher[]> {
@@ -51,7 +57,8 @@ export async function teachClass(input: {
     class_id: input.classId,
     school_id: input.schoolId,
     user_id: input.userId,
-  });
+    active: true,
+  } as any);
   if (error && !/duplicate key/i.test(error.message)) throw error;
 }
 
@@ -64,5 +71,14 @@ export async function untaughtClass(input: {
     .delete()
     .eq("class_id", input.classId)
     .eq("user_id", input.userId);
+  if (error) throw error;
+}
+
+export async function toggleClassActive(classId: string, userId: string, active: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("class_teachers")
+    .update({ active } as any)
+    .eq("class_id", classId)
+    .eq("user_id", userId);
   if (error) throw error;
 }

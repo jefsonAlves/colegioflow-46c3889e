@@ -15,7 +15,7 @@ import { updateUserProfile } from "@/lib/users";
 import { listMembershipsForUser, requestMembership } from "@/lib/memberships";
 import { getSchool } from "@/lib/schools";
 import { listClasses } from "@/lib/classes";
-import { listMyTaughtClasses, teachClass, untaughtClass } from "@/lib/classTeachers";
+import { listMyTaughtClasses, teachClass, untaughtClass, toggleClassActive } from "@/lib/classTeachers";
 import { SchoolPicker } from "@/components/SchoolPicker";
 import { MembershipStatusCard } from "@/components/MembershipStatusCard";
 
@@ -305,11 +305,24 @@ function MyTaughtClassesSection({ schools }: { schools: string[] }) {
       } else {
         await untaughtClass({ classId, userId: firebaseUser.uid });
       }
-      qc.invalidateQueries({ queryKey: ["my-taught-classes", firebaseUser.uid] });
+      qc.invalidateQueries({ queryKey: ["my-taught-classes"] });
       qc.invalidateQueries({ queryKey: ["class-teachers", classId] });
+      qc.invalidateQueries({ queryKey: ["classes"] });
     } catch (e) {
       console.error(e);
       toast.error("Erro ao atualizar.");
+    }
+  };
+
+  const toggleActive = async (classId: string, active: boolean) => {
+    if (!firebaseUser) return;
+    try {
+      await toggleClassActive(classId, firebaseUser.uid, active);
+      qc.invalidateQueries({ queryKey: ["my-taught-classes"] });
+      qc.invalidateQueries({ queryKey: ["classes"] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao atualizar status.");
     }
   };
 
@@ -333,23 +346,41 @@ function MyTaughtClassesSection({ schools }: { schools: string[] }) {
           ) : (
             <ul className="space-y-1.5">
               {classes.map((c) => {
-                const on = taughtIds.has(c.id);
+                const taught = taughtQ.data?.find(t => t.classId === c.id);
+                const isSelected = !!taught;
+                const isActive = taught?.active ?? false;
+                
                 return (
                   <li
                     key={c.id}
-                    className="flex items-center gap-2 rounded-lg border p-2.5 text-sm"
+                    className="flex flex-col gap-2 rounded-lg border p-2.5"
                   >
-                    <GraduationCap className="size-4 text-primary shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{c.name}</div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {c.gradeLevel ? `${c.gradeLevel} · ` : ""}{c.year}
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className={`size-4 shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">{c.name}</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {c.gradeLevel ? `${c.gradeLevel} · ` : ""}{c.year}
+                        </div>
                       </div>
+                      <Switch
+                        checked={isSelected}
+                        onCheckedChange={(v) => toggle(c.id, c.schoolId, v)}
+                      />
                     </div>
-                    <Switch
-                      checked={on}
-                      onCheckedChange={(v) => toggle(c.id, c.schoolId, v)}
-                    />
+                    
+                    {isSelected && (
+                      <div className="flex items-center justify-between pl-6 pt-1 border-t mt-1">
+                        <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-tight">
+                          Visível na Frequência?
+                        </span>
+                        <Switch
+                          className="scale-75 origin-right"
+                          checked={isActive}
+                          onCheckedChange={(v) => toggleActive(c.id, v)}
+                        />
+                      </div>
+                    )}
                   </li>
                 );
               })}
