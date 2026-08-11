@@ -111,7 +111,7 @@ function Advertencias({ schoolId }: { schoolId: string }) {
   });
 
   const taughtIds = useMemo(
-    () => new Set((myTaughtQ.data ?? []).map((t) => t.classId)),
+    () => new Set((myTaughtQ.data ?? []).filter(t => t.active).map((t) => t.classId)),
     [myTaughtQ.data],
   );
   const classes = useMemo(() => {
