@@ -329,7 +329,7 @@ function ClassCard({
                 e.stopPropagation();
                 onRemove();
               }}
-              title="Excluir turma do seu painel"
+              title="Excluir turma do seu painel. Note: a ativação/desativação definitiva é feita no seu Perfil."
             >
               <Trash2 className="size-3.5" />
             </Button>
