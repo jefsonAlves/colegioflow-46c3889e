@@ -16,16 +16,18 @@ type Row = {
   user_id: string;
   school_id: string;
   created_at: string;
+  active: boolean;
+  subject: string | null;
 };
 
-const toDoc = (r: any): ClassTeacher => ({
+const toDoc = (r: Row): ClassTeacher => ({
   id: r.id,
   classId: r.class_id,
   userId: r.user_id,
   schoolId: r.school_id,
   createdAt: new Date(r.created_at).getTime(),
   active: r.active !== false,
-  subject: r.subject,
+  subject: r.subject ?? undefined,
 });
 
 export async function listClassTeachers(classId: string): Promise<ClassTeacher[]> {

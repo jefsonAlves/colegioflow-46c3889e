@@ -426,6 +426,7 @@ export type Database = {
       }
       class_teachers: {
         Row: {
+          active: boolean | null
           class_id: string
           created_at: string
           id: string
@@ -434,6 +435,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          active?: boolean | null
           class_id: string
           created_at?: string
           id?: string
@@ -442,6 +444,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          active?: boolean | null
           class_id?: string
           created_at?: string
           id?: string
