@@ -163,11 +163,6 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const { firebaseUser, userDoc } = useAuth();
   const { membership } = useActiveSchool();
   const qc = useQueryClient();
-  const search = Route.useSearch();
-
-  const isOffice = membership?.roleInSchool === "school_admin" || membership?.roleInSchool === "coordinator" || membership?.roleInSchool === "master";
-
-  const [classId, setClassId] = useState<string | null>(search.classId ?? null);
   const [date, setDate] = useState(search.date ?? todayISO());
   const [internalDate, setInternalDate] = useState(date);
   const [marks, setMarks] = useState<Record<string, AttendanceStatus>>({});
@@ -445,10 +440,11 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   };
 
 
+  const isOffice = userDoc?.globalRole === "master" || membership?.roleInSchool === "school_admin" || membership?.roleInSchool === "coordinator";
+
   if (classesQ.isLoading || myTaughtQ.isLoading) return <Loading />;
   const taughtIds = new Set((myTaughtQ.data ?? []).map((t) => t.classId));
   const allClasses = classesQ.data ?? [];
-  const isOffice = userDoc?.globalRole === "master" || membership?.roleInSchool === "school_admin" || membership?.roleInSchool === "coordinator";
   const classes = isOffice ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
   if (allClasses.length === 0) {
     return <EmptyState title="Nenhuma turma" description="Crie uma turma para fazer chamada." />;
