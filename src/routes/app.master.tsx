@@ -135,7 +135,7 @@ function MasterPage() {
             <div className="flex-1">
               <div className="font-medium text-destructive">Controle de Membros (Modo Master)</div>
               <div className="text-xs text-muted-foreground">
-                Aprovar/rejeitar professores e administradores em qualquer escola ativa
+                que o administrador possa ter os nomes dos funcionários ou seja professores cadastrados e podendo clicar para visualizar os dados cadsatrados
               </div>
             </div>
           </CardContent>
