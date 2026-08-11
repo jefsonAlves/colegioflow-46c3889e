@@ -56,7 +56,7 @@ function Notas({ schoolId }: { schoolId: string }) {
 
   const myTaughtQ = useQuery({
     queryKey: ["my-taught-classes", userDoc?.id],
-    queryFn: () => listMyTaughtClasses(userDoc!.id),
+    queryFn: () => listMyTaughtClasses(userDoc!.id).then((list: any[]) => list.filter((t: any) => t.active)),
     enabled: !!userDoc,
   });
 
