@@ -4,6 +4,7 @@ import { getStudentAllBimesters, type GradeEntry } from "@/lib/grades";
 import { getClassAttendanceAll } from "@/lib/attendance";
 import { listStudentsByClass } from "@/lib/students";
 import { listClasses } from "@/lib/classes";
+import { TERM_DATES } from "@/lib/terms";
 
 interface StudentBoletim {
   name: string;
