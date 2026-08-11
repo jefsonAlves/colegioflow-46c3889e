@@ -448,14 +448,16 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const taughtIds = new Set((myTaughtQ.data ?? []).map((t: any) => t.classId));
   const allClasses = classesQ.data ?? [];
   const classes = isOffice ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
+  
   if (allClasses.length === 0) {
     return <EmptyState title="Nenhuma turma" description="Crie uma turma para fazer chamada." />;
   }
+
   if (classes.length === 0 && !isOffice) {
     return (
       <EmptyState
         title="Você não leciona nenhuma turma"
-        description="Vá em Perfil e ative as turmas em que você dá aula."
+        description="no painel perfil do professor possui uma opção de nome Minha Turmas nela possui uma função para ativar e cadastrar materias e horário quando a turma se encontrar desativada adicione a função ou condição que não seja exibido na opção frequencia dentro de turma ou em qualquer funcionalidade as turmas que não estão ativa igual mostra na imagem"
       />
     );
   }
