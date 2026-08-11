@@ -55,7 +55,8 @@ export async function teachClass(input: {
     class_id: input.classId,
     school_id: input.schoolId,
     user_id: input.userId,
-  });
+    active: true,
+  } as any);
   if (error && !/duplicate key/i.test(error.message)) throw error;
 }
 
@@ -74,7 +75,7 @@ export async function untaughtClass(input: {
 export async function toggleClassActive(classId: string, userId: string, active: boolean): Promise<void> {
   const { error } = await supabase
     .from("class_teachers")
-    .update({ active })
+    .update({ active } as any)
     .eq("class_id", classId)
     .eq("user_id", userId);
   if (error) throw error;
