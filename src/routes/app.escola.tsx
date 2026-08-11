@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Check, X, UserPlus, Link2 } from "lucide-react";
+import { Building2, Check, X, UserPlus, Link2, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -180,6 +180,24 @@ function SchoolAdminCard({ school, onChanged }: { school: SchoolDoc; onChanged: 
       <SchoolUsageSummary schoolId={school.id} />
 
       <SchoolStaffSection schoolId={school.id} />
+
+      <section>
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+          Gestão de Frequência (Secretaria)
+        </h3>
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <p className="text-xs text-muted-foreground mb-3">
+              Visualize ou corrija a frequência de qualquer professor da escola selecionando a turma abaixo.
+            </p>
+            <Button asChild variant="outline" className="w-full">
+              <Link to="/app/frequencia">
+                <ClipboardList className="size-4 mr-2" /> Acessar Painel de Frequência
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </section>
 
       <SchoolStudentsManager schoolId={school.id} />
       {userDoc?.globalRole !== "master" && <SchoolCertificatesSection schoolId={school.id} />}
