@@ -415,7 +415,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
     
     try {
       setSaving(true);
-      const prevData = await getAttendance(schoolId, classId, date, prevSchedule.id, firebaseUser.uid);
+      const prevData = await getAttendance(schoolId, classId, date, prevSchedule.id, isOffice ? undefined : firebaseUser.uid);
       
       if (Object.keys(prevData).length === 0) {
         toast.error("Nenhuma chamada encontrada no horário anterior para copiar.");
