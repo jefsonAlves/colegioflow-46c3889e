@@ -158,7 +158,7 @@ const StudentAttendanceRow = memo(({
 StudentAttendanceRow.displayName = "StudentAttendanceRow";
 
 function Frequencia({ schoolId }: { schoolId: string }) {
-  const { firebaseUser, userDoc } = useAuth();
+  const { firebaseUser, userDoc, membership } = useAuth();
   const qc = useQueryClient();
   const search = Route.useSearch();
   const [classId, setClassId] = useState<string | null>(search.classId ?? null);
@@ -199,15 +199,15 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   });
 
   const attendanceQ = useQuery({
-    queryKey: ["attendance", schoolId, classId, date, scheduleId, firebaseUser?.uid],
-    queryFn: () => getAttendance(schoolId, classId!, date, scheduleId, firebaseUser?.uid),
-    enabled: !!classId && !!firebaseUser,
+    queryKey: ["attendance", schoolId, classId, date, scheduleId],
+    queryFn: () => getAttendance(schoolId, classId!, date, scheduleId),
+    enabled: !!classId,
   });
 
   const allAttendanceQ = useQuery({
-    queryKey: ["attendance-all", schoolId, classId, scheduleId, firebaseUser?.uid],
-    queryFn: () => getClassAttendanceAll(schoolId, classId!, scheduleId, firebaseUser?.uid),
-    enabled: !!classId && !!firebaseUser,
+    queryKey: ["attendance-all", schoolId, classId, scheduleId],
+    queryFn: () => getClassAttendanceAll(schoolId, classId!, scheduleId),
+    enabled: !!classId,
   });
 
   const alertQ = useQuery({
@@ -217,9 +217,9 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   });
 
   const regencyDatesQ = useQuery({
-    queryKey: ["regency-dates", schoolId, classId, scheduleId, firebaseUser?.uid],
-    queryFn: () => getClassRegencyDates(schoolId, classId!, scheduleId, firebaseUser?.uid),
-    enabled: !!classId && !!firebaseUser,
+    queryKey: ["regency-dates", schoolId, classId, scheduleId],
+    queryFn: () => getClassRegencyDates(schoolId, classId!, scheduleId),
+    enabled: !!classId,
   });
 
   const schedulesQ = useQuery({
@@ -361,7 +361,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
           }
         ]),
       );
-      await setAttendance(schoolId, classId, date, payload, scheduleId, firebaseUser.uid);
+      await setAttendance(schoolId, classId, date, payload, scheduleId, firebaseUser.uid, isOffice);
       toast.success(
         autoCount > 0
           ? `Frequência salva · ${autoCount} aluno(s) marcado(s) como presente automaticamente.`
@@ -442,11 +442,12 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   if (classesQ.isLoading || myTaughtQ.isLoading) return <Loading />;
   const taughtIds = new Set((myTaughtQ.data ?? []).map((t) => t.classId));
   const allClasses = classesQ.data ?? [];
-  const classes = userDoc?.globalRole === "master" ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
+  const isOffice = userDoc?.globalRole === "master" || membership?.roleInSchool === "school_admin" || membership?.roleInSchool === "coordinator";
+  const classes = isOffice ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
   if (allClasses.length === 0) {
     return <EmptyState title="Nenhuma turma" description="Crie uma turma para fazer chamada." />;
   }
-  if (classes.length === 0 && userDoc?.globalRole !== "master") {
+  if (classes.length === 0 && !isOffice) {
     return (
       <EmptyState
         title="Você não leciona nenhuma turma"

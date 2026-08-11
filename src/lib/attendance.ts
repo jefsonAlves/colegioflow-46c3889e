@@ -55,6 +55,7 @@ export async function setAttendance(
   map: Record<string, AttendanceEntry>,
   scheduleId?: string | null,
   recordedBy?: string,
+  isOffice?: boolean,
 ) {
   if (!recordedBy) throw new Error("recordedBy is required");
   
@@ -77,7 +78,7 @@ export async function setAttendance(
     // especially with the recorded_by filter which could be bypassed by other users if not careful
     // but RLS should handle that anyway.
     const { error } = await supabase.from("attendance").upsert(rows, {
-      onConflict: 'class_id,student_id,date,schedule_id'
+      onConflict: isOffice ? 'class_id,student_id,date,schedule_id' : 'class_id,student_id,date,schedule_id,recorded_by'
     });
     if (error) throw error;
   };
