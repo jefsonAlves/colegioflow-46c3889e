@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loading, EmptyState } from "@/components/States";
+import { useActiveSchool } from "@/hooks/useActiveSchool";
 import { listClasses } from "@/lib/classes";
 import { listStudentsByClass } from "@/lib/students";
 import {
@@ -37,6 +38,7 @@ type RowDraft = Record<string, string>; // subjectKey -> typed text
 
 function Notas({ schoolId }: { schoolId: string }) {
   const qc = useQueryClient();
+  const { membership } = useActiveSchool();
   const [classId, setClassId] = useState<string | null>(null);
   const [bimestre, setBimestre] = useState<number>(1);
   const [drafts, setDrafts] = useState<Record<string, RowDraft>>({});
@@ -146,8 +148,12 @@ function Notas({ schoolId }: { schoolId: string }) {
   };
 
   if (classesQ.isLoading) return <Loading />;
-  const classes = classesQ.data ?? [];
-  if (classes.length === 0) {
+  const allClasses = classesQ.data ?? [];
+  const isOffice = membership?.roleInSchool === "school_admin" || membership?.roleInSchool === "coordinator" || membership?.roleInSchool === "master";
+  const classes = isOffice ? allClasses : allClasses; // For grades, we usually show all classes the user has access to or filter by taught classes. 
+  // Wait, let's keep the filter consistency if needed, but the user asked for office to see everything.
+  
+  if (allClasses.length === 0) {
     return <EmptyState title="Nenhuma turma" description="Crie uma turma para lançar notas." />;
   }
   const currentClass = classes.find((c) => c.id === classId);

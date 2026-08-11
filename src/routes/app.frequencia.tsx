@@ -1,7 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, memo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { useActiveSchool } from "@/hooks/useActiveSchool";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import {
   AlertTriangle,
@@ -18,6 +20,7 @@ import {
   Settings2,
   Trash2,
   BookOpen,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/AppShell";
