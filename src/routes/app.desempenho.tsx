@@ -61,6 +61,12 @@ function Desempenho({ schoolId }: { schoolId: string }) {
   const [studentId, setStudentId] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
 
+  const myTaughtQ = useQuery({
+    queryKey: ["my-taught-classes", userDoc?.id],
+    queryFn: () => listMyTaughtClasses(userDoc!.id).then(list => list.filter(t => t.active)),
+    enabled: !!userDoc,
+  });
+
   const classesQ = useQuery({
     queryKey: ["classes", schoolId],
     queryFn: () => listClasses(schoolId),
@@ -87,10 +93,14 @@ function Desempenho({ schoolId }: { schoolId: string }) {
   const currentClass = (classesQ.data ?? []).find((c) => c.id === classId) ?? null;
   const currentStudent = (studentsQ.data ?? []).find((s) => s.id === studentId) ?? null;
 
-  if (classesQ.isLoading) return <Loading />;
-  const classes = classesQ.data ?? [];
+  if (classesQ.isLoading || myTaughtQ.isLoading) return <Loading />;
+  
+  const taughtIds = new Set((myTaughtQ.data ?? []).map((t) => t.classId));
+  const allClasses = classesQ.data ?? [];
+  const classes = isAdmin ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
+
   if (classes.length === 0) {
-    return <EmptyState title="Nenhuma turma" description="Crie uma turma primeiro." />;
+    return <EmptyState title="Nenhuma turma" description="Vá em Perfil e ative as turmas em que você dá aula." />;
   }
 
   return (
