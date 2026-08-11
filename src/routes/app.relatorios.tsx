@@ -94,7 +94,7 @@ function Relatorios({ schoolId }: { schoolId: string }) {
 
   if (classesQ.isLoading || studentsQ.isLoading || myTaughtQ.isLoading) return <Loading />;
   
-  const taughtIds = new Set((myTaughtQ.data ?? []).map((t: any) => t.classId));
+  const taughtIds = new Set((myTaughtQ.data ?? []).filter(t => t.active).map((t: any) => t.classId));
   const allClasses = classesQ.data ?? [];
   const classes = isAdmin ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
   
