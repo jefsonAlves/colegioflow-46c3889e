@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Heart, Save } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { getCurrentTerm } from "@/lib/terms";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { AppShell } from "@/components/AppShell";
 import { SchoolGate } from "@/components/SchoolGate";
@@ -43,7 +44,7 @@ function Notas({ schoolId }: { schoolId: string }) {
   const { userDoc } = useAuth();
   const { membership } = useActiveSchool();
   const [classId, setClassId] = useState<string | null>(null);
-  const [bimestre, setBimestre] = useState<number>(1);
+  const [bimestre, setBimestre] = useState<number>(() => getCurrentTerm());
   const [drafts, setDrafts] = useState<Record<string, RowDraft>>({});
   const [dirty, setDirty] = useState<Record<string, boolean>>({});
   const [savingId, setSavingId] = useState<string | null>(null);

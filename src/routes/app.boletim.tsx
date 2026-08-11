@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, FileDown, Send } from "lucide-react";
+import { ArrowLeft, FileDown, Send, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
+import { TERM_DATES } from "@/lib/terms";
 import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -181,15 +182,20 @@ function StudentBoletim({
               <thead>
                 <tr className="text-xs text-muted-foreground border-b">
                   <th className="text-left py-2 pr-2">Bimestre</th>
+                  <th className="text-left py-2 px-2">Período</th>
                   <th className="text-right py-2 pl-2">Total</th>
                 </tr>
               </thead>
               <tbody>
                 {[1, 2, 3, 4].map((b) => {
                   const g = grades[b];
+                  const termInfo = TERM_DATES.find(t => t.term === b);
                   return (
                     <tr key={b} className="border-b last:border-0">
-                      <td className="py-2 pr-2 font-medium">{b}º</td>
+                      <td className="py-2 pr-2 font-medium">{b}º Bimestre</td>
+                      <td className="py-2 px-2 text-xs text-muted-foreground whitespace-nowrap">
+                        {termInfo ? `${termInfo.start} até ${termInfo.end}` : "—"}
+                      </td>
                       <td
                         className={`py-2 pl-2 text-right font-bold ${
                           (g?.media ?? 0) >= 6 ? "" : "text-destructive"

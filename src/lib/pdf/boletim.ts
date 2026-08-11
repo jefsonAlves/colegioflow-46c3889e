@@ -4,6 +4,7 @@ import { getStudentAllBimesters, type GradeEntry } from "@/lib/grades";
 import { getClassAttendanceAll } from "@/lib/attendance";
 import { listStudentsByClass } from "@/lib/students";
 import { listClasses } from "@/lib/classes";
+import { TERM_DATES } from "@/lib/terms";
 
 interface StudentBoletim {
   name: string;
@@ -73,15 +74,17 @@ function drawStudent(doc: jsPDF, b: StudentBoletim, startY: number): number {
   doc.text(b.name, 14, startY);
   const rows = [1, 2, 3, 4].map((n) => {
     const g = b.bimesters[n];
+    const termInfo = TERM_DATES.find(t => t.term === n);
     const total = g?.media != null ? (g.p1 || 0) + (g.p2 || 0) + (g.atividade || 0) : null;
     return [
-      `${n}º`,
+      `${n}º Bimestre`,
+      termInfo ? `${termInfo.start} a ${termInfo.end}` : "—",
       total != null ? total.toFixed(1) : "—",
     ];
   });
   autoTable(doc, {
     startY: startY + 3,
-    head: [["Bimestre", "Total"]],
+    head: [["Bimestre", "Período", "Total"]],
     body: rows,
     styles: { fontSize: 10 },
     headStyles: { fillColor: [30, 64, 175] },
