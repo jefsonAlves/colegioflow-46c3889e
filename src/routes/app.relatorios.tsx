@@ -101,6 +101,14 @@ function Relatorios({ schoolId }: { schoolId: string }) {
   const summaries = (summariesQ.data ?? []).filter(s => isAdmin || taughtIds.has(s.classId));
 
   const totalClasses = classes.length;
+  if (totalClasses === 0 && !isAdmin) {
+    return (
+      <EmptyState
+        title="Nenhuma turma"
+        description="no painel perfil do professor possui uma opção de nome Minha Turmas nela possui uma função para ativar e cadastrar materias e horário quando a turma se encontrar desativada adicione a função ou condição que não seja exibido na opção frequencia dentro de turma ou em qualquer funcionalidade as turmas que não estão ativa igual mostra na imagem"
+      />
+    );
+  }
   const totalStudents = (studentsQ.data ?? []).filter((s) => s.active !== false && (isAdmin || taughtIds.has(s.classId))).length;
   const avgFreq =
     summaries.length === 0
