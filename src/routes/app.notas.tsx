@@ -161,7 +161,7 @@ function Notas({ schoolId }: { schoolId: string }) {
   };
 
   if (classesQ.isLoading || myTaughtQ.isLoading) return <Loading />;
-  const taughtIds = new Set((myTaughtQ.data ?? []).map((t) => t.classId));
+  const taughtIds = new Set((myTaughtQ.data ?? []).map((t: any) => t.classId));
   const allClasses = classesQ.data ?? [];
   const classes = isOffice ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
   
