@@ -92,8 +92,13 @@ function Relatorios({ schoolId }: { schoolId: string }) {
     },
   });
 
-  if (classesQ.isLoading || studentsQ.isLoading) return <Loading />;
-  const summaries = summariesQ.data ?? [];
+  if (classesQ.isLoading || studentsQ.isLoading || myTaughtQ.isLoading) return <Loading />;
+  
+  const taughtIds = new Set((myTaughtQ.data ?? []).map((t: any) => t.classId));
+  const allClasses = classesQ.data ?? [];
+  const classes = isAdmin ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
+  
+  const summaries = (summariesQ.data ?? []).filter(s => isAdmin || taughtIds.has(s.classId));
 
   const totalClasses = (classesQ.data ?? []).length;
   const totalStudents = (studentsQ.data ?? []).filter((s) => s.active !== false).length;
