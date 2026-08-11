@@ -194,7 +194,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
 
   const myTaughtQ = useQuery({
     queryKey: ["my-taught-classes", firebaseUser?.uid],
-    queryFn: () => listMyTaughtClasses(firebaseUser!.uid).then((list: any[]) => list.filter((t: any) => t.active === true)),
+    queryFn: () => listMyTaughtClasses(firebaseUser!.uid).then((list) => list.filter((t) => t.active)),
     enabled: !!firebaseUser,
   });
 
@@ -445,7 +445,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   };
 
 
-  const taughtIds = new Set((myTaughtQ.data ?? []).filter(t => t.active === true).map((t: any) => t.classId));
+  const taughtIds = new Set((myTaughtQ.data ?? []).map((t) => t.classId));
   const allClasses = classesQ.data ?? [];
   const classes = isOffice ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
   

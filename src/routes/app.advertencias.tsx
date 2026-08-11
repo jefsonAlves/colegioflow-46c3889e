@@ -88,7 +88,7 @@ function Advertencias({ schoolId }: { schoolId: string }) {
   });
   const myTaughtQ = useQuery({
     queryKey: ["my-taught-classes", firebaseUser?.uid],
-    queryFn: () => listMyTaughtClasses(firebaseUser!.uid),
+    queryFn: () => listMyTaughtClasses(firebaseUser!.uid).then((list) => list.filter((t) => t.active)),
     enabled: !!firebaseUser,
   });
   const schedulesQ = useQuery({
@@ -111,7 +111,7 @@ function Advertencias({ schoolId }: { schoolId: string }) {
   });
 
   const taughtIds = useMemo(
-    () => new Set((myTaughtQ.data ?? []).filter(t => t.active === true).map((t) => t.classId)),
+    () => new Set((myTaughtQ.data ?? []).map((t) => t.classId)),
     [myTaughtQ.data],
   );
   const classes = useMemo(() => {
