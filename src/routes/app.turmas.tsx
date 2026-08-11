@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -113,8 +113,8 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
     }
 
     // Check for duplicates
-    const isDuplicate = classes.some(
-      (c) =>
+    const isDuplicate = (classesQ.data ?? []).some(
+      (c: any) =>
         c.name.toLowerCase() === newName.toLowerCase() &&
         c.year === newYear &&
         c.gradeLevel?.toLowerCase() === newGrade.toLowerCase()
@@ -168,14 +168,14 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
   });
 
   const taughtIds = useMemo(
-    () => new Set((myTaughtQ.data ?? []).filter(t => t.active === true).map((t) => t.classId)),
+    () => new Set((myTaughtQ.data ?? []).filter((t: any) => t.active === true).map((t: any) => t.classId)),
     [myTaughtQ.data],
   );
 
   const classes = useMemo(() => {
     const all = classesQ.data ?? [];
     if (userDoc?.globalRole === "master" || membership?.roleInSchool === "school_admin") return all;
-    return all.filter((c) => taughtIds.has(c.id));
+    return all.filter((c: any) => taughtIds.has(c.id));
   }, [classesQ.data, taughtIds, userDoc, membership]);
 
   return (
@@ -236,7 +236,7 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
           {(() => {
             const counts = countsQ.data ?? {};
             const max = Math.max(1, ...Object.values(counts));
-            return classes.map((c) => (
+            return classes.map((c: any) => (
               <ClassCard
                 key={c.id}
                 cls={c}
