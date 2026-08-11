@@ -44,11 +44,7 @@ function Notas({ schoolId }: { schoolId: string }) {
   const { userDoc } = useAuth();
   const { membership } = useActiveSchool();
   const [classId, setClassId] = useState<string | null>(null);
-  const [bimestre, setBimestre] = useState<number>(() => {
-    // Try to detect current term based on date
-    const { getCurrentTerm } = require("@/lib/terms");
-    return getCurrentTerm();
-  });
+  const [bimestre, setBimestre] = useState<number>(() => getCurrentTerm());
   const [drafts, setDrafts] = useState<Record<string, RowDraft>>({});
   const [dirty, setDirty] = useState<Record<string, boolean>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
