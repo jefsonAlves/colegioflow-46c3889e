@@ -195,6 +195,7 @@ function StudentBoletim({
                 {[1, 2, 3, 4].map((b) => {
                   const g = grades[b];
                   const termInfo = TERM_DATES.find(t => t.term === b);
+                  const closed = isTermClosed(b);
                   return (
                     <tr key={b} className="border-b last:border-0">
                       <td className="py-2 pr-2 font-medium">{b}º Bimestre</td>
@@ -206,7 +207,7 @@ function StudentBoletim({
                           (g?.media ?? 0) >= 6 ? "" : "text-destructive"
                         }`}
                       >
-                        {g?.media != null ? ((g.p1 || 0) + (g.p2 || 0) + (g.atividade || 0)).toFixed(1) : "—"}
+                        {closed && g?.media != null ? ((g.p1 || 0) + (g.p2 || 0) + (g.atividade || 0)).toFixed(1) : "—"}
                       </td>
                     </tr>
                   );
