@@ -100,8 +100,8 @@ function Relatorios({ schoolId }: { schoolId: string }) {
   
   const summaries = (summariesQ.data ?? []).filter(s => isAdmin || taughtIds.has(s.classId));
 
-  const totalClasses = (classesQ.data ?? []).length;
-  const totalStudents = (studentsQ.data ?? []).filter((s) => s.active !== false).length;
+  const totalClasses = classes.length;
+  const totalStudents = (studentsQ.data ?? []).filter((s) => s.active !== false && (isAdmin || taughtIds.has(s.classId))).length;
   const avgFreq =
     summaries.length === 0
       ? 0
