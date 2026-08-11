@@ -166,7 +166,7 @@ function Notas({ schoolId }: { schoolId: string }) {
   const classes = isOffice ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
   
   if (allClasses.length === 0) {
-    return <EmptyState title="Nenhuma turma" description="Crie uma turma para lançar notas." />;
+    return <EmptyState title="Nenhuma turma" description="Vá em Perfil e ative as turmas em que você dá aula." />;
   }
   const currentClass = classes.find((c) => c.id === classId);
 
