@@ -161,7 +161,22 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
   };
 
   if (classesQ.isLoading) return <Loading />;
-  const classes = classesQ.data ?? [];
+  const myTaughtQ = useQuery({
+    queryKey: ["my-taught-classes", firebaseUser?.uid],
+    queryFn: () => listMyTaughtClasses(firebaseUser!.uid),
+    enabled: !!firebaseUser,
+  });
+
+  const taughtIds = useMemo(
+    () => new Set((myTaughtQ.data ?? []).filter(t => t.active === true).map((t) => t.classId)),
+    [myTaughtQ.data],
+  );
+
+  const classes = useMemo(() => {
+    const all = classesQ.data ?? [];
+    if (userDoc?.globalRole === "master" || membership?.roleInSchool === "school_admin") return all;
+    return all.filter((c) => taughtIds.has(c.id));
+  }, [classesQ.data, taughtIds, userDoc, membership]);
 
   return (
     <>
