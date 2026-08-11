@@ -96,7 +96,7 @@ function Relatorios({ schoolId }: { schoolId: string }) {
   
   const taughtIds = new Set((myTaughtQ.data ?? []).map((t) => t.classId));
   const allClasses = classesQ.data ?? [];
-  const classes = isAdmin ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
+  const classes = (isAdmin && userDoc?.profileType !== "teacher") ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
   
   const summaries = (summariesQ.data ?? []).filter(s => isAdmin || taughtIds.has(s.classId));
 

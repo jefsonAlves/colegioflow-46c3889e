@@ -174,7 +174,7 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
 
   const classes = useMemo(() => {
     const all = classesQ.data ?? [];
-    if (userDoc?.globalRole === "master" || membership?.roleInSchool === "school_admin") return all;
+    if ((userDoc?.globalRole === "master" || membership?.roleInSchool === "school_admin") && userDoc?.profileType !== "teacher") return all;
     return all.filter((c: any) => taughtIds.has(c.id));
   }, [classesQ.data, taughtIds, userDoc, membership]);
 
