@@ -70,7 +70,7 @@ const formatLong = (iso: string) =>
   fromISO(iso).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
 
 function Advertencias({ schoolId }: { schoolId: string }) {
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, userDoc } = useAuth();
   const qc = useQueryClient();
 
   const [date, setDate] = useState(toISO(new Date()));
@@ -88,7 +88,7 @@ function Advertencias({ schoolId }: { schoolId: string }) {
   });
   const myTaughtQ = useQuery({
     queryKey: ["my-taught-classes", firebaseUser?.uid],
-    queryFn: () => listMyTaughtClasses(firebaseUser!.uid),
+    queryFn: () => listMyTaughtClasses(firebaseUser!.uid).then((list) => list.filter((t) => t.active)),
     enabled: !!firebaseUser,
   });
   const schedulesQ = useQuery({
@@ -111,14 +111,16 @@ function Advertencias({ schoolId }: { schoolId: string }) {
   });
 
   const taughtIds = useMemo(
-    () => new Set((myTaughtQ.data ?? []).filter(t => t.active === true).map((t) => t.classId)),
+    () => new Set((myTaughtQ.data ?? []).map((t) => t.classId)),
     [myTaughtQ.data],
   );
   const classes = useMemo(() => {
     const all = classesQ.data ?? [];
+    const isTeacher = userDoc?.profileType === "teacher";
     const mine = all.filter((c) => taughtIds.has(c.id));
+    if (isTeacher) return mine;
     return mine.length > 0 ? mine : all;
-  }, [classesQ.data, taughtIds]);
+  }, [classesQ.data, taughtIds, userDoc]);
 
   if (classes.length === 0 && firebaseUser?.uid && !taughtIds.size) {
     return (

@@ -163,18 +163,18 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
   if (classesQ.isLoading) return <Loading />;
   const myTaughtQ = useQuery({
     queryKey: ["my-taught-classes", firebaseUser?.uid],
-    queryFn: () => listMyTaughtClasses(firebaseUser!.uid),
+    queryFn: () => listMyTaughtClasses(firebaseUser!.uid).then((list) => list.filter((t) => t.active)),
     enabled: !!firebaseUser,
   });
 
   const taughtIds = useMemo(
-    () => new Set((myTaughtQ.data ?? []).filter((t: any) => t.active === true).map((t: any) => t.classId)),
+    () => new Set((myTaughtQ.data ?? []).map((t: any) => t.classId)),
     [myTaughtQ.data],
   );
 
   const classes = useMemo(() => {
     const all = classesQ.data ?? [];
-    if (userDoc?.globalRole === "master" || membership?.roleInSchool === "school_admin") return all;
+    if ((userDoc?.globalRole === "master" || membership?.roleInSchool === "school_admin") && userDoc?.profileType !== "teacher") return all;
     return all.filter((c: any) => taughtIds.has(c.id));
   }, [classesQ.data, taughtIds, userDoc, membership]);
 

@@ -56,7 +56,7 @@ function Notas({ schoolId }: { schoolId: string }) {
 
   const myTaughtQ = useQuery({
     queryKey: ["my-taught-classes", userDoc?.id],
-    queryFn: () => listMyTaughtClasses(userDoc!.id).then((list: any[]) => list.filter((t: any) => t.active === true)),
+    queryFn: () => listMyTaughtClasses(userDoc!.id).then((list) => list.filter((t) => t.active)),
     enabled: !!userDoc,
   });
 
@@ -161,9 +161,9 @@ function Notas({ schoolId }: { schoolId: string }) {
   };
 
   if (classesQ.isLoading || myTaughtQ.isLoading) return <Loading />;
-  const taughtIds = new Set((myTaughtQ.data ?? []).filter(t => t.active === true).map((t: any) => t.classId));
+  const taughtIds = new Set((myTaughtQ.data ?? []).map((t) => t.classId));
   const allClasses = classesQ.data ?? [];
-  const classes = isOffice ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
+  const classes = (isOffice && userDoc?.profileType !== "teacher") ? allClasses : allClasses.filter((c) => taughtIds.has(c.id));
   
   if (classes.length === 0 && !isOffice) {
     return (
