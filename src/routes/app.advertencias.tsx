@@ -120,6 +120,15 @@ function Advertencias({ schoolId }: { schoolId: string }) {
     return mine.length > 0 ? mine : all;
   }, [classesQ.data, taughtIds]);
 
+  if (classes.length === 0 && firebaseUser?.uid && !taughtIds.size) {
+    return (
+      <EmptyState
+        title="Nenhuma turma"
+        description="no painel perfil do professor possui uma opção de nome Minha Turmas nela possui uma função para ativar e cadastrar materias e horário quando a turma se encontrar desativada adicione a função ou condição que não seja exibido na opção frequencia dentro de turma ou em qualquer funcionalidade as turmas que não estão ativa igual mostra na imagem"
+      />
+    );
+  }
+
   const classMap = useMemo(
     () => new Map((classesQ.data ?? []).map((c) => [c.id, c])),
     [classesQ.data],
