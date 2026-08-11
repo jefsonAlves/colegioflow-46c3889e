@@ -302,6 +302,8 @@ function MyTaughtClassesSection({ schools }: { schools: string[] }) {
     try {
       if (on) {
         await teachClass({ classId, schoolId, userId: firebaseUser.uid });
+        // After teaching (inserting), we must ensure it's active as per the new "single button" logic
+        await toggleClassActive(classId, firebaseUser.uid, true);
       } else {
         await untaughtClass({ classId, userId: firebaseUser.uid });
       }
