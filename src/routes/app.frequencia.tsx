@@ -455,7 +455,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
     return (
       <EmptyState
         title="Você não leciona nenhuma turma"
-        description="Vá em Turmas e marque as turmas em que você dá aula."
+        description="Vá em Perfil e ative as turmas em que você dá aula."
       />
     );
   }

@@ -302,6 +302,8 @@ function MyTaughtClassesSection({ schools }: { schools: string[] }) {
     try {
       if (on) {
         await teachClass({ classId, schoolId, userId: firebaseUser.uid });
+        // After teaching (inserting), we must ensure it's active as per the new "single button" logic
+        await toggleClassActive(classId, firebaseUser.uid, true);
       } else {
         await untaughtClass({ classId, userId: firebaseUser.uid });
       }
@@ -336,8 +338,7 @@ function MyTaughtClassesSection({ schools }: { schools: string[] }) {
       <Card>
         <CardContent className="pt-4 pb-4 space-y-2">
           <p className="text-xs text-muted-foreground">
-            Marque as turmas em que você dá aula. Depois cadastre matéria e horário em cada
-            turma.
+            observação a frequencia e o uso dos dados da turma só serão viziveis após ativação pelo o professor, pois sem essa ativação do lado do professor o mesmo não consegue ver a turma e muito menos fazer chamada e nota da turma desejada por isso não precisa ter dois botões de ativação no perfil do professor basta apenas um
           </p>
           {classes.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-2">
@@ -365,22 +366,15 @@ function MyTaughtClassesSection({ schools }: { schools: string[] }) {
                       </div>
                       <Switch
                         checked={isSelected}
-                        onCheckedChange={(v) => toggle(c.id, c.schoolId, v)}
+                        onCheckedChange={(v) => {
+                          toggle(c.id, c.schoolId, v);
+                          if (v) {
+                            // Automatically set to active when selected if it's the only button
+                            toggleActive(c.id, true);
+                          }
+                        }}
                       />
                     </div>
-                    
-                    {isSelected && (
-                      <div className="flex items-center justify-between pl-6 pt-1 border-t mt-1">
-                        <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-tight">
-                          Visível na Frequência?
-                        </span>
-                        <Switch
-                          className="scale-75 origin-right"
-                          checked={isActive}
-                          onCheckedChange={(v) => toggleActive(c.id, v)}
-                        />
-                      </div>
-                    )}
                   </li>
                 );
               })}

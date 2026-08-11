@@ -37,7 +37,7 @@ interface Action {
 const ACTIONS: Action[] = [
   { to: "/app/frequencia", label: "Frequência", description: "Fazer chamada", icon: ClipboardCheck, accent: "primary" },
   { to: "/app/notas", label: "Notas", description: "Lançar notas", icon: NotebookPen, accent: "secondary" },
-  { to: "/app/turmas", label: "Turmas", description: "Adicionar e gerenciar", icon: Users, accent: "primary" },
+  { to: "/app/turmas", label: "Turmas", description: "Configurar horários", icon: Users, accent: "primary" },
   { to: "/app/desempenho", label: "Desempenho", description: "Registro individual", icon: Activity, accent: "accent" },
   { to: "/app/boletim", label: "Boletim", description: "Fechamento do bimestre", icon: FileText, accent: "secondary" },
   { to: "/app/advertencias", label: "Advertências", description: "Registrar ocorrências", icon: AlertOctagon, accent: "accent" },
