@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/AppShell";
+import { useActiveSchool } from "@/hooks/useActiveSchool";
 import { AbsenceReportSection } from "@/components/AbsenceReportSection";
 import { SchoolGate } from "@/components/SchoolGate";
 import { Card, CardContent } from "@/components/ui/card";
@@ -158,7 +159,8 @@ const StudentAttendanceRow = memo(({
 StudentAttendanceRow.displayName = "StudentAttendanceRow";
 
 function Frequencia({ schoolId }: { schoolId: string }) {
-  const { firebaseUser, userDoc, membership } = useAuth();
+  const { firebaseUser, userDoc } = useAuth();
+  const { membership } = useActiveSchool();
   const qc = useQueryClient();
   const search = Route.useSearch();
   const [classId, setClassId] = useState<string | null>(search.classId ?? null);

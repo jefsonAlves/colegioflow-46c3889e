@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { useActiveSchool } from "@/hooks/useActiveSchool";
 import { ArrowDown, ArrowUp, Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +40,7 @@ export function GradeColumnsPanel({ schoolId, classId, bimester, types }: Props)
   const [draftName, setDraftName] = useState("");
   const [draftWeight, setDraftWeight] = useState(1);
   const [draftMax, setDraftMax] = useState(10);
-  const { membership } = useAuth();
+  const { membership } = useActiveSchool();
   const [open, setOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newWeight, setNewWeight] = useState(1);
