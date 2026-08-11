@@ -336,8 +336,7 @@ function MyTaughtClassesSection({ schools }: { schools: string[] }) {
       <Card>
         <CardContent className="pt-4 pb-4 space-y-2">
           <p className="text-xs text-muted-foreground">
-            Marque as turmas em que você dá aula. Depois cadastre matéria e horário em cada
-            turma.
+            observação a frequencia e o uso dos dados da turma só serão viziveis após ativação pelo o professor, pois sem essa ativação do lado do professor o mesmo não consegue ver a turma e muito menos fazer chamada e nota da turma desejada por isso não precisa ter dois botões de ativação no perfil do professor basta apenas um
           </p>
           {classes.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-2">
