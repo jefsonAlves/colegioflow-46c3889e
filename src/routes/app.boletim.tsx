@@ -162,7 +162,7 @@ function StudentBoletim({
   }
   const freq = totalDays === 0 ? 0 : Math.round((present / totalDays) * 100);
 
-  const allMedias = [1, 2, 3, 4].map((b) => grades[b]?.media);
+  const allMedias = [1, 2, 3, 4].map((b) => isTermClosed(b) ? grades[b]?.media : null);
   const valid = allMedias.filter((m): m is number => typeof m === "number");
   const mediaFinal =
     valid.length === 0 ? 0 : Math.round((valid.reduce((a, b) => a + b, 0) / valid.length) * 10) / 10;
