@@ -135,7 +135,7 @@ function MasterPage() {
             <div className="flex-1">
               <div className="font-medium text-destructive">Controle de Membros (Modo Master)</div>
               <div className="text-xs text-muted-foreground">
-                que o administrador possa ter os nomes dos funcionários ou seja professores cadastrados e podendo clicar para visualizar os dados cadastrados
+                no meu ambiente preciso que tenha gestão de funcionários como o da escolas mas no caso para eu acessar como professor e se eu entrar no modo escola acesso qualquer escolar sendo que meus dados estaram certo e se eu selecionar o funcionário posso mudar os dados do funcionários pq estarei dentro do ambiente dele sem usar a senha e o email do usuário só selecionando o nome
               </div>
             </div>
           </CardContent>
