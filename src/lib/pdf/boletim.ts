@@ -55,7 +55,9 @@ async function computeStudent(
     if (e.status === "F") absences++;
   }
   const freqPct = totalDays === 0 ? 0 : Math.round((present / totalDays) * 100);
-  const medias = [1, 2, 3, 4].map((b) => bimesters[b]?.media).filter((m): m is number => typeof m === "number");
+  const medias = [1, 2, 3, 4]
+    .map((b) => isTermClosed(b) ? bimesters[b]?.media : null)
+    .filter((m): m is number => typeof m === "number");
   const finalMedia = medias.length === 0 ? 0 : Math.round((medias.reduce((a, b) => a + b, 0) / medias.length) * 10) / 10;
   return {
     name: studentName,
