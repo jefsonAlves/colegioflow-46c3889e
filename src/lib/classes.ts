@@ -81,6 +81,7 @@ export async function updateClass(
   if (patch.name !== undefined) row.name = patch.name;
   if (patch.year !== undefined) row.year = patch.year;
   if (patch.teacherUid !== undefined) row.teacher_uid = patch.teacherUid;
+  if (patch.gradeLevel !== undefined) row.grade_level = patch.gradeLevel;
   const { error } = await supabase.from("classes").update(row).eq("school_id", schoolId).eq("id", classId);
   if (error) throw error;
 }
