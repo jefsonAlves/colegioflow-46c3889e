@@ -58,7 +58,7 @@ function EventualidadesContent({ schoolId }: { schoolId: string }) {
 
   const eventsQ = useQuery({
     queryKey: ["eventualities", schoolId],
-    queryFn: () => listEventualities({ schoolId }),
+    queryFn: () => listEventualities({ data: { schoolId } }),
   });
 
   const myTaughtQ = useQuery({
@@ -125,7 +125,6 @@ function EventualidadesContent({ schoolId }: { schoolId: string }) {
         <EmptyState
           title="Nenhuma eventualidade"
           description="Crie listas de verificação, notas rápidas ou controles para suas turmas."
-          icon={ListTodo}
         />
       ) : (
         <div className="grid gap-3">
@@ -198,13 +197,15 @@ function NewEventForm({
       }
 
       await createEventuality({
-        schoolId,
-        classId,
-        teacherId,
-        title,
-        description,
-        eventType,
-        deadline: finalDeadline,
+        data: {
+          schoolId,
+          classId,
+          teacherId,
+          title,
+          description,
+          eventType,
+          deadline: finalDeadline,
+        }
       });
       toast.success("Evento criado com sucesso!");
       onSuccess();
@@ -339,7 +340,7 @@ function EventDetail({ event, onBack }: { event: any; onBack: () => void }) {
   const recordsQ = useQuery({
     queryKey: ["eventuality-records", event.id],
     queryFn: async () => {
-      const data = await getEventualityRecords({ eventualityId: event.id });
+      const data = await getEventualityRecords({ data: { eventualityId: event.id } });
       const initialValues: Record<string, any> = {};
       data.forEach(r => {
         initialValues[r.student_id] = r.value;
@@ -354,9 +355,11 @@ function EventDetail({ event, onBack }: { event: any; onBack: () => void }) {
     try {
       const promises = Object.entries(values).map(([studentId, value]) =>
         saveEventualityRecord({
-          eventualityId: event.id,
-          studentId,
-          value,
+          data: {
+            eventualityId: event.id,
+            studentId,
+            value,
+          }
         })
       );
       await Promise.all(promises);
@@ -374,7 +377,7 @@ function EventDetail({ event, onBack }: { event: any; onBack: () => void }) {
   const handleDelete = async () => {
     if (!confirm("Tem certeza que deseja apagar este evento e todos os seus registros?")) return;
     try {
-      await deleteEventuality({ id: event.id });
+      await deleteEventuality({ data: { id: event.id } });
       toast.success("Evento removido.");
       onBack();
     } catch (err) {
