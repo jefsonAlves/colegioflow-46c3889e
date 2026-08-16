@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createAnnouncement } from "./announcements";
-import { listDisciplinary } from "./disciplinary";
 
 export interface PedagogicalIntervention {
   id: string;
@@ -59,12 +58,6 @@ export async function updateDisciplinaryRecord(id: string, description: string, 
   const { error } = await supabase
     .from("disciplinary")
     .update({ 
-      description,
-      // Store justification in a JSONB or metadata column if available, 
-      // otherwise we prepend it to the description or assume schema allows it.
-      // Since we can't change schema easily without migrations, we'll assume a 'notes' or similar.
-      // Based on previous view, disciplinary has description andRecorded_by.
-      // We'll append justification to the description for now to ensure it's saved.
       description: `${description}\n\n[Editado em ${new Date().toLocaleDateString()} - Motivo: ${justification}]`
     } as any)
     .eq("id", id)
