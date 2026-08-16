@@ -98,7 +98,7 @@ function AvisosContent({ schoolId }: { schoolId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.length, readIds.size]);
 
-  const canCompose = userDoc?.profileType !== "parent";
+  const canCompose = userDoc?.profileType === "school_admin" || userDoc?.profileType === "teacher" || userDoc?.profileType === "pedagogical";
 
   const classMap = useMemo(
     () => Object.fromEntries((classesQ.data ?? []).map((c) => [c.id, c.name])),

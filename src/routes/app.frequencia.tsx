@@ -165,7 +165,7 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   const qc = useQueryClient();
   const search = Route.useSearch();
 
-  const isOffice = userDoc?.globalRole === "master" || membership?.roleInSchool === "school_admin" || membership?.roleInSchool === "coordinator";
+  const isOffice = userDoc?.globalRole === "master" || userDoc?.profileType === "pedagogical" || membership?.roleInSchool === "school_admin" || membership?.roleInSchool === "coordinator";
 
   const [classId, setClassId] = useState<string | null>(search.classId ?? null);
   const [date, setDate] = useState(search.date ?? todayISO());
