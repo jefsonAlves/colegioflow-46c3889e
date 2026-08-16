@@ -14,6 +14,7 @@ type ProfileRow = {
   profile_type: ProfileType | null;
   onboarding_complete: boolean;
   active: boolean;
+  gender: "male" | "female" | "other" | null;
   created_at: string;
   updated_at: string;
 };
@@ -34,6 +35,7 @@ function rowToDoc(r: ProfileRow, role: GlobalRole): UserDoc {
     profileType: r.profile_type ?? undefined,
     onboardingComplete: !!r.onboarding_complete,
     active: r.active !== false,
+    gender: r.gender,
     createdAt: new Date(r.created_at).getTime(),
     updatedAt: new Date(r.updated_at).getTime(),
   };
@@ -83,13 +85,14 @@ export async function getUserDoc(uid: string): Promise<UserDoc | null> {
 
 export async function updateUserProfile(
   uid: string,
-  patch: { name?: string; profileType?: ProfileType; onboardingComplete?: boolean; photoUrl?: string | null },
+  patch: { name?: string; profileType?: ProfileType; onboardingComplete?: boolean; photoUrl?: string | null; gender?: "male" | "female" | "other" | null },
 ) {
   const row: Partial<ProfileRow> = {};
   if (patch.name !== undefined) row.name = patch.name;
   if (patch.profileType !== undefined) row.profile_type = patch.profileType;
   if (patch.onboardingComplete !== undefined) row.onboarding_complete = patch.onboardingComplete;
   if (patch.photoUrl !== undefined) row.photo_url = patch.photoUrl;
-  const { error } = await supabase.from("profiles").update(row).eq("id", uid);
+  if (patch.gender !== undefined) row.gender = patch.gender;
+  const { error } = await supabase.from("profiles").update(row as any).eq("id", uid);
   if (error) throw error;
 }

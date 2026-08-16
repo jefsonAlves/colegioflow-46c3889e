@@ -13,6 +13,7 @@ export interface UserDoc {
   profileType?: ProfileType;
   onboardingComplete: boolean;
   active: boolean;
+  gender?: "male" | "female" | "other" | null;
   createdAt: number;
   updatedAt: number;
 }
