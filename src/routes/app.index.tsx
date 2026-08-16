@@ -28,7 +28,7 @@ export const Route = createFileRoute("/app/")({
 });
 
 interface Action {
-  to: "/app/frequencia" | "/app/notas" | "/app/turmas" | "/app/boletim" | "/app/advertencias" | "/app/relatorios" | "/app/desempenho" | "/app/eventualidades";
+  to: "/app/frequencia" | "/app/notas" | "/app/turmas" | "/app/boletim" | "/app/advertencias" | "/app/relatorios" | "/app/desempenho" | "/app/eventualidades" | any;
   label: string;
   description: string;
   icon: LucideIcon;
