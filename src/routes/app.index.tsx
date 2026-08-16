@@ -114,15 +114,15 @@ function AppHome() {
                 </motion.div>
               )}
 
-              <motion.section variants={itemVariants} className="space-y-1">
-                <p className="text-sm text-muted-foreground">
+              <motion.section variants={itemVariants} className="space-y-1.5">
+                <p className="text-xs uppercase tracking-wider font-bold text-primary/80">
                   {userDoc.profileType === "school_admin"
-                    ? "Painel da escola"
+                    ? "Painel Administrativo"
                     : userDoc.profileType === "parent"
                       ? "Acompanhamento escolar"
-                      : "Painel do professor"}
+                      : "Painel do Professor"}
                 </p>
-                <h2 className="text-xl font-bold">O que você quer fazer hoje?</h2>
+                <h2 className="text-2xl font-extrabold tracking-tight">O que você quer fazer hoje?</h2>
               </motion.section>
 
               <section className="grid grid-cols-2 gap-3">
