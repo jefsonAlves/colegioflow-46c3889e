@@ -182,6 +182,8 @@ function SchoolAdminCard({ school, onChanged }: { school: SchoolDoc; onChanged: 
 
       <SchoolStaffSection schoolId={school.id} />
 
+      <SchoolClassesManager schoolId={school.id} />
+
       <section>
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
           Gestão de Frequência (Secretaria)
