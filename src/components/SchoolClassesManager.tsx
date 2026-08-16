@@ -98,7 +98,15 @@ export function SchoolClassesManager({ schoolId }: { schoolId: string }) {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Ano Letivo</Label>
-              <Input type="number" size="sm" value={newYear} onChange={e => setNewYear(Number(e.target.value))} />
+              <Input
+                type="number"
+                size="sm"
+                value={newYear}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setNewYear(val === "" ? 0 : Number(val));
+                }}
+              />
             </div>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" className="flex-1" onClick={() => setCreating(false)}>Cancelar</Button>
