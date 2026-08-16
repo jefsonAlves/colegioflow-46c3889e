@@ -1,4 +1,5 @@
 import { Link, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
+import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, Home, School, Settings, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,7 @@ export function BottomNav() {
           const active = pathname === it.to || (it.to !== "/app" && pathname.startsWith(it.to));
           const Icon = it.icon;
           return (
-            <li key={it.to}>
+            <li key={it.to} className="group">
               <Link
                 to={it.to}
                 onClick={(e) => {
@@ -42,12 +43,23 @@ export function BottomNav() {
                   }
                 }}
                 className={cn(
-                  "flex flex-col items-center gap-1 py-2.5 text-xs font-medium",
+                  "flex flex-col items-center gap-1 py-2 text-[10px] font-medium transition-all duration-200 relative",
                   active ? "text-primary" : "text-muted-foreground",
                 )}
               >
-                <Icon className="size-5" />
+                <div className={cn(
+                  "p-1.5 rounded-xl transition-all duration-300",
+                  active ? "bg-primary/10 scale-110" : "group-hover:bg-muted"
+                )}>
+                  <Icon className={cn("size-5", active && "stroke-[2.5px]")} />
+                </div>
                 {it.label}
+                {active && (
+                  <motion.div
+                    layoutId="nav-indicator"
+                    className="absolute -top-1 w-1 h-1 rounded-full bg-primary"
+                  />
+                )}
               </Link>
             </li>
           );
@@ -94,8 +106,8 @@ export function AppShell({
     }
   };
   return (
-    <div className="min-h-screen bg-muted/30 pb-24">
-      <header className="sticky top-0 z-20 bg-card border-b">
+    <div className="min-h-screen bg-muted/20 pb-24 overflow-x-hidden">
+      <header className="sticky top-0 z-20 bg-card/80 backdrop-blur-md border-b">
         <div className="mx-auto max-w-md px-2 h-14 flex items-center gap-1">
           {back ? (
             <Button
@@ -103,18 +115,37 @@ export function AppShell({
               size="icon"
               aria-label="Voltar"
               onClick={handleBack}
-              className="shrink-0"
+              className="shrink-0 active:scale-90 transition-transform"
             >
               <ChevronLeft className="size-5" />
             </Button>
           ) : (
             <div className="w-2" />
           )}
-          <h1 className="text-base font-semibold truncate flex-1">{title}</h1>
+          <motion.h1 
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            key={title}
+            className="text-base font-semibold truncate flex-1"
+          >
+            {title}
+          </motion.h1>
           {right}
         </div>
       </header>
-      <main className="mx-auto max-w-md px-4 py-4 space-y-4">{children}</main>
+      <main className="mx-auto max-w-md px-4 py-4 space-y-4">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={router.state.location.pathname}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
+      </main>
       <BottomNav />
     </div>
   );

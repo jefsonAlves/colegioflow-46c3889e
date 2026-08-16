@@ -6,11 +6,11 @@ import {
   FileText,
   AlertOctagon,
   BarChart3,
-  Megaphone,
   Building2,
   ChevronRight,
   Activity,
   ListTodo,
+  Megaphone,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -22,6 +22,8 @@ import { SchoolUsageSummary } from "@/components/SchoolUsageSummary";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { listAnnouncements, listReadIds } from "@/lib/announcements";
+import { motion, AnimatePresence } from "framer-motion";
+
 
 export const Route = createFileRoute("/app/")({
   component: AppHome,
@@ -61,90 +63,117 @@ function AppHome() {
   const { userDoc } = useAuth();
   if (!userDoc) return null;
 
-  const firstName = userDoc.name?.split(" ")[0] ?? "";
-  const isFemale = userDoc.gender === "female";
-  const salutation = isFemale ? "Professora" : "Professor";
+  const fullName = userDoc.name ?? "";
+  const title = `Olá, Professor(a) ${fullName}`;
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0 },
+  };
 
   return (
-    <AppShell title={`Olá, ${salutation} ${firstName}`} back={false}>
-      <SchoolGate>
-        {({ schoolId }) => (
-          <>
-            <NextClassCard schoolId={schoolId} />
+    <AppShell title={title} back={false}>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="space-y-6"
+      >
+        <SchoolGate>
+          {({ schoolId }) => (
+            <>
+              <motion.div variants={itemVariants}>
+                <NextClassCard schoolId={schoolId} />
+              </motion.div>
 
-            <TipsTour
-              audience={
-                userDoc.globalRole === "master"
-                  ? "master"
-                  : userDoc.profileType === "school_admin"
-                    ? "school_admin"
-                    : "teacher"
-              }
-            />
+              <motion.div variants={itemVariants}>
+                <TipsTour
+                  audience={
+                    userDoc.globalRole === "master"
+                      ? "master"
+                      : userDoc.profileType === "school_admin"
+                        ? "school_admin"
+                        : "teacher"
+                  }
+                />
+              </motion.div>
 
-            {userDoc.profileType === "school_admin" && (
-              <SchoolUsageSummary schoolId={schoolId} compact />
-            )}
+              {userDoc.profileType === "school_admin" && (
+                <motion.div variants={itemVariants}>
+                  <SchoolUsageSummary schoolId={schoolId} compact />
+                </motion.div>
+              )}
 
+              <motion.section variants={itemVariants} className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  {userDoc.profileType === "school_admin"
+                    ? "Painel da escola"
+                    : userDoc.profileType === "parent"
+                      ? "Acompanhamento escolar"
+                      : "Painel do professor"}
+                </p>
+                <h2 className="text-xl font-bold">O que você quer fazer hoje?</h2>
+              </motion.section>
 
+              <section className="grid grid-cols-2 gap-3">
+                {ACTIONS.map((a, index) => {
+                  const Icon = a.icon;
+                  return (
+                    <motion.div key={a.to} variants={itemVariants}>
+                      <Link to={a.to} className="group">
+                        <Card className="h-full transition active:scale-[0.96] hover:border-primary/40 shadow-sm hover:shadow-md border-muted/50">
+                          <CardContent className="pt-5 pb-4 flex flex-col gap-2 items-start min-h-[124px]">
+                            <div className={`size-11 rounded-2xl border flex items-center justify-center ${accentClasses(a.accent)} transition-transform group-hover:scale-110 duration-300`}>
+                              <Icon className="size-5" />
+                            </div>
+                            <div className="space-y-0.5">
+                              <div className="font-semibold leading-tight">{a.label}</div>
+                              <div className="text-xs text-muted-foreground">{a.description}</div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+              </section>
 
-            <section className="space-y-1">
-              <p className="text-sm text-muted-foreground">
-                {userDoc.profileType === "school_admin"
-                  ? "Painel da escola"
-                  : userDoc.profileType === "parent"
-                    ? "Acompanhamento escolar"
-                    : "Painel do professor"}
-              </p>
-              <h2 className="text-xl font-bold">O que você quer fazer hoje?</h2>
-            </section>
+              <motion.section variants={itemVariants} className="space-y-2">
+                <AvisosLink schoolId={schoolId} />
 
-            <section className="grid grid-cols-2 gap-3">
-              {ACTIONS.map((a) => {
-                const Icon = a.icon;
-                return (
-                  <Link key={a.to} to={a.to} className="group">
-                    <Card className="h-full transition active:scale-[0.98] hover:border-primary/40">
-                      <CardContent className="pt-5 pb-4 flex flex-col gap-2 items-start min-h-[124px]">
-                        <div className={`size-11 rounded-xl border flex items-center justify-center ${accentClasses(a.accent)}`}>
-                          <Icon className="size-5" />
+                {userDoc.profileType === "school_admin" && (
+                  <Link to="/app/escola">
+                    <Card className="transition active:scale-[0.98] border-muted/50 shadow-sm hover:shadow-md hover:border-primary/40">
+                      <CardContent className="pt-4 pb-4 flex items-center gap-3">
+                        <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center transition-transform group-hover:scale-105">
+                          <Building2 className="size-5" />
                         </div>
-                        <div className="space-y-0.5">
-                          <div className="font-semibold leading-tight">{a.label}</div>
-                          <div className="text-xs text-muted-foreground">{a.description}</div>
+                        <div className="flex-1">
+                          <div className="font-semibold">Minha escola</div>
+                          <div className="text-xs text-muted-foreground">
+                            Aprovar professores, configurar dados
+                          </div>
                         </div>
+                        <ChevronRight className="size-5 text-muted-foreground" />
                       </CardContent>
                     </Card>
                   </Link>
-                );
-              })}
-            </section>
-
-            <section className="space-y-2">
-              <AvisosLink schoolId={schoolId} />
-
-              {userDoc.profileType === "school_admin" && (
-                <Link to="/app/escola">
-                  <Card className="transition active:scale-[0.99]">
-                    <CardContent className="pt-4 pb-4 flex items-center gap-3">
-                      <div className="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                        <Building2 className="size-5" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-semibold">Minha escola</div>
-                        <div className="text-xs text-muted-foreground">
-                          Aprovar professores, configurar dados
-                        </div>
-                      </div>
-                      <ChevronRight className="size-5 text-muted-foreground" />
-                    </CardContent>
-                  </Card>
-                </Link>
-              )}
-            </section>
-          </>
-        )}
-      </SchoolGate>
+                )}
+              </motion.section>
+            </>
+          )}
+        </SchoolGate>
+      </motion.div>
     </AppShell>
   );
 }
@@ -165,9 +194,9 @@ function AvisosLink({ schoolId }: { schoolId: string }) {
   const unread = items.filter((a) => !reads.has(a.id)).length;
   return (
     <Link to="/app/avisos">
-      <Card className="transition active:scale-[0.99]">
+      <Card className="transition active:scale-[0.98] border-muted/50 shadow-sm hover:shadow-md hover:border-primary/40 group">
         <CardContent className="pt-4 pb-4 flex items-center gap-3">
-          <div className="size-10 rounded-lg bg-accent/15 text-accent-foreground flex items-center justify-center">
+          <div className="size-10 rounded-xl bg-accent/15 text-accent-foreground flex items-center justify-center transition-transform group-hover:scale-105">
             <Megaphone className="size-5" />
           </div>
           <div className="flex-1">
