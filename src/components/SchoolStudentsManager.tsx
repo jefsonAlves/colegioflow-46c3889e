@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/States";
 import { StudentSearchInput, matchesInitial } from "@/components/StudentSearchInput";
-import { listStudents, updateStudent } from "@/lib/students";
+import { listStudents, updateStudent, type StudentDoc } from "@/lib/students";
 import { listClasses } from "@/lib/classes";
 import { moveStudentsToClass } from "@/lib/studentMovement";
 import {

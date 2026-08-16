@@ -29,6 +29,7 @@ const PROFILE_LABEL: Record<ProfileType, string> = {
   teacher: "Professor(a)",
   school_admin: "Administrador da Escola",
   parent: "Pai / Responsável",
+  pedagogical: "Educador(a) Pedagógico(a)",
 };
 
 function PerfilPage() {
@@ -198,6 +199,7 @@ function PerfilPage() {
                       ["teacher", "Sou Professor(a)"],
                       ["school_admin", "Sou Administrador da Escola"],
                       ["parent", "Sou Pai / Responsável"],
+                      ["pedagogical", "Sou Educador(a) Pedagógico(a)"],
                     ] as [ProfileType, string][]
                   ).map(([v, label]) => (
                     <button
