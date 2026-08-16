@@ -13,7 +13,7 @@ export function BottomNav() {
 
   const items = [
     { to: "/app", label: "Início", icon: Home },
-    ...((userDoc.profileType === "school_admin" || userDoc.globalRole === "master")
+    ...((userDoc.profileType === "school_admin" || userDoc.profileType === "pedagogical" || userDoc.globalRole === "master")
       ? [{ to: "/app/escola", label: "Escola", icon: School }]
       : []),
     ...(userDoc.globalRole === "master"
