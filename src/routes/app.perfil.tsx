@@ -42,6 +42,7 @@ function PerfilPage() {
   const [profileType, setProfileType] = useState<ProfileType | undefined>(
     userDoc?.profileType,
   );
+  const [gender, setGender] = useState<"male" | "female" | "other" | null | undefined>(userDoc?.gender);
   const [saving, setSaving] = useState(false);
 
   const memQ = useQuery({
@@ -64,6 +65,7 @@ function PerfilPage() {
   const startEdit = () => {
     setName(userDoc.name);
     setProfileType(userDoc.profileType);
+    setGender(userDoc.gender);
     setEditing(true);
   };
 
@@ -87,6 +89,7 @@ function PerfilPage() {
       await updateUserProfile(firebaseUser.uid, {
         name: name.trim(),
         profileType,
+        gender: gender ?? null,
         onboardingComplete: true,
       });
       await refresh();
@@ -166,6 +169,12 @@ function PerfilPage() {
                 </div>
               </div>
               <div>
+                <div className="text-muted-foreground text-xs">Gênero</div>
+                <div className="font-medium">
+                  {userDoc.gender === "male" ? "Masculino" : userDoc.gender === "female" ? "Feminino" : "Outro / Não informado"}
+                </div>
+              </div>
+              <div className="col-span-2">
                 <div className="text-muted-foreground text-xs">Papel global</div>
                 <div className="font-medium capitalize">{userDoc.globalRole}</div>
               </div>
@@ -198,7 +207,28 @@ function PerfilPage() {
                   ))}
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="space-y-1.5">
+                <Label>Gênero (para saudações)</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { v: "male", l: "Masculino" },
+                    { v: "female", l: "Feminino" },
+                    { v: "other", l: "Outro" },
+                  ].map(({ v, l }) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setGender(v as any)}
+                      className={`text-center rounded-lg border p-2 text-sm ${
+                        gender === v ? "border-primary bg-primary/5" : "bg-card text-muted-foreground"
+                      }`}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2">
                 <Button variant="outline" className="flex-1" onClick={cancelEdit}>
                   <X className="size-4" /> Cancelar
                 </Button>

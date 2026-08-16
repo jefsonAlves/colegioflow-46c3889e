@@ -93,6 +93,6 @@ export async function updateUserProfile(
   if (patch.onboardingComplete !== undefined) row.onboarding_complete = patch.onboardingComplete;
   if (patch.photoUrl !== undefined) row.photo_url = patch.photoUrl;
   if (patch.gender !== undefined) row.gender = patch.gender;
-  const { error } = await supabase.from("profiles").update(row).eq("id", uid);
+  const { error } = await supabase.from("profiles").update(row as any).eq("id", uid);
   if (error) throw error;
 }
