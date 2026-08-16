@@ -194,7 +194,7 @@ function AvisosLink({ schoolId }: { schoolId: string }) {
   const unread = items.filter((a) => !reads.has(a.id)).length;
   return (
     <Link to="/app/avisos">
-      <Card className="transition active:scale-[0.99]">
+      <Card className="transition active:scale-[0.98] border-muted/50 shadow-sm hover:shadow-md hover:border-primary/40 group">
         <CardContent className="pt-4 pb-4 flex items-center gap-3">
           <div className="size-10 rounded-lg bg-accent/15 text-accent-foreground flex items-center justify-center">
             <Megaphone className="size-5" />
