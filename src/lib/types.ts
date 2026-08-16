@@ -1,5 +1,5 @@
 export type GlobalRole = "master" | "user";
-export type ProfileType = "teacher" | "school_admin" | "parent";
+export type ProfileType = "teacher" | "school_admin" | "parent" | "pedagogical";
 export type SchoolStatus = "active" | "pending" | "blocked" | "merged_into";
 export type MembershipStatus = "pending" | "approved" | "rejected" | "blocked";
 export type RoleInSchool = "school_admin" | "teacher" | "coordinator" | "master";

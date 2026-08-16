@@ -39,8 +39,9 @@ export function SchoolStudentsManager({ schoolId }: { schoolId: string }) {
   const [filter, setFilter] = useState("");
   const [target, setTarget] = useState("");
   const [moving, setMoving] = useState(false);
-  const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
+  const [editing, setEditing] = useState<StudentDoc | null>(null);
   const [editName, setEditName] = useState("");
+  const [editStatus, setEditStatus] = useState<"active" | "transferred">("active");
 
   const classMap = useMemo(
     () => Object.fromEntries((classesQ.data ?? []).map((c) => [c.id, `${c.name} (${c.year})`])),
@@ -87,8 +88,11 @@ export function SchoolStudentsManager({ schoolId }: { schoolId: string }) {
   const saveEdit = async () => {
     if (!editing || !editName.trim()) return;
     try {
-      await updateStudent(schoolId, editing.id, { name: editName.trim() });
-      toast.success("Nome atualizado!");
+      await updateStudent(schoolId, editing.id, { 
+        name: editName.trim(),
+        status: editStatus 
+      });
+      toast.success("Dados do aluno atualizados!");
       setEditing(null);
       qc.invalidateQueries({ queryKey: ["students-all", schoolId] });
       qc.invalidateQueries({ queryKey: ["students", schoolId] });
@@ -159,7 +163,10 @@ export function SchoolStudentsManager({ schoolId }: { schoolId: string }) {
                     checked={selected.has(s.id)}
                     onChange={() => toggle(s.id)}
                   />
-                  <span className="flex-1 truncate">{s.name}</span>
+                  <span className={`flex-1 truncate ${s.status === 'transferred' ? 'text-muted-foreground line-through' : ''}`}>
+                    {s.name}
+                    {s.status === 'transferred' && <span className="ml-2 text-[10px] bg-muted px-1 rounded no-underline">Transferido</span>}
+                  </span>
                   <div className="flex items-center gap-1">
                     <span className="text-[11px] text-muted-foreground mr-1">
                       {classMap[s.classId] ?? "sem turma"}
@@ -172,6 +179,7 @@ export function SchoolStudentsManager({ schoolId }: { schoolId: string }) {
                         e.preventDefault();
                         setEditing(s);
                         setEditName(s.name);
+                        setEditStatus(s.status || "active");
                       }}
                     >
                       <Pencil className="size-3.5" />
@@ -193,6 +201,17 @@ export function SchoolStudentsManager({ schoolId }: { schoolId: string }) {
             <div className="space-y-1.5">
               <Label className="text-xs">Nome do Aluno</Label>
               <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Status</Label>
+              <select
+                className="w-full h-10 rounded-md border bg-background px-3 text-sm"
+                value={editStatus}
+                onChange={(e) => setEditStatus(e.target.value as any)}
+              >
+                <option value="active">Ativo</option>
+                <option value="transferred">Transferido</option>
+              </select>
             </div>
           </div>
           <AlertDialogFooter>
