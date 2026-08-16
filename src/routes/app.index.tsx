@@ -11,6 +11,7 @@ import {
   Activity,
   ListTodo,
   Megaphone,
+  Shield,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
