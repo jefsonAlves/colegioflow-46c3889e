@@ -928,6 +928,7 @@ export type Database = {
           active: boolean
           created_at: string
           email: string
+          gender: string | null
           id: string
           name: string
           onboarding_complete: boolean
@@ -939,6 +940,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           email: string
+          gender?: string | null
           id: string
           name?: string
           onboarding_complete?: boolean
@@ -950,6 +952,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           email?: string
+          gender?: string | null
           id?: string
           name?: string
           onboarding_complete?: boolean
