@@ -10,6 +10,7 @@ import {
   Building2,
   ChevronRight,
   Activity,
+  ListTodo,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/app/")({
 });
 
 interface Action {
-  to: "/app/frequencia" | "/app/notas" | "/app/turmas" | "/app/boletim" | "/app/advertencias" | "/app/relatorios" | "/app/desempenho";
+  to: "/app/frequencia" | "/app/notas" | "/app/turmas" | "/app/boletim" | "/app/advertencias" | "/app/relatorios" | "/app/desempenho" | "/app/eventualidades";
   label: string;
   description: string;
   icon: LucideIcon;
@@ -42,6 +43,7 @@ const ACTIONS: Action[] = [
   { to: "/app/boletim", label: "Boletim", description: "Fechamento do bimestre", icon: FileText, accent: "secondary" },
   { to: "/app/advertencias", label: "Advertências", description: "Registrar ocorrências", icon: AlertOctagon, accent: "accent" },
   { to: "/app/relatorios", label: "Relatórios", description: "Desempenho dos alunos", icon: BarChart3, accent: "primary" },
+  { to: "/app/eventualidades", label: "Eventualidades", description: "Listas e eventos", icon: ListTodo, accent: "secondary" },
 ];
 
 function accentClasses(a: Action["accent"]) {
