@@ -23,9 +23,9 @@ export function BottomNav() {
   ] as const;
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-30 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+    <nav className="fixed bottom-0 inset-x-0 z-30 border-t border-border/40 bg-card/80 backdrop-blur-xl supports-[backdrop-filter]:bg-card/70">
       <ul
-        className="mx-auto max-w-md grid px-2 pb-[env(safe-area-inset-bottom)]"
+        className="mx-auto max-w-md grid px-4 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-3"
         style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0,1fr))` }}
       >
         {items.map((it) => {
@@ -43,21 +43,28 @@ export function BottomNav() {
                   }
                 }}
                 className={cn(
-                  "flex flex-col items-center gap-1 py-2 text-[10px] font-medium transition-all duration-200 relative",
-                  active ? "text-primary" : "text-muted-foreground",
+                  "flex flex-col items-center gap-1.5 py-1 text-[11px] font-bold transition-all duration-300 relative",
+                  active ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <div className={cn(
-                  "p-1.5 rounded-xl transition-all duration-300",
-                  active ? "bg-primary/10 scale-110" : "group-hover:bg-muted"
+                  "p-2 rounded-2xl transition-all duration-500 relative",
+                  active ? "bg-primary/15 text-primary shadow-lg shadow-primary/10" : "group-hover:bg-muted/50"
                 )}>
-                  <Icon className={cn("size-5", active && "stroke-[2.5px]")} />
+                  <Icon className={cn("size-6 transition-transform duration-500", active && "scale-110 stroke-[2.5px]")} />
+                  {active && (
+                    <motion.div
+                      layoutId="nav-glow"
+                      className="absolute inset-0 bg-primary/20 blur-xl rounded-full -z-10"
+                    />
+                  )}
                 </div>
-                {it.label}
+                <span className="tracking-tight">{it.label}</span>
                 {active && (
                   <motion.div
                     layoutId="nav-indicator"
-                    className="absolute -top-1 w-1 h-1 rounded-full bg-primary"
+                    className="absolute -top-3 w-6 h-1 rounded-full bg-primary"
+                    transition={{ type: "spring", bounce: 0.3, duration: 0.6 }}
                   />
                 )}
               </Link>
@@ -106,41 +113,46 @@ export function AppShell({
     }
   };
   return (
-    <div className="min-h-screen bg-muted/20 pb-24 overflow-x-hidden">
-      <header className="sticky top-0 z-20 bg-card/80 backdrop-blur-md border-b">
-        <div className="mx-auto max-w-md px-2 h-14 flex items-center gap-1">
+    <div className="min-h-screen bg-linear-to-b from-background to-muted/30 pb-24 overflow-x-hidden">
+      <header className="sticky top-0 z-20 bg-card/60 backdrop-blur-xl border-b border-border/40">
+        <div className="mx-auto max-w-md px-3 h-16 flex items-center gap-2">
           {back ? (
             <Button
               variant="ghost"
               size="icon"
               aria-label="Voltar"
               onClick={handleBack}
-              className="shrink-0 active:scale-90 transition-transform"
+              className="shrink-0 active:scale-90 transition-all duration-200 hover:bg-primary/10 hover:text-primary rounded-2xl"
             >
-              <ChevronLeft className="size-5" />
+              <ChevronLeft className="size-6" />
             </Button>
           ) : (
             <div className="w-2" />
           )}
           <motion.h1 
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
             key={title}
-            className="text-base font-semibold truncate flex-1"
+            className="text-lg font-bold tracking-tight truncate flex-1"
           >
             {title}
           </motion.h1>
           {right}
         </div>
       </header>
-      <main className="mx-auto max-w-md px-4 py-4 space-y-4">
+      <main className="mx-auto max-w-md px-4 py-6 space-y-6">
         <AnimatePresence mode="wait">
           <motion.div
             key={router.state.location.pathname}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            initial={{ opacity: 0, scale: 0.98, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 1.02, y: -10 }}
+            transition={{ 
+              type: "spring", 
+              damping: 20, 
+              stiffness: 150,
+              mass: 0.8
+            }}
           >
             {children}
           </motion.div>

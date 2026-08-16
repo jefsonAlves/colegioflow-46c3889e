@@ -131,14 +131,15 @@ function AppHome() {
                   return (
                     <motion.div key={a.to} variants={itemVariants}>
                       <Link to={a.to} className="group">
-                        <Card className="h-full transition active:scale-[0.96] hover:border-primary/40 shadow-sm hover:shadow-md border-muted/50">
-                          <CardContent className="pt-5 pb-4 flex flex-col gap-2 items-start min-h-[124px]">
-                            <div className={`size-11 rounded-2xl border flex items-center justify-center ${accentClasses(a.accent)} transition-transform group-hover:scale-110 duration-300`}>
-                              <Icon className="size-5" />
+                        <Card className="h-full overflow-hidden transition-all duration-300 active:scale-[0.96] hover:scale-[1.02] hover:border-primary/50 shadow-sm hover:shadow-xl border-muted/50 bg-card/50 backdrop-blur-sm relative group">
+                          <div className="absolute inset-0 bg-linear-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <CardContent className="pt-6 pb-5 flex flex-col gap-3 items-start min-h-[140px] relative z-10">
+                            <div className={`size-12 rounded-2xl border flex items-center justify-center ${accentClasses(a.accent)} transition-all duration-500 group-hover:rotate-6 group-hover:shadow-lg group-hover:shadow-primary/20`}>
+                              <Icon className="size-6" />
                             </div>
-                            <div className="space-y-0.5">
-                              <div className="font-semibold leading-tight">{a.label}</div>
-                              <div className="text-xs text-muted-foreground">{a.description}</div>
+                            <div className="space-y-1">
+                              <div className="font-bold text-lg leading-tight tracking-tight">{a.label}</div>
+                              <div className="text-xs text-muted-foreground font-medium leading-relaxed">{a.description}</div>
                             </div>
                           </CardContent>
                         </Card>
