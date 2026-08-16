@@ -154,18 +154,19 @@ function AppHome() {
 
                 {userDoc.profileType === "school_admin" && (
                   <Link to="/app/escola">
-                    <Card className="transition active:scale-[0.98] border-muted/50 shadow-sm hover:shadow-md hover:border-primary/40">
-                      <CardContent className="pt-4 pb-4 flex items-center gap-3">
-                        <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center transition-transform group-hover:scale-105">
-                          <Building2 className="size-5" />
+                    <Card className="transition-all duration-300 active:scale-[0.98] border-muted/50 shadow-sm hover:shadow-xl hover:border-primary/50 group overflow-hidden relative">
+                      <div className="absolute inset-0 bg-linear-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <CardContent className="pt-5 pb-5 flex items-center gap-4 relative z-10">
+                        <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-lg group-hover:shadow-primary/10">
+                          <Building2 className="size-6" />
                         </div>
                         <div className="flex-1">
-                          <div className="font-semibold">Minha escola</div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="font-bold text-lg leading-tight">Minha escola</div>
+                          <div className="text-xs text-muted-foreground font-medium">
                             Aprovar professores, configurar dados
                           </div>
                         </div>
-                        <ChevronRight className="size-5 text-muted-foreground" />
+                        <ChevronRight className="size-6 text-muted-foreground group-hover:text-primary transition-colors group-hover:translate-x-1 duration-300" />
                       </CardContent>
                     </Card>
                   </Link>
@@ -195,23 +196,24 @@ function AvisosLink({ schoolId }: { schoolId: string }) {
   const unread = items.filter((a) => !reads.has(a.id)).length;
   return (
     <Link to="/app/avisos">
-      <Card className="transition active:scale-[0.98] border-muted/50 shadow-sm hover:shadow-md hover:border-primary/40 group">
-        <CardContent className="pt-4 pb-4 flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-accent/15 text-accent-foreground flex items-center justify-center transition-transform group-hover:scale-105">
-            <Megaphone className="size-5" />
+      <Card className="transition-all duration-300 active:scale-[0.98] border-muted/50 shadow-sm hover:shadow-xl hover:border-primary/50 group overflow-hidden relative">
+        <div className="absolute inset-0 bg-linear-to-r from-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <CardContent className="pt-5 pb-5 flex items-center gap-4 relative z-10">
+          <div className="size-12 rounded-2xl bg-accent/15 text-accent-foreground flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-lg group-hover:shadow-accent/10">
+            <Megaphone className="size-6" />
           </div>
           <div className="flex-1">
-            <div className="font-semibold flex items-center gap-2">
+            <div className="font-bold text-lg leading-tight flex items-center gap-2">
               Avisos
               {unread > 0 && (
-                <span className="rounded-full bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 font-bold">
+                <span className="rounded-full bg-primary text-primary-foreground text-[10px] px-2 py-0.5 font-black shadow-lg shadow-primary/20">
                   {unread}
                 </span>
               )}
             </div>
-            <div className="text-xs text-muted-foreground">Comunicados da escola e turmas</div>
+            <div className="text-xs text-muted-foreground font-medium">Comunicados da escola e turmas</div>
           </div>
-          <ChevronRight className="size-5 text-muted-foreground" />
+          <ChevronRight className="size-6 text-muted-foreground group-hover:text-accent-foreground transition-colors group-hover:translate-x-1 duration-300" />
         </CardContent>
       </Card>
     </Link>
