@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Users, Trash2, Plus, UserPlus, FileUp } from "lucide-react";
+import { Users, Trash2, Plus, UserPlus, FileUp, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +48,6 @@ export function SchoolClassesManager({ schoolId }: { schoolId: string }) {
   const [creating, setCreating] = useState(false);
   const [addingStudent, setAddingStudent] = useState<{ id: string; name: string } | null>(null);
   const [editingClass, setEditingClass] = useState<{ id: string; name: string; gradeLevel: string | null; year: number } | null>(null);
-  const [editingStudent, setEditingStudent] = useState<{ id: string; name: string; classId: string } | null>(null);
   
   const [newName, setNewName] = useState("");
   const [newGrade, setNewGrade] = useState("");
@@ -96,6 +95,23 @@ export function SchoolClassesManager({ schoolId }: { schoolId: string }) {
     } catch (e) {
       console.error(e);
       toast.error("Erro ao criar turma.");
+    }
+  };
+
+  const doUpdateClass = async () => {
+    if (!editingClass) return;
+    try {
+      await updateClass(schoolId, editingClass.id, {
+        name: editName,
+        gradeLevel: editGrade || null,
+        year: editYear,
+      });
+      toast.success("Turma atualizada!");
+      setEditingClass(null);
+      qc.invalidateQueries({ queryKey: ["classes", schoolId] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao atualizar turma.");
     }
   };
 
@@ -207,6 +223,19 @@ export function SchoolClassesManager({ schoolId }: { schoolId: string }) {
                       size="sm"
                       variant="ghost"
                       className="size-8 p-0 text-primary hover:bg-primary/10"
+                      onClick={() => {
+                        setEditingClass(c);
+                        setEditName(c.name);
+                        setEditGrade(c.gradeLevel || "");
+                        setEditYear(c.year);
+                      }}
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="size-8 p-0 text-primary hover:bg-primary/10"
                       onClick={() => setAddingStudent({ id: c.id, name: c.name })}
                     >
                       <UserPlus className="size-4" />
@@ -281,6 +310,38 @@ export function SchoolClassesManager({ schoolId }: { schoolId: string }) {
                 <><Plus className="size-4 mr-2" /> Cadastrar</>
               )}
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!editingClass} onOpenChange={(o) => !o && setEditingClass(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Editar Turma</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nome</Label>
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Série</Label>
+                <Input value={editGrade} onChange={(e) => setEditGrade(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Ano Letivo</Label>
+              <Input
+                type="number"
+                value={editYear}
+                onChange={(e) => setEditYear(Number(e.target.value))}
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={doUpdateClass}>Salvar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
