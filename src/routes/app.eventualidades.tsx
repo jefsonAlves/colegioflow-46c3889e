@@ -26,7 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loading, EmptyState } from "@/components/States";
 import { useAuth } from "@/contexts/AuthContext";
-import { listClasses } from "@/lib/classes";
+import { listClasses, type ClassDoc } from "@/lib/classes";
 import { listMyTaughtClasses } from "@/lib/classTeachers";
 import { listStudentsByClass } from "@/lib/students";
 import {
@@ -167,7 +167,7 @@ function NewEventForm({
   onSuccess
 }: {
   schoolId: string;
-  classes: any[];
+  classes: ClassDoc[];
   teacherId: string;
   onBack: () => void;
   onSuccess: () => void;
