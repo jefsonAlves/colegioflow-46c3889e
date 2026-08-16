@@ -1265,6 +1265,7 @@ export type Database = {
           school_id: string
           special_needs: boolean
           special_needs_note: string | null
+          status: string | null
         }
         Insert: {
           class_id?: string | null
@@ -1280,6 +1281,7 @@ export type Database = {
           school_id: string
           special_needs?: boolean
           special_needs_note?: string | null
+          status?: string | null
         }
         Update: {
           class_id?: string | null
@@ -1295,6 +1297,7 @@ export type Database = {
           school_id?: string
           special_needs?: boolean
           special_needs_note?: string | null
+          status?: string | null
         }
         Relationships: [
           {

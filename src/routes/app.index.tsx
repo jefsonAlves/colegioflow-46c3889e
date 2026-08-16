@@ -11,6 +11,7 @@ import {
   Activity,
   ListTodo,
   Megaphone,
+  Shield,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -46,6 +47,7 @@ const ACTIONS: Action[] = [
   { to: "/app/advertencias", label: "Advertências", description: "Registrar ocorrências", icon: AlertOctagon, accent: "accent" },
   { to: "/app/relatorios", label: "Relatórios", description: "Desempenho dos alunos", icon: BarChart3, accent: "primary" },
   { to: "/app/eventualidades", label: "Crie seus Eventos Rápidos", description: "Listas e eventos", icon: ListTodo, accent: "secondary" },
+  { to: "/app/pedagogico", label: "Gestão Pedagógica", description: "Dossiês e notificações", icon: Shield, accent: "accent" },
 ];
 
 function accentClasses(a: Action["accent"]) {
