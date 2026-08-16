@@ -661,6 +661,102 @@ export type Database = {
         }
         Relationships: []
       }
+      eventualities: {
+        Row: {
+          class_id: string
+          created_at: string | null
+          deadline: string | null
+          description: string | null
+          event_type: Database["public"]["Enums"]["eventuality_type"]
+          id: string
+          school_id: string
+          status: string
+          teacher_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          class_id: string
+          created_at?: string | null
+          deadline?: string | null
+          description?: string | null
+          event_type?: Database["public"]["Enums"]["eventuality_type"]
+          id?: string
+          school_id: string
+          status?: string
+          teacher_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          class_id?: string
+          created_at?: string | null
+          deadline?: string | null
+          description?: string | null
+          event_type?: Database["public"]["Enums"]["eventuality_type"]
+          id?: string
+          school_id?: string
+          status?: string
+          teacher_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventualities_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eventualities_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      eventuality_records: {
+        Row: {
+          eventuality_id: string
+          id: string
+          marked_at: string | null
+          student_id: string
+          value: Json
+        }
+        Insert: {
+          eventuality_id: string
+          id?: string
+          marked_at?: string | null
+          student_id: string
+          value: Json
+        }
+        Update: {
+          eventuality_id?: string
+          id?: string
+          marked_at?: string | null
+          student_id?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventuality_records_eventuality_id_fkey"
+            columns: ["eventuality_id"]
+            isOneToOne: false
+            referencedRelation: "eventualities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eventuality_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grades: {
         Row: {
           class_id: string
@@ -1397,6 +1493,7 @@ export type Database = {
     }
     Enums: {
       announcement_audience: "parents" | "teachers" | "all"
+      eventuality_type: "boolean" | "numeric" | "status" | "custom"
       global_role: "master" | "user"
       membership_status: "pending" | "approved" | "rejected" | "blocked"
       profile_type: "teacher" | "school_admin" | "parent"
@@ -1530,6 +1627,7 @@ export const Constants = {
   public: {
     Enums: {
       announcement_audience: ["parents", "teachers", "all"],
+      eventuality_type: ["boolean", "numeric", "status", "custom"],
       global_role: ["master", "user"],
       membership_status: ["pending", "approved", "rejected", "blocked"],
       profile_type: ["teacher", "school_admin", "parent"],

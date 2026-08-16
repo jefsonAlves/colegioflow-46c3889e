@@ -22,6 +22,7 @@ import { Route as AppAvisosRouteImport } from './routes/app.avisos'
 import { Route as AppBoletimRouteImport } from './routes/app.boletim'
 import { Route as AppDesempenhoRouteImport } from './routes/app.desempenho'
 import { Route as AppEscolaRouteImport } from './routes/app.escola'
+import { Route as AppEventualidadesRouteImport } from './routes/app.eventualidades'
 import { Route as AppFrequenciaRouteImport } from './routes/app.frequencia'
 import { Route as AppMasterRouteImport } from './routes/app.master'
 import { Route as AppNotasRouteImport } from './routes/app.notas'
@@ -101,6 +102,11 @@ const AppEscolaRoute = AppEscolaRouteImport.update({
   path: '/escola',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEventualidadesRoute = AppEventualidadesRouteImport.update({
+  id: '/eventualidades',
+  path: '/eventualidades',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppFrequenciaRoute = AppFrequenciaRouteImport.update({
   id: '/frequencia',
   path: '/frequencia',
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/app/boletim': typeof AppBoletimRoute
   '/app/desempenho': typeof AppDesempenhoRoute
   '/app/escola': typeof AppEscolaRoute
+  '/app/eventualidades': typeof AppEventualidadesRoute
   '/app/frequencia': typeof AppFrequenciaRoute
   '/app/master': typeof AppMasterRouteWithChildren
   '/app/notas': typeof AppNotasRoute
@@ -197,6 +204,7 @@ export interface FileRoutesByTo {
   '/app/boletim': typeof AppBoletimRoute
   '/app/desempenho': typeof AppDesempenhoRoute
   '/app/escola': typeof AppEscolaRoute
+  '/app/eventualidades': typeof AppEventualidadesRoute
   '/app/frequencia': typeof AppFrequenciaRoute
   '/app/master': typeof AppMasterRouteWithChildren
   '/app/notas': typeof AppNotasRoute
@@ -224,6 +232,7 @@ export interface FileRoutesById {
   '/app/boletim': typeof AppBoletimRoute
   '/app/desempenho': typeof AppDesempenhoRoute
   '/app/escola': typeof AppEscolaRoute
+  '/app/eventualidades': typeof AppEventualidadesRoute
   '/app/frequencia': typeof AppFrequenciaRoute
   '/app/master': typeof AppMasterRouteWithChildren
   '/app/notas': typeof AppNotasRoute
@@ -252,6 +261,7 @@ export interface FileRouteTypes {
     | '/app/boletim'
     | '/app/desempenho'
     | '/app/escola'
+    | '/app/eventualidades'
     | '/app/frequencia'
     | '/app/master'
     | '/app/notas'
@@ -277,6 +287,7 @@ export interface FileRouteTypes {
     | '/app/boletim'
     | '/app/desempenho'
     | '/app/escola'
+    | '/app/eventualidades'
     | '/app/frequencia'
     | '/app/master'
     | '/app/notas'
@@ -303,6 +314,7 @@ export interface FileRouteTypes {
     | '/app/boletim'
     | '/app/desempenho'
     | '/app/escola'
+    | '/app/eventualidades'
     | '/app/frequencia'
     | '/app/master'
     | '/app/notas'
@@ -424,6 +436,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEscolaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/eventualidades': {
+      id: '/app/eventualidades'
+      path: '/eventualidades'
+      fullPath: '/app/eventualidades'
+      preLoaderRoute: typeof AppEventualidadesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/frequencia': {
       id: '/app/frequencia'
       path: '/frequencia'
@@ -522,6 +541,7 @@ interface AppRouteChildren {
   AppBoletimRoute: typeof AppBoletimRoute
   AppDesempenhoRoute: typeof AppDesempenhoRoute
   AppEscolaRoute: typeof AppEscolaRoute
+  AppEventualidadesRoute: typeof AppEventualidadesRoute
   AppFrequenciaRoute: typeof AppFrequenciaRoute
   AppMasterRoute: typeof AppMasterRouteWithChildren
   AppNotasRoute: typeof AppNotasRoute
@@ -537,6 +557,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppBoletimRoute: AppBoletimRoute,
   AppDesempenhoRoute: AppDesempenhoRoute,
   AppEscolaRoute: AppEscolaRoute,
+  AppEventualidadesRoute: AppEventualidadesRoute,
   AppFrequenciaRoute: AppFrequenciaRoute,
   AppMasterRoute: AppMasterRouteWithChildren,
   AppNotasRoute: AppNotasRoute,
