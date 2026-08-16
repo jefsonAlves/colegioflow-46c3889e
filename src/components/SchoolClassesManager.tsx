@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Users, Trash2, Plus, Pencil } from "lucide-react";
+import { Users, Trash2, Plus, UserPlus, FileUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loading, EmptyState } from "@/components/States";
 import { listClasses, deleteClass, createClass } from "@/lib/classes";
+import { listStudents, createStudent, importStudents } from "@/lib/students";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,11 +30,30 @@ export function SchoolClassesManager({ schoolId }: { schoolId: string }) {
     staleTime: 30_000,
   });
 
+  const studentsQ = useQuery({
+    queryKey: ["students-all", schoolId],
+    queryFn: () => listStudents(schoolId),
+    staleTime: 30_000,
+  });
+
+  const studentCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    (studentsQ.data ?? []).forEach((s) => {
+      counts[s.classId] = (counts[s.classId] || 0) + 1;
+    });
+    return counts;
+  }, [studentsQ.data]);
+
   const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
   const [creating, setCreating] = useState(false);
+  const [addingStudent, setAddingStudent] = useState<{ id: string; name: string } | null>(null);
   const [newName, setNewName] = useState("");
   const [newGrade, setNewGrade] = useState("");
   const [newYear, setNewYear] = useState<number>(new Date().getFullYear());
+
+  const [studentName, setStudentName] = useState("");
+  const [bulkImport, setBulkImport] = useState(false);
+  const [bulkList, setBulkList] = useState("");
 
   const doDelete = async () => {
     if (!deleting) return;
