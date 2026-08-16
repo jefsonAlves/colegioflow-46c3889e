@@ -185,8 +185,13 @@ function PerfilPage() {
                 <Label>Nome completo</Label>
                 <Input value={name} onChange={(e) => setName(e.target.value)} />
               </div>
-              <div className="space-y-1.5">
-                <Label>Tipo de perfil</Label>
+              <div className="space-y-1.5 opacity-60">
+                <Label className="flex items-center gap-2">
+                  Tipo de perfil
+                  <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-normal">
+                    Somente Master
+                  </span>
+                </Label>
                 <div className="grid grid-cols-1 gap-2">
                   {(
                     [
@@ -197,8 +202,8 @@ function PerfilPage() {
                   ).map(([v, label]) => (
                     <button
                       key={v}
-                      onClick={() => setProfileType(v)}
-                      className={`text-left rounded-lg border p-2.5 text-sm ${
+                      disabled={userDoc.globalRole !== "master"}
+                      className={`text-left rounded-lg border p-2.5 text-sm cursor-not-allowed ${
                         profileType === v ? "border-primary bg-primary/5" : "bg-card"
                       }`}
                     >
