@@ -89,18 +89,17 @@ export function SchoolClassesManager({ schoolId }: { schoolId: string }) {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Nome</Label>
-                <Input size="sm" placeholder="Ex: 1º Ano A" value={newName} onChange={e => setNewName(e.target.value)} />
+                <Input placeholder="Ex: 1º Ano A" value={newName} onChange={e => setNewName(e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Série</Label>
-                <Input size="sm" placeholder="Ex: 1º Ano" value={newGrade} onChange={e => setNewGrade(e.target.value)} />
+                <Input placeholder="Ex: 1º Ano" value={newGrade} onChange={e => setNewGrade(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Ano Letivo</Label>
               <Input
                 type="number"
-                size="sm"
                 value={newYear}
                 onChange={(e) => {
                   const val = e.target.value;
