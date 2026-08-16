@@ -226,7 +226,7 @@ function NewEventForm({
       <Card>
         <CardHeader>
           <CardTitle>Nova Eventualidade</CardTitle>
-          <CardDescription>Configure como deseja fazer a marcação desta lista.</CardDescription>
+          <CardDescription>o modo de registrar posso mudar a qulaquer momento só não posso auterar o registro salvo com dados ja resistrado lembrando que depois posso apagar as eventulidades</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
