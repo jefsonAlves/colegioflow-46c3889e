@@ -1,14 +1,25 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Users, ArrowRightLeft } from "lucide-react";
+import { Users, ArrowRightLeft, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/States";
 import { StudentSearchInput, matchesInitial } from "@/components/StudentSearchInput";
-import { listStudents } from "@/lib/students";
+import { listStudents, updateStudent } from "@/lib/students";
 import { listClasses } from "@/lib/classes";
 import { moveStudentsToClass } from "@/lib/studentMovement";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 export function SchoolStudentsManager({ schoolId }: { schoolId: string }) {
   const qc = useQueryClient();
@@ -28,6 +39,8 @@ export function SchoolStudentsManager({ schoolId }: { schoolId: string }) {
   const [filter, setFilter] = useState("");
   const [target, setTarget] = useState("");
   const [moving, setMoving] = useState(false);
+  const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
+  const [editName, setEditName] = useState("");
 
   const classMap = useMemo(
     () => Object.fromEntries((classesQ.data ?? []).map((c) => [c.id, `${c.name} (${c.year})`])),
@@ -68,6 +81,21 @@ export function SchoolStudentsManager({ schoolId }: { schoolId: string }) {
       toast.error("Erro ao mover alunos.");
     } finally {
       setMoving(false);
+    }
+  };
+
+  const saveEdit = async () => {
+    if (!editing || !editName.trim()) return;
+    try {
+      await updateStudent(schoolId, editing.id, { name: editName.trim() });
+      toast.success("Nome atualizado!");
+      setEditing(null);
+      qc.invalidateQueries({ queryKey: ["students-all", schoolId] });
+      qc.invalidateQueries({ queryKey: ["students", schoolId] });
+      qc.invalidateQueries({ queryKey: ["students-counts", schoolId] });
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao atualizar nome.");
     }
   };
 
@@ -132,15 +160,47 @@ export function SchoolStudentsManager({ schoolId }: { schoolId: string }) {
                     onChange={() => toggle(s.id)}
                   />
                   <span className="flex-1 truncate">{s.name}</span>
-                  <span className="text-[11px] text-muted-foreground">
-                    {classMap[s.classId] ?? "sem turma"}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[11px] text-muted-foreground mr-1">
+                      {classMap[s.classId] ?? "sem turma"}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="size-7 p-0 hover:bg-primary/10 text-primary"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setEditing(s);
+                        setEditName(s.name);
+                      }}
+                    >
+                      <Pencil className="size-3.5" />
+                    </Button>
+                  </div>
                 </label>
               ))}
             </div>
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Editar Aluno</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nome do Aluno</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={saveEdit}>Salvar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }
