@@ -43,7 +43,7 @@ const ACTIONS: Action[] = [
   { to: "/app/boletim", label: "Boletim", description: "Fechamento do bimestre", icon: FileText, accent: "secondary" },
   { to: "/app/advertencias", label: "Advertências", description: "Registrar ocorrências", icon: AlertOctagon, accent: "accent" },
   { to: "/app/relatorios", label: "Relatórios", description: "Desempenho dos alunos", icon: BarChart3, accent: "primary" },
-  { to: "/app/eventualidades", label: "Eventualidades", description: "Listas e eventos", icon: ListTodo, accent: "secondary" },
+  { to: "/app/eventualidades", label: "Crie seus Eventos Rápidos", description: "Listas e eventos", icon: ListTodo, accent: "secondary" },
 ];
 
 function accentClasses(a: Action["accent"]) {
@@ -62,9 +62,11 @@ function AppHome() {
   if (!userDoc) return null;
 
   const firstName = userDoc.name?.split(" ")[0] ?? "";
+  const isFemale = userDoc.gender === "female";
+  const salutation = isFemale ? "Professora" : "Professor";
 
   return (
-    <AppShell title={`Olá, ${firstName}`} back={false}>
+    <AppShell title={`Olá, ${salutation} ${firstName}`} back={false}>
       <SchoolGate>
         {({ schoolId }) => (
           <>
