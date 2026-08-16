@@ -23,6 +23,7 @@ import {
 import type { MembershipDoc, SchoolDoc, UserDoc } from "@/lib/types";
 import { SchoolCertificatesSection } from "@/components/SchoolCertificates";
 import { SchoolStudentsManager } from "@/components/SchoolStudentsManager";
+import { SchoolClassesManager } from "@/components/SchoolClassesManager";
 import { SchoolStaffSection } from "@/components/SchoolStaffSection";
 import { SchoolUsageSummary } from "@/components/SchoolUsageSummary";
 import { TipsTour } from "@/components/TipsTour";
@@ -180,6 +181,8 @@ function SchoolAdminCard({ school, onChanged }: { school: SchoolDoc; onChanged: 
       <SchoolUsageSummary schoolId={school.id} />
 
       <SchoolStaffSection schoolId={school.id} />
+
+      <SchoolClassesManager schoolId={school.id} />
 
       <section>
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
