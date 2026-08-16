@@ -43,12 +43,23 @@ export function BottomNav() {
                   }
                 }}
                 className={cn(
-                  "flex flex-col items-center gap-1 py-2.5 text-xs font-medium",
+                  "flex flex-col items-center gap-1 py-2 text-[10px] font-medium transition-all duration-200 relative",
                   active ? "text-primary" : "text-muted-foreground",
                 )}
               >
-                <Icon className="size-5" />
+                <div className={cn(
+                  "p-1.5 rounded-xl transition-all duration-300",
+                  active ? "bg-primary/10 scale-110" : "group-hover:bg-muted"
+                )}>
+                  <Icon className={cn("size-5", active && "stroke-[2.5px]")} />
+                </div>
                 {it.label}
+                {active && (
+                  <motion.div
+                    layoutId="nav-indicator"
+                    className="absolute -top-1 w-1 h-1 rounded-full bg-primary"
+                  />
+                )}
               </Link>
             </li>
           );
