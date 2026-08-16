@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loading, EmptyState } from "@/components/States";
-import { listClasses, deleteClass, createClass } from "@/lib/classes";
-import { listStudents, createStudent, createStudentsBulk } from "@/lib/students";
+import { listClasses, deleteClass, createClass, updateClass } from "@/lib/classes";
+import { listStudents, createStudent, createStudentsBulk, updateStudent } from "@/lib/students";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +47,9 @@ export function SchoolClassesManager({ schoolId }: { schoolId: string }) {
   const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
   const [creating, setCreating] = useState(false);
   const [addingStudent, setAddingStudent] = useState<{ id: string; name: string } | null>(null);
+  const [editingClass, setEditingClass] = useState<{ id: string; name: string; gradeLevel: string | null; year: number } | null>(null);
+  const [editingStudent, setEditingStudent] = useState<{ id: string; name: string; classId: string } | null>(null);
+  
   const [newName, setNewName] = useState("");
   const [newGrade, setNewGrade] = useState("");
   const [newYear, setNewYear] = useState<number>(new Date().getFullYear());
@@ -54,6 +57,10 @@ export function SchoolClassesManager({ schoolId }: { schoolId: string }) {
   const [studentName, setStudentName] = useState("");
   const [bulkImport, setBulkImport] = useState(false);
   const [bulkList, setBulkList] = useState("");
+
+  const [editName, setEditName] = useState("");
+  const [editGrade, setEditGrade] = useState("");
+  const [editYear, setEditYear] = useState(0);
 
   const doDelete = async () => {
     if (!deleting) return;
