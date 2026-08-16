@@ -62,11 +62,11 @@ function AppHome() {
   if (!userDoc) return null;
 
   const firstName = userDoc.name?.split(" ")[0] ?? "";
-  const isFemale = userDoc.gender === "female";
-  const salutation = isFemale ? "Professora" : "Professor";
+  const fullName = userDoc.name ?? "";
+  const title = `Olá, Professor(a) ${fullName || firstName}`;
 
   return (
-    <AppShell title={`Olá, ${salutation} ${firstName}`} back={false}>
+    <AppShell title={title} back={false}>
       <SchoolGate>
         {({ schoolId }) => (
           <>
