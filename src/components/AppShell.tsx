@@ -95,8 +95,8 @@ export function AppShell({
     }
   };
   return (
-    <div className="min-h-screen bg-muted/30 pb-24">
-      <header className="sticky top-0 z-20 bg-card border-b">
+    <div className="min-h-screen bg-muted/20 pb-24 overflow-x-hidden">
+      <header className="sticky top-0 z-20 bg-card/80 backdrop-blur-md border-b">
         <div className="mx-auto max-w-md px-2 h-14 flex items-center gap-1">
           {back ? (
             <Button
@@ -104,18 +104,37 @@ export function AppShell({
               size="icon"
               aria-label="Voltar"
               onClick={handleBack}
-              className="shrink-0"
+              className="shrink-0 active:scale-90 transition-transform"
             >
               <ChevronLeft className="size-5" />
             </Button>
           ) : (
             <div className="w-2" />
           )}
-          <h1 className="text-base font-semibold truncate flex-1">{title}</h1>
+          <motion.h1 
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            key={title}
+            className="text-base font-semibold truncate flex-1"
+          >
+            {title}
+          </motion.h1>
           {right}
         </div>
       </header>
-      <main className="mx-auto max-w-md px-4 py-4 space-y-4">{children}</main>
+      <main className="mx-auto max-w-md px-4 py-4 space-y-4">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={router.state.location.pathname}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
+      </main>
       <BottomNav />
     </div>
   );
