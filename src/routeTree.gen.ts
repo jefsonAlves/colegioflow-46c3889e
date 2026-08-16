@@ -26,6 +26,7 @@ import { Route as AppEventualidadesRouteImport } from './routes/app.eventualidad
 import { Route as AppFrequenciaRouteImport } from './routes/app.frequencia'
 import { Route as AppMasterRouteImport } from './routes/app.master'
 import { Route as AppNotasRouteImport } from './routes/app.notas'
+import { Route as AppPedagogicoRouteImport } from './routes/app.pedagogico'
 import { Route as AppPerfilRouteImport } from './routes/app.perfil'
 import { Route as AppRelatoriosRouteImport } from './routes/app.relatorios'
 import { Route as AppTurmasRouteImport } from './routes/app.turmas'
@@ -122,6 +123,11 @@ const AppNotasRoute = AppNotasRouteImport.update({
   path: '/notas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPedagogicoRoute = AppPedagogicoRouteImport.update({
+  id: '/pedagogico',
+  path: '/pedagogico',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPerfilRoute = AppPerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
@@ -182,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/app/frequencia': typeof AppFrequenciaRoute
   '/app/master': typeof AppMasterRouteWithChildren
   '/app/notas': typeof AppNotasRoute
+  '/app/pedagogico': typeof AppPedagogicoRoute
   '/app/perfil': typeof AppPerfilRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/turmas': typeof AppTurmasRoute
@@ -208,6 +215,7 @@ export interface FileRoutesByTo {
   '/app/frequencia': typeof AppFrequenciaRoute
   '/app/master': typeof AppMasterRouteWithChildren
   '/app/notas': typeof AppNotasRoute
+  '/app/pedagogico': typeof AppPedagogicoRoute
   '/app/perfil': typeof AppPerfilRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/turmas': typeof AppTurmasRoute
@@ -236,6 +244,7 @@ export interface FileRoutesById {
   '/app/frequencia': typeof AppFrequenciaRoute
   '/app/master': typeof AppMasterRouteWithChildren
   '/app/notas': typeof AppNotasRoute
+  '/app/pedagogico': typeof AppPedagogicoRoute
   '/app/perfil': typeof AppPerfilRoute
   '/app/relatorios': typeof AppRelatoriosRoute
   '/app/turmas': typeof AppTurmasRoute
@@ -265,6 +274,7 @@ export interface FileRouteTypes {
     | '/app/frequencia'
     | '/app/master'
     | '/app/notas'
+    | '/app/pedagogico'
     | '/app/perfil'
     | '/app/relatorios'
     | '/app/turmas'
@@ -291,6 +301,7 @@ export interface FileRouteTypes {
     | '/app/frequencia'
     | '/app/master'
     | '/app/notas'
+    | '/app/pedagogico'
     | '/app/perfil'
     | '/app/relatorios'
     | '/app/turmas'
@@ -318,6 +329,7 @@ export interface FileRouteTypes {
     | '/app/frequencia'
     | '/app/master'
     | '/app/notas'
+    | '/app/pedagogico'
     | '/app/perfil'
     | '/app/relatorios'
     | '/app/turmas'
@@ -464,6 +476,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppNotasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/pedagogico': {
+      id: '/app/pedagogico'
+      path: '/pedagogico'
+      fullPath: '/app/pedagogico'
+      preLoaderRoute: typeof AppPedagogicoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/perfil': {
       id: '/app/perfil'
       path: '/perfil'
@@ -545,6 +564,7 @@ interface AppRouteChildren {
   AppFrequenciaRoute: typeof AppFrequenciaRoute
   AppMasterRoute: typeof AppMasterRouteWithChildren
   AppNotasRoute: typeof AppNotasRoute
+  AppPedagogicoRoute: typeof AppPedagogicoRoute
   AppPerfilRoute: typeof AppPerfilRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
   AppTurmasRoute: typeof AppTurmasRoute
@@ -561,6 +581,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFrequenciaRoute: AppFrequenciaRoute,
   AppMasterRoute: AppMasterRouteWithChildren,
   AppNotasRoute: AppNotasRoute,
+  AppPedagogicoRoute: AppPedagogicoRoute,
   AppPerfilRoute: AppPerfilRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
   AppTurmasRoute: AppTurmasRoute,
