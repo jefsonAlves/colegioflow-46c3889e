@@ -10,8 +10,8 @@ import {
   ChevronRight,
   Activity,
   ListTodo,
+  Megaphone,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,6 +22,8 @@ import { SchoolUsageSummary } from "@/components/SchoolUsageSummary";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { listAnnouncements, listReadIds } from "@/lib/announcements";
+import { motion, AnimatePresence } from "framer-motion";
+
 
 export const Route = createFileRoute("/app/")({
   component: AppHome,
