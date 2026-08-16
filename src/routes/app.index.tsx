@@ -6,12 +6,12 @@ import {
   FileText,
   AlertOctagon,
   BarChart3,
-  Megaphone,
   Building2,
   ChevronRight,
   Activity,
   ListTodo,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
