@@ -32,7 +32,7 @@ export function BottomNav() {
           const active = pathname === it.to || (it.to !== "/app" && pathname.startsWith(it.to));
           const Icon = it.icon;
           return (
-            <li key={it.to}>
+            <li key={it.to} className="group">
               <Link
                 to={it.to}
                 onClick={(e) => {
