@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loading, EmptyState } from "@/components/States";
 import { listClasses, deleteClass, createClass } from "@/lib/classes";
-import { listStudents, createStudent, importStudents } from "@/lib/students";
+import { listStudents, createStudent, createStudentsBulk } from "@/lib/students";
 import {
   AlertDialog,
   AlertDialogAction,
