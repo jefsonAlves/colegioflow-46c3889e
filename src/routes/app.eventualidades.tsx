@@ -226,7 +226,10 @@ function NewEventForm({
       <Card>
         <CardHeader>
           <CardTitle>Nova Eventualidade</CardTitle>
-          <CardDescription>o modo de registrar posso mudar a qulaquer momento só não posso auterar o registro salvo com dados ja resistrado lembrando que depois posso apagar as eventulidades</CardDescription>
+          <CardDescription>
+            o modo de registrar posso mudar a qulaquer momento só não posso auterar o registro salvo com dados ja resistrado lembrando que depois posso apagar as eventulidades.
+            Lembrando que a eventualidade criada e após criada ele registra e cria um banco de dados diários do resistro podendo retorna o dia que foi resistrado ou criar um novo resistro salvando o dia que foi salvo a eventualidade ou recebido.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
