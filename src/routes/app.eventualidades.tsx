@@ -133,7 +133,7 @@ function EventualidadesContent({ schoolId }: { schoolId: string }) {
             return (
               <Card
                 key={event.id}
-                className="cursor-pointer hover:border-primary/50 transition-colors"
+                className="group cursor-pointer hover:border-primary/50 transition-colors relative"
                 onClick={() => setSelectedEventId(event.id)}
               >
                 <CardContent className="p-4 flex justify-between items-center">
@@ -148,7 +148,31 @@ function EventualidadesContent({ schoolId }: { schoolId: string }) {
                       )}
                     </div>
                   </div>
-                  <LayoutGrid className="size-5 text-muted-foreground" />
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm("Tem certeza que deseja apagar este evento e todos os seus registros?")) {
+                          deleteEventuality({ data: { id: event.id } })
+                            .then(() => {
+                              toast.success("Evento removido.");
+                              eventsQ.refetch();
+                            })
+                            .catch((err) => {
+                              console.error(err);
+                              toast.error("Erro ao remover.");
+                            });
+                        }
+                      }}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                    <LayoutGrid className="size-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
                 </CardContent>
               </Card>
             );
