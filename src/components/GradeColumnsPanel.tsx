@@ -91,7 +91,7 @@ export function GradeColumnsPanel({ schoolId, classId, bimester, types }: Props)
     [next[index], next[target]] = [next[target], next[index]];
     setBusy(true);
     try {
-      await reorderAssessmentTypes(next);
+      await reorderAssessmentTypes(schoolId, classId, bimester, next);
       refresh();
     } catch (e) {
       console.error(e);
@@ -218,26 +218,28 @@ export function GradeColumnsPanel({ schoolId, classId, bimester, types }: Props)
                   <span className="text-[10px] text-muted-foreground shrink-0">
                     peso {t.weight} · máx {t.maxValue}
                   </span>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="size-8"
-                    aria-label={`Mover ${t.name} para cima`}
-                    disabled={busy || i === 0}
-                    onClick={() => move(i, -1)}
-                  >
-                    <ArrowUp className="size-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="size-8"
-                    aria-label={`Mover ${t.name} para baixo`}
-                    disabled={busy || i === types.length - 1}
-                    onClick={() => move(i, 1)}
-                  >
-                    <ArrowDown className="size-4" />
-                  </Button>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-7"
+                      aria-label={`Mover ${t.name} para a esquerda`}
+                      disabled={busy || i === 0}
+                      onClick={() => move(i, -1)}
+                    >
+                      <ArrowUp className="size-3.5 rotate-[-90deg]" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-7"
+                      aria-label={`Mover ${t.name} para a direita`}
+                      disabled={busy || i === types.length - 1}
+                      onClick={() => move(i, 1)}
+                    >
+                      <ArrowDown className="size-3.5 rotate-[-90deg]" />
+                    </Button>
+                  </div>
                   <Button
                     size="icon"
                     variant="ghost"
