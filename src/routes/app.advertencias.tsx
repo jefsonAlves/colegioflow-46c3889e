@@ -31,6 +31,7 @@ import { listStudents, listStudentsByClass } from "@/lib/students";
 import { listSchedulesBySchool, WEEKDAY_LABELS } from "@/lib/classSchedules";
 import {
   createDisciplinary,
+  createDisciplinaryBulk,
   deleteDisciplinary,
   listDisciplinary,
   type DisciplinaryType,
@@ -75,7 +76,7 @@ function Advertencias({ schoolId }: { schoolId: string }) {
 
   const [date, setDate] = useState(toISO(new Date()));
   const [classId, setClassId] = useState<string>("");
-  const [studentId, setStudentId] = useState("");
+  const [studentIds, setStudentIds] = useState<string[]>([]);
   const [studentFilter, setStudentFilter] = useState("");
   const [type, setType] = useState<DisciplinaryType>("verbal");
   const [description, setDescription] = useState("");
@@ -167,19 +168,20 @@ function Advertencias({ schoolId }: { schoolId: string }) {
     setDate(toISO(d));
   };
 
-  const selectedStudent = studentId ? studentMap.get(studentId) : undefined;
+  const selectedStudents = studentIds.map(id => studentMap.get(id)).filter(Boolean);
+  const selectedStudentNames = selectedStudents.map(s => s?.name).join(", ");
 
   const reset = () => {
     setComposing(false);
-    setStudentId("");
+    setStudentIds([]);
     setDescription("");
     setType("verbal");
     setStudentFilter("");
   };
 
   const save = async () => {
-    if (!firebaseUser || !classId || !studentId) {
-      toast.error("Escolha a turma e o aluno.");
+    if (!firebaseUser || !classId || studentIds.length === 0) {
+      toast.error("Escolha a turma e pelo menos um aluno.");
       return;
     }
     if (description.trim().length < 5) {
@@ -188,15 +190,14 @@ function Advertencias({ schoolId }: { schoolId: string }) {
     }
     setSaving(true);
     try {
-      await createDisciplinary(schoolId, {
-        studentId,
+      await createDisciplinaryBulk(schoolId, studentIds, {
         classId,
         type,
         description: description.trim(),
         date,
         by: firebaseUser.uid,
       });
-      toast.success("Advertência registrada com sucesso!");
+      toast.success("Advertência(s) registrada(s) com sucesso!");
       reset();
       qc.invalidateQueries({ queryKey: ["disciplinary", schoolId] });
     } catch (e) {
@@ -272,7 +273,7 @@ function Advertencias({ schoolId }: { schoolId: string }) {
                       key={s.id}
                       onClick={() => {
                         setClassId(s.classId);
-                        setStudentId("");
+                        setStudentIds([]);
                       }}
                       className={`rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
                         active ? "border-primary bg-primary/10 text-primary" : "bg-card hover:bg-muted/40"
@@ -298,7 +299,7 @@ function Advertencias({ schoolId }: { schoolId: string }) {
               value={classId}
               onChange={(e) => {
                 setClassId(e.target.value);
-                setStudentId("");
+                setStudentIds([]);
               }}
             >
               <option value="">Todas as turmas</option>
@@ -318,7 +319,7 @@ function Advertencias({ schoolId }: { schoolId: string }) {
           <CardContent className="pt-4 pb-4 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-sm">
-                {composing ? "Nova advertência" : "Selecione o aluno"}
+                {composing ? "Nova advertência" : "Selecione os alunos"}
               </h3>
               {composing && (
                 <Button size="sm" variant="ghost" onClick={reset}>
@@ -338,36 +339,51 @@ function Advertencias({ schoolId }: { schoolId: string }) {
                   </p>
                 ) : (
                   <div className="max-h-72 overflow-y-auto space-y-1">
-                    {students.map((s, i) => (
-                      <button
-                        key={s.id}
-                        onClick={() => {
-                          setStudentId(s.id);
-                          setComposing(true);
-                        }}
-                        className="w-full flex items-center gap-2 rounded-md border p-2 text-sm text-left hover:bg-muted/40"
-                      >
-                        <span className="text-xs text-muted-foreground w-5">{i + 1}</span>
-                        <span className="flex-1 truncate">{s.name}</span>
-                        {s.specialNeeds && <Heart className="size-3.5 text-primary shrink-0" />}
-                        <Plus className="size-3.5 text-muted-foreground" />
-                      </button>
-                    ))}
+                    {students.map((s, i) => {
+                      const isSelected = studentIds.includes(s.id);
+                      return (
+                        <button
+                          key={s.id}
+                          onClick={() => {
+                            if (isSelected) {
+                              setStudentIds(prev => prev.filter(id => id !== s.id));
+                            } else {
+                              setStudentIds(prev => [...prev, s.id]);
+                            }
+                          }}
+                          className={`w-full flex items-center gap-2 rounded-md border p-2 text-sm text-left transition-colors ${
+                            isSelected ? "border-primary bg-primary/5" : "hover:bg-muted/40"
+                          }`}
+                        >
+                          <span className="text-xs text-muted-foreground w-5">{i + 1}</span>
+                          <span className="flex-1 truncate">{s.name}</span>
+                          {s.specialNeeds && <Heart className="size-3.5 text-primary shrink-0" />}
+                          <div className={`size-4 rounded border flex items-center justify-center ${isSelected ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30"}`}>
+                            {isSelected && <Check className="size-3" />}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
+                )}
+                {studentIds.length > 0 && (
+                  <Button className="w-full mt-2" onClick={() => setComposing(true)}>
+                    <Plus className="size-4" /> Continuar com {studentIds.length} aluno(s)
+                  </Button>
                 )}
               </>
             ) : (
               <div className="space-y-3">
                 <div className="rounded-lg border bg-muted/30 p-2 text-sm">
-                  <span className="font-medium">{selectedStudent?.name}</span>
+                  <span className="font-medium">{selectedStudentNames}</span>
                   <span className="text-xs text-muted-foreground">
                     {" "}
                     · {classMap.get(classId)?.name} · {date.split("-").reverse().join("/")}
                   </span>
-                  {selectedStudent?.specialNeeds && (
+                  {selectedStudents.some(s => s?.specialNeeds) && (
                     <p className="text-[11px] text-primary mt-1 flex items-center gap-1">
                       <Heart className="size-3" />
-                      {selectedStudent.specialNeedsNote || "Aluno com necessidade especial — considere a adaptação."}
+                      Alguns alunos possuem necessidades especiais — considere a adaptação.
                     </p>
                   )}
                 </div>

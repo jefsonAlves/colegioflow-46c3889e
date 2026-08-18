@@ -163,7 +163,17 @@ export async function updateAssessmentType(
   if (error) throw error;
 }
 
-export async function reorderAssessmentTypes(ordered: AssessmentType[]): Promise<void> {
+export async function reorderAssessmentTypes(
+  schoolId: string,
+  classId: string,
+  bimestre: number,
+  ordered: AssessmentType[],
+): Promise<void> {
+  const uid = (await supabase.auth.getUser()).data.user?.id;
+  if (!uid) throw new Error("not signed in");
+
+  // We do a batch update of positions.
+  // Since we don't have a RPC for this, we do it in parallel.
   await Promise.all(ordered.map((t, i) => updateAssessmentType(t.id, { position: i })));
 }
 

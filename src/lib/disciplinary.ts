@@ -80,3 +80,22 @@ export async function createDisciplinary(
   if (error) throw error;
   return toDoc(data as Row);
 }
+
+export async function createDisciplinaryBulk(
+  schoolId: string,
+  studentIds: string[],
+  input: Omit<DisciplinaryDoc, "id" | "createdAt" | "studentId">,
+): Promise<void> {
+  if (studentIds.length === 0) return;
+  const rows = studentIds.map((sid) => ({
+    school_id: schoolId,
+    class_id: input.classId || null,
+    student_id: sid,
+    date: input.date,
+    severity: input.type,
+    description: input.description,
+    recorded_by: input.by,
+  }));
+  const { error } = await supabase.from("disciplinary").insert(rows);
+  if (error) throw error;
+}
