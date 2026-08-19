@@ -229,8 +229,8 @@ function Frequencia({ schoolId }: { schoolId: string }) {
   });
 
   const schedulesQ = useQuery({
-    queryKey: ["class-schedules", classId],
-    queryFn: () => listSchedulesByClass(classId!),
+    queryKey: ["class-schedules", classId, isOffice ? "all" : firebaseUser?.uid],
+    queryFn: () => listSchedulesByClass(classId!, isOffice ? undefined : firebaseUser?.uid || undefined),
     enabled: !!classId,
   });
 
