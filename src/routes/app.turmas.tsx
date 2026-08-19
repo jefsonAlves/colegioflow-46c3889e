@@ -385,6 +385,7 @@ function ClassDetail({
   const [adding, setAdding] = useState(false);
   const [transferStudent, setTransferStudent] = useState<StudentDoc | null>(null);
   const [deletingStudent, setDeletingStudent] = useState<StudentDoc | null>(null);
+  const [deleteReason, setDeleteReason] = useState<"school_transfer" | "duplicate" | "other">("other");
   const [editingNeeds, setEditingNeeds] = useState<StudentDoc | null>(null);
   const [renamingStudent, setRenamingStudent] = useState<StudentDoc | null>(null);
   const [renamingClass, setRenamingClass] = useState(false);
