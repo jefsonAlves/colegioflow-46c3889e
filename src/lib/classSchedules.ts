@@ -104,6 +104,24 @@ export async function createSchedule(input: {
   return toDoc(data as Row);
 }
 
+export async function updateSchedule(id: string, input: {
+  weekday?: number;
+  startTime?: string;
+  endTime?: string;
+  subject?: string;
+}): Promise<void> {
+  const { error } = await supabase
+    .from("class_schedules")
+    .update({
+      weekday: input.weekday,
+      start_time: input.startTime,
+      end_time: input.endTime,
+      subject: input.subject?.trim(),
+    })
+    .eq("id", id);
+  if (error) throw error;
+}
+
 export async function deleteSchedule(id: string): Promise<void> {
   const { error } = await supabase.from("class_schedules").delete().eq("id", id);
   if (error) throw error;

@@ -972,6 +972,7 @@ function SchedulesSection({
     queryFn: () => listSchedulesByClass(cls.id, isMasterOrAdmin ? undefined : firebaseUser?.uid || undefined),
   });
   const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [weekday, setWeekday] = useState(1);
   const [start, setStart] = useState("07:30");
   const [end, setEnd] = useState("08:20");
@@ -989,25 +990,51 @@ function SchedulesSection({
     }
     setSaving(true);
     try {
-      await createSchedule({
-        schoolId,
-        classId: cls.id,
-        weekday,
-        startTime: start,
-        endTime: end,
-        subject: subject.trim(),
-      });
+      if (editingId) {
+        await updateSchedule(editingId, {
+          weekday,
+          startTime: start,
+          endTime: end,
+          subject: subject.trim(),
+        });
+        toast.success("Horário atualizado.");
+      } else {
+        await createSchedule({
+          schoolId,
+          classId: cls.id,
+          weekday,
+          startTime: start,
+          endTime: end,
+          subject: subject.trim(),
+        });
+        toast.success("Horário adicionado.");
+      }
       qc.invalidateQueries({ queryKey: ["class-schedules", cls.id] });
       qc.invalidateQueries({ queryKey: ["class-schedules-school", schoolId] });
       setAdding(false);
+      setEditingId(null);
       setSubject("");
-      toast.success("Horário adicionado.");
     } catch (e) {
       console.error(e);
-      toast.error("Erro ao adicionar horário.");
+      toast.error(editingId ? "Erro ao atualizar horário." : "Erro ao adicionar horário.");
     } finally {
       setSaving(false);
     }
+  };
+
+  const startEdit = (s: ClassScheduleDoc) => {
+    setEditingId(s.id);
+    setWeekday(s.weekday);
+    setStart(s.startTime);
+    setEnd(s.endTime);
+    setSubject(s.subject);
+    setAdding(true);
+  };
+
+  const cancel = () => {
+    setAdding(false);
+    setEditingId(null);
+    setSubject("");
   };
 
   const remove = async (id: string) => {
@@ -1015,6 +1042,7 @@ function SchedulesSection({
       await deleteSchedule(id);
       qc.invalidateQueries({ queryKey: ["class-schedules", cls.id] });
       qc.invalidateQueries({ queryKey: ["class-schedules-school", schoolId] });
+      toast.success("Horário removido.");
     } catch (e) {
       console.error(e);
       toast.error("Erro ao remover.");
@@ -1049,14 +1077,24 @@ function SchedulesSection({
                 <span className="truncate text-xs font-medium ml-1">· {s.subject}</span>
               )}
               {canEdit && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="ml-auto size-7 p-0 text-destructive"
-                  onClick={() => remove(s.id)}
-                >
-                  <X className="size-3.5" />
-                </Button>
+                <div className="ml-auto flex items-center gap-0.5">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="size-7 p-0 text-muted-foreground"
+                    onClick={() => startEdit(s)}
+                  >
+                    <Pencil className="size-3.5" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="size-7 p-0 text-destructive"
+                    onClick={() => remove(s.id)}
+                  >
+                    <X className="size-3.5" />
+                  </Button>
+                </div>
               )}
             </li>
           ))}
@@ -1106,7 +1144,7 @@ function SchedulesSection({
               size="sm"
               variant="outline"
               className="flex-1"
-              onClick={() => setAdding(false)}
+              onClick={cancel}
             >
               Cancelar
             </Button>
