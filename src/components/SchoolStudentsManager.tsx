@@ -41,6 +41,8 @@ export function SchoolStudentsManager({ schoolId }: { schoolId: string }) {
   const [moving, setMoving] = useState(false);
   const [editing, setEditing] = useState<StudentDoc | null>(null);
   const [editName, setEditName] = useState("");
+  const [editReason, setEditReason] = useState("");
+  const [editDate, setEditDate] = useState("");
   const [editStatus, setEditStatus] = useState<StudentDoc["status"]>("active");
 
   const classMap = useMemo(
