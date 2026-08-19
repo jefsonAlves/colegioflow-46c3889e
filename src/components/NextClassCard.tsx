@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { useAuth } from "@/contexts/AuthContext";
 import { Bell, ClipboardCheck, CalendarX, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ function minutesUntil(hm: string): number {
 }
 
 export function NextClassCard({ schoolId }: { schoolId: string }) {
+  const { firebaseUser } = useAuth();
   const [, force] = useState(0);
   useEffect(() => {
     const id = setInterval(() => force((n) => n + 1), 30_000);
@@ -29,8 +31,9 @@ export function NextClassCard({ schoolId }: { schoolId: string }) {
   }, []);
 
   const schedQ = useQuery({
-    queryKey: ["class-schedules-school", schoolId],
-    queryFn: () => listSchedulesBySchool(schoolId),
+    queryKey: ["class-schedules-school", schoolId, firebaseUser?.uid],
+    queryFn: () => listSchedulesBySchool(schoolId, firebaseUser?.uid || undefined),
+    enabled: !!firebaseUser,
   });
   const classesQ = useQuery({
     queryKey: ["classes", schoolId],
