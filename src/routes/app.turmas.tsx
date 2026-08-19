@@ -522,14 +522,23 @@ function ClassDetail({
   const doDelete = async () => {
     if (!deletingStudent) return;
     try {
-      await deleteStudent(schoolId, deletingStudent.id);
-      toast.success("Aluno removido.");
+      if (deleteReason === "school_transfer") {
+        await updateStudent(schoolId, deletingStudent.id, {
+          status: "school_transfer",
+          transferReason: "Mudança de escola (via exclusão de turma)",
+          transferDate: Date.now(),
+        });
+        toast.success("Aluno marcado como transferência de escola.");
+      } else {
+        await deleteStudent(schoolId, deletingStudent.id);
+        toast.success(deleteReason === "duplicate" ? "Nome duplicado removido." : "Aluno removido.");
+      }
       qc.invalidateQueries({ queryKey: ["students", schoolId, cls.id] });
       qc.invalidateQueries({ queryKey: ["students-counts", schoolId] });
       setDeletingStudent(null);
     } catch (e) {
       console.error(e);
-      toast.error("Erro ao remover aluno.");
+      toast.error("Erro ao processar exclusão.");
     }
   };
 
