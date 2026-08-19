@@ -109,10 +109,17 @@ export function SchoolStudentsManager({ schoolId }: { schoolId: string }) {
 
   return (
     <section>
-      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
-        <Users className="size-4" /> Alunos da escola
-      </h3>
+      <div className="flex flex-col gap-1 mb-4">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+          <Users className="size-4" /> Alunos da escola
+        </h3>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          O secretário tem autonomia total para remanejar alunos entre turmas ou registrar transferências. 
+          As alterações são replicadas automaticamente para as contas dos professores vinculados.
+        </p>
+      </div>
       <Card>
+
         <CardContent className="pt-4 pb-4 space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <select
