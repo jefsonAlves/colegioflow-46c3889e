@@ -368,6 +368,7 @@ function ClassDetail({
   canEdit: boolean;
   onClose: () => void;
 }) {
+  const { membership } = useActiveSchool();
   const qc = useQueryClient();
   const studentsQ = useQuery({
     queryKey: ["students", schoolId, cls.id],
@@ -386,7 +387,7 @@ function ClassDetail({
   const [adding, setAdding] = useState(false);
   const [transferStudent, setTransferStudent] = useState<StudentDoc | null>(null);
   const [deletingStudent, setDeletingStudent] = useState<StudentDoc | null>(null);
-  const [deleteReason, setDeleteReason] = useState<"school_transfer" | "duplicate" | "other">("other");
+  const [deleteReason, setDeleteReason] = useState<"school_transfer" | "duplicate" | "other" | "transfer_request">("other");
   const [editingNeeds, setEditingNeeds] = useState<StudentDoc | null>(null);
   const [renamingStudent, setRenamingStudent] = useState<StudentDoc | null>(null);
   const [renamingClass, setRenamingClass] = useState(false);
@@ -526,10 +527,17 @@ function ClassDetail({
       if (deleteReason === "school_transfer") {
         await updateStudent(schoolId, deletingStudent.id, {
           status: "school_transfer",
-          transferReason: "Mudança de escola (via exclusão de turma)",
+          transferReason: "Mudança de escola",
           transferDate: Date.now(),
         });
-        toast.success("Aluno marcado como transferência de escola.");
+        toast.success("Aluno marcado como transferido da escola.");
+      } else if (deleteReason === "transfer_request") {
+        await updateStudent(schoolId, deletingStudent.id, {
+          status: "transferred",
+          transferReason: "Solicitação de transferência pelo professor",
+          transferDate: Date.now(),
+        });
+        toast.success("Solicitação enviada! Aguardando autorização da secretaria.");
       } else {
         await deleteStudent(schoolId, deletingStudent.id);
         toast.success(deleteReason === "duplicate" ? "Nome duplicado removido." : "Aluno removido.");
@@ -616,7 +624,7 @@ function ClassDetail({
                   <div className="flex items-center gap-1.5">
                     <span className={`truncate ${(s.status === 'transferred' || s.status === 'school_transfer') ? 'line-through text-muted-foreground' : ''}`}>
                       {studentName(s)}
-                      {s.status === 'transferred' && <span className="ml-2 text-[10px] bg-muted px-1 rounded no-underline">Transferido</span>}
+                      {s.status === 'transferred' && <span className="ml-2 text-[10px] bg-amber-100 text-amber-700 px-1 rounded no-underline">Aguardando Transf.</span>}
                       {s.status === 'school_transfer' && <span className="ml-2 text-[10px] bg-destructive/10 text-destructive px-1 rounded no-underline">Transf. Escola</span>}
                     </span>
                     {s.specialNeeds && (
@@ -727,30 +735,55 @@ function ClassDetail({
                     type="radio"
                     name="deleteReason"
                     value="school_transfer"
+                    disabled={membership?.roleInSchool === "teacher"}
                     checked={deleteReason === "school_transfer"}
                     onChange={() => setDeleteReason("school_transfer")}
                   />
-                  <span className="text-sm font-medium">Mudança de escola</span>
+                  <span className={`text-sm font-medium ${membership?.roleInSchool === "teacher" ? 'opacity-50' : ''}`}>
+                    Mudança de escola {membership?.roleInSchool === "teacher" && "(Apenas Secretaria)"}
+                  </span>
                 </label>
+                
+                {membership?.roleInSchool === "teacher" && (
+                  <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg border hover:bg-accent transition-colors">
+                    <input
+                      type="radio"
+                      name="deleteReason"
+                      value="transfer_request"
+                      checked={deleteReason === "transfer_request"}
+                      onChange={() => setDeleteReason("transfer_request")}
+                    />
+                    <span className="text-sm font-medium text-amber-600">
+                      Solicitar transferência (Aguardar Secretaria)
+                    </span>
+                  </label>
+                )}
+
                 <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg border hover:bg-accent transition-colors">
                   <input
                     type="radio"
                     name="deleteReason"
                     value="duplicate"
+                    disabled={membership?.roleInSchool === "teacher"}
                     checked={deleteReason === "duplicate"}
                     onChange={() => setDeleteReason("duplicate")}
                   />
-                  <span className="text-sm font-medium">Nome duplicado</span>
+                  <span className={`text-sm font-medium ${membership?.roleInSchool === "teacher" ? 'opacity-50' : ''}`}>
+                    Nome duplicado {membership?.roleInSchool === "teacher" && "(Apenas Secretaria)"}
+                  </span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg border hover:bg-accent transition-colors">
                   <input
                     type="radio"
                     name="deleteReason"
                     value="other"
+                    disabled={membership?.roleInSchool === "teacher"}
                     checked={deleteReason === "other"}
                     onChange={() => setDeleteReason("other")}
                   />
-                  <span className="text-sm font-medium">Outros motivos (Exclusão permanente)</span>
+                  <span className={`text-sm font-medium ${membership?.roleInSchool === "teacher" ? 'opacity-50' : ''}`}>
+                    Outros motivos (Exclusão permanente) {membership?.roleInSchool === "teacher" && "(Apenas Secretaria)"}
+                  </span>
                 </label>
               </div>
               {deleteReason === "other" && (
