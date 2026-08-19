@@ -41,28 +41,36 @@ async function currentUid(): Promise<string> {
   return (await supabase.auth.getUser()).data.user?.id ?? "";
 }
 
-/** Schedules of a class for the current user (teacher-scoped). */
-export async function listSchedulesByClass(classId: string): Promise<ClassScheduleDoc[]> {
-  const uid = await currentUid();
-  const { data, error } = await supabase
+/** Schedules of a class. If teacherId is provided, filters by teacher. Otherwise returns all for the class. */
+export async function listSchedulesByClass(classId: string, teacherId?: string): Promise<ClassScheduleDoc[]> {
+  let query = supabase
     .from("class_schedules")
     .select("*")
-    .eq("class_id", classId)
-    .eq("teacher_id", uid)
+    .eq("class_id", classId);
+  
+  if (teacherId) {
+    query = query.eq("teacher_id", teacherId);
+  }
+
+  const { data, error } = await query
     .order("weekday")
     .order("start_time");
   if (error) throw error;
   return (data ?? []).map((r) => toDoc(r as Row));
 }
 
-/** All schedules in the school for the current user (teacher-scoped). */
-export async function listSchedulesBySchool(schoolId: string): Promise<ClassScheduleDoc[]> {
-  const uid = await currentUid();
-  const { data, error } = await supabase
+/** All schedules in the school. If teacherId is provided, filters by teacher. */
+export async function listSchedulesBySchool(schoolId: string, teacherId?: string): Promise<ClassScheduleDoc[]> {
+  let query = supabase
     .from("class_schedules")
     .select("*")
-    .eq("school_id", schoolId)
-    .eq("teacher_id", uid)
+    .eq("school_id", schoolId);
+
+  if (teacherId) {
+    query = query.eq("teacher_id", teacherId);
+  }
+
+  const { data, error } = await query
     .order("weekday")
     .order("start_time");
   if (error) throw error;

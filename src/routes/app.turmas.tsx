@@ -958,10 +958,16 @@ function SchedulesSection({
   schoolId: string;
   canEdit: boolean;
 }) {
+  const { userDoc, firebaseUser } = useAuth();
   const qc = useQueryClient();
+  
+  const isMasterOrAdmin = useMemo(() => {
+    return userDoc?.globalRole === "master" || membership?.roleInSchool === "school_admin";
+  }, [userDoc, membership]);
+
   const schedulesQ = useQuery({
-    queryKey: ["class-schedules", cls.id],
-    queryFn: () => listSchedulesByClass(cls.id),
+    queryKey: ["class-schedules", cls.id, isMasterOrAdmin ? "all" : firebaseUser?.uid],
+    queryFn: () => listSchedulesByClass(cls.id, isMasterOrAdmin ? undefined : firebaseUser?.uid || undefined),
   });
   const [adding, setAdding] = useState(false);
   const [weekday, setWeekday] = useState(1);
@@ -1019,7 +1025,9 @@ function SchedulesSection({
     <div className="rounded-lg border p-3 space-y-2">
       <div className="flex items-center gap-2">
         <CalendarDays className="size-4 text-primary" />
-        <span className="text-sm font-medium">Meus horários nesta turma</span>
+        <span className="text-sm font-medium">
+          {isMasterOrAdmin ? "Horários da turma (Todos os professores)" : "Meus horários nesta turma"}
+        </span>
       </div>
       {items.length === 0 ? (
         <p className="text-xs text-muted-foreground">Nenhum horário cadastrado.</p>
