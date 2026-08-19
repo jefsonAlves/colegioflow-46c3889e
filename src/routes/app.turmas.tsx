@@ -385,6 +385,7 @@ function ClassDetail({
   const [adding, setAdding] = useState(false);
   const [transferStudent, setTransferStudent] = useState<StudentDoc | null>(null);
   const [deletingStudent, setDeletingStudent] = useState<StudentDoc | null>(null);
+  const [deleteReason, setDeleteReason] = useState<"school_transfer" | "duplicate" | "other">("other");
   const [editingNeeds, setEditingNeeds] = useState<StudentDoc | null>(null);
   const [renamingStudent, setRenamingStudent] = useState<StudentDoc | null>(null);
   const [renamingClass, setRenamingClass] = useState(false);
@@ -521,14 +522,23 @@ function ClassDetail({
   const doDelete = async () => {
     if (!deletingStudent) return;
     try {
-      await deleteStudent(schoolId, deletingStudent.id);
-      toast.success("Aluno removido.");
+      if (deleteReason === "school_transfer") {
+        await updateStudent(schoolId, deletingStudent.id, {
+          status: "school_transfer",
+          transferReason: "Mudança de escola (via exclusão de turma)",
+          transferDate: Date.now(),
+        });
+        toast.success("Aluno marcado como transferência de escola.");
+      } else {
+        await deleteStudent(schoolId, deletingStudent.id);
+        toast.success(deleteReason === "duplicate" ? "Nome duplicado removido." : "Aluno removido.");
+      }
       qc.invalidateQueries({ queryKey: ["students", schoolId, cls.id] });
       qc.invalidateQueries({ queryKey: ["students-counts", schoolId] });
       setDeletingStudent(null);
     } catch (e) {
       console.error(e);
-      toast.error("Erro ao remover aluno.");
+      toast.error("Erro ao processar exclusão.");
     }
   };
 
@@ -706,9 +716,47 @@ function ClassDetail({
         <AlertDialogContent onClick={(e) => e.stopPropagation()}>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir aluno?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deletingStudent?.name} será removido permanentemente, junto com chamadas,
-              notas e advertências relacionadas.
+            <AlertDialogDescription className="space-y-4">
+              <p>
+                {deletingStudent?.name} será removido ou atualizado. Escolha o motivo da exclusão:
+              </p>
+              <div className="space-y-2 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg border hover:bg-accent transition-colors">
+                  <input
+                    type="radio"
+                    name="deleteReason"
+                    value="school_transfer"
+                    checked={deleteReason === "school_transfer"}
+                    onChange={() => setDeleteReason("school_transfer")}
+                  />
+                  <span className="text-sm font-medium">Mudança de escola</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg border hover:bg-accent transition-colors">
+                  <input
+                    type="radio"
+                    name="deleteReason"
+                    value="duplicate"
+                    checked={deleteReason === "duplicate"}
+                    onChange={() => setDeleteReason("duplicate")}
+                  />
+                  <span className="text-sm font-medium">Nome duplicado</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg border hover:bg-accent transition-colors">
+                  <input
+                    type="radio"
+                    name="deleteReason"
+                    value="other"
+                    checked={deleteReason === "other"}
+                    onChange={() => setDeleteReason("other")}
+                  />
+                  <span className="text-sm font-medium">Outros motivos (Exclusão permanente)</span>
+                </label>
+              </div>
+              {deleteReason === "other" && (
+                <p className="text-xs text-destructive font-medium mt-2 italic">
+                  * Registros de chamadas, notas e advertências também serão apagados.
+                </p>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -717,7 +765,7 @@ function ClassDetail({
               onClick={doDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Excluir
+              Confirmar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
