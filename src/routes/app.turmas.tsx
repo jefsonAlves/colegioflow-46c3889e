@@ -39,8 +39,10 @@ import { listClassTeachers, listMyTaughtClasses, teachClass, untaughtClass } fro
 import {
   createSchedule,
   deleteSchedule,
+  updateSchedule,
   listSchedulesByClass,
   WEEKDAY_LABELS,
+  type ClassScheduleDoc,
 } from "@/lib/classSchedules";
 import { listMyClassOverrides, renameClassSmart } from "@/lib/classOverrides";
 import { listMyStudentOverrides, renameStudentSmart } from "@/lib/studentOverrides";
