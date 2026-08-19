@@ -603,7 +603,11 @@ function ClassDetail({
                 <span className="text-xs text-muted-foreground w-6">{i + 1}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="truncate">{studentName(s)}</span>
+                    <span className={`truncate ${(s.status === 'transferred' || s.status === 'school_transfer') ? 'line-through text-muted-foreground' : ''}`}>
+                      {studentName(s)}
+                      {s.status === 'transferred' && <span className="ml-2 text-[10px] bg-muted px-1 rounded no-underline">Transferido</span>}
+                      {s.status === 'school_transfer' && <span className="ml-2 text-[10px] bg-destructive/10 text-destructive px-1 rounded no-underline">Transf. Escola</span>}
+                    </span>
                     {s.specialNeeds && (
                       <Heart
                         className="size-3.5 text-primary shrink-0"
@@ -832,6 +836,19 @@ function SpecialNeedsDialog({
                 placeholder="Descrição breve"
                 rows={3}
               />
+            </div>
+          )}
+          {student?.status === 'school_transfer' && (
+            <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 space-y-2">
+              <h4 className="text-xs font-bold uppercase text-destructive flex items-center gap-2">
+                <ArrowRightLeft className="size-3" /> Transferência de Escola
+              </h4>
+              <p className="text-sm">
+                <strong>Motivo:</strong> {student.transferReason || "Não informado"}
+              </p>
+              <p className="text-sm">
+                <strong>Data:</strong> {student.transferDate ? new Date(student.transferDate).toLocaleDateString() : "Não informada"}
+              </p>
             </div>
           )}
         </div>

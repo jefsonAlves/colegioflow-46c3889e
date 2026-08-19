@@ -6,7 +6,9 @@ export interface StudentDoc {
   classId: string;
   parentUid?: string | null;
   active: boolean;
-  status: "active" | "transferred";
+  status: "active" | "transferred" | "school_transfer";
+  transferReason?: string | null;
+  transferDate?: number | null;
   specialNeeds: boolean;
   specialNeedsNote: string | null;
   createdAt: number;
@@ -24,6 +26,8 @@ type Row = {
   special_needs_note: string | null;
   created_by: string;
   status: string | null;
+  transfer_reason: string | null;
+  transfer_date: string | null;
   created_at: string;
 };
 
@@ -34,6 +38,8 @@ const toDoc = (r: Row): StudentDoc => ({
   parentUid: null,
   active: true,
   status: (r.status as any) || "active",
+  transferReason: r.transfer_reason,
+  transferDate: r.transfer_date ? new Date(r.transfer_date).getTime() : null,
   specialNeeds: !!r.special_needs,
   specialNeedsNote: r.special_needs_note ?? null,
   createdAt: new Date(r.created_at).getTime(),
@@ -120,6 +126,8 @@ export async function updateStudent(
   if (patch.specialNeeds !== undefined) row.special_needs = patch.specialNeeds;
   if (patch.specialNeedsNote !== undefined) row.special_needs_note = patch.specialNeedsNote;
   if (patch.status !== undefined) row.status = patch.status;
+  if (patch.transferReason !== undefined) row.transfer_reason = patch.transferReason;
+  if (patch.transferDate !== undefined) row.transfer_date = patch.transferDate ? new Date(patch.transferDate).toISOString() : null;
   const { error } = await supabase.from("students").update(row as any).eq("school_id", schoolId).eq("id", studentId);
   if (error) throw error;
 }

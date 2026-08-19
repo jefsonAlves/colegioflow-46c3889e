@@ -100,6 +100,15 @@ function PedagogicoPanel({ schoolId }: { schoolId: string }) {
 
     doc.text(`Frequência: ${attendance.length} registros encontrados`, 20, y + 10);
     doc.text(`Notas: ${grades.length} lançamentos encontrados`, 20, y + 20);
+    
+    if (selectedStudent.status === 'school_transfer') {
+      doc.setTextColor(220, 38, 38);
+      doc.text("ALUNO TRANSFERIDO DA ESCOLA", 20, y + 35);
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10);
+      doc.text(`Motivo: ${selectedStudent.transferReason || 'Não informado'}`, 20, y + 42);
+      doc.text(`Data: ${selectedStudent.transferDate ? new Date(selectedStudent.transferDate).toLocaleDateString() : 'Não informada'}`, 20, y + 49);
+    }
 
     doc.save(`dossie_${selectedStudent.name.replace(/\s+/g, '_')}.pdf`);
   };
