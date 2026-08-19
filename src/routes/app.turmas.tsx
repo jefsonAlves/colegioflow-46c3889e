@@ -583,7 +583,7 @@ function ClassDetail({
 
         <TeachToggle cls={cls} schoolId={schoolId} />
 
-        <SchedulesSection cls={cls} schoolId={schoolId} canEdit={canEdit} />
+        <SchedulesSection cls={cls} schoolId={schoolId} canEdit={canEdit} membership={membership} />
 
         {canEdit && (
           <div className="space-y-2">
@@ -953,10 +953,12 @@ function SchedulesSection({
   cls,
   schoolId,
   canEdit,
+  membership,
 }: {
   cls: ClassDoc;
   schoolId: string;
   canEdit: boolean;
+  membership: any;
 }) {
   const { userDoc, firebaseUser } = useAuth();
   const qc = useQueryClient();
