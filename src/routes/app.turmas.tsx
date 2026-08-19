@@ -368,6 +368,7 @@ function ClassDetail({
   canEdit: boolean;
   onClose: () => void;
 }) {
+  const { membership } = useActiveSchool();
   const qc = useQueryClient();
   const studentsQ = useQuery({
     queryKey: ["students", schoolId, cls.id],
@@ -526,10 +527,17 @@ function ClassDetail({
       if (deleteReason === "school_transfer") {
         await updateStudent(schoolId, deletingStudent.id, {
           status: "school_transfer",
-          transferReason: "Mudança de escola (via exclusão de turma)",
+          transferReason: "Mudança de escola",
           transferDate: Date.now(),
         });
-        toast.success("Aluno marcado como transferência de escola.");
+        toast.success("Aluno marcado como transferido da escola.");
+      } else if (deleteReason === "transfer_request") {
+        await updateStudent(schoolId, deletingStudent.id, {
+          status: "transferred",
+          transferReason: "Solicitação de transferência pelo professor",
+          transferDate: Date.now(),
+        });
+        toast.success("Solicitação enviada! Aguardando autorização da secretaria.");
       } else {
         await deleteStudent(schoolId, deletingStudent.id);
         toast.success(deleteReason === "duplicate" ? "Nome duplicado removido." : "Aluno removido.");
