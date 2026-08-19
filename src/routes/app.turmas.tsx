@@ -160,12 +160,13 @@ function TurmasContent({ schoolId }: { schoolId: string }) {
     }
   };
 
-  if (classesQ.isLoading) return <Loading />;
   const myTaughtQ = useQuery({
     queryKey: ["my-taught-classes", firebaseUser?.uid],
     queryFn: () => listMyTaughtClasses(firebaseUser!.uid).then((list) => list.filter((t) => t.active)),
     enabled: !!firebaseUser,
   });
+
+  if (classesQ.isLoading || myTaughtQ.isLoading) return <Loading />;
 
   const taughtIds = useMemo(
     () => new Set((myTaughtQ.data ?? []).map((t: any) => t.classId)),
