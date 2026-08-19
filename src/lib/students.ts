@@ -10,6 +10,8 @@ export interface StudentDoc {
   transferReason?: string | null;
   transferDate?: number | null;
   specialNeeds: boolean;
+  specialNeedsNote: string | null;
+  createdAt: number;
 }
 
 type Row = {

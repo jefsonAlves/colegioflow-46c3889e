@@ -41,7 +41,7 @@ export function SchoolStudentsManager({ schoolId }: { schoolId: string }) {
   const [moving, setMoving] = useState(false);
   const [editing, setEditing] = useState<StudentDoc | null>(null);
   const [editName, setEditName] = useState("");
-  const [editStatus, setEditStatus] = useState<"active" | "transferred">("active");
+  const [editStatus, setEditStatus] = useState<StudentDoc["status"]>("active");
 
   const classMap = useMemo(
     () => Object.fromEntries((classesQ.data ?? []).map((c) => [c.id, `${c.name} (${c.year})`])),
@@ -90,7 +90,9 @@ export function SchoolStudentsManager({ schoolId }: { schoolId: string }) {
     try {
       await updateStudent(schoolId, editing.id, { 
         name: editName.trim(),
-        status: editStatus 
+        status: editStatus,
+        transferReason: editStatus === 'school_transfer' ? editReason : null,
+        transferDate: editStatus === 'school_transfer' ? (editDate ? new Date(editDate).getTime() : Date.now()) : null
       });
       toast.success("Dados do aluno atualizados!");
       setEditing(null);
@@ -163,9 +165,10 @@ export function SchoolStudentsManager({ schoolId }: { schoolId: string }) {
                     checked={selected.has(s.id)}
                     onChange={() => toggle(s.id)}
                   />
-                  <span className={`flex-1 truncate ${s.status === 'transferred' ? 'text-muted-foreground line-through' : ''}`}>
+                  <span className={`flex-1 truncate ${(s.status === 'transferred' || s.status === 'school_transfer') ? 'text-muted-foreground line-through' : ''}`}>
                     {s.name}
-                    {s.status === 'transferred' && <span className="ml-2 text-[10px] bg-muted px-1 rounded no-underline">Transferido</span>}
+                    {s.status === 'transferred' && <span className="ml-2 text-[10px] bg-muted px-1 rounded no-underline">Transferido (Interno)</span>}
+                    {s.status === 'school_transfer' && <span className="ml-2 text-[10px] bg-destructive/10 text-destructive px-1 rounded no-underline">Transf. Escola</span>}
                   </span>
                   <div className="flex items-center gap-1">
                     <span className="text-[11px] text-muted-foreground mr-1">
@@ -180,6 +183,8 @@ export function SchoolStudentsManager({ schoolId }: { schoolId: string }) {
                         setEditing(s);
                         setEditName(s.name);
                         setEditStatus(s.status || "active");
+                        setEditReason(s.transferReason || "");
+                        setEditDate(s.transferDate ? new Date(s.transferDate).toISOString().split('T')[0] : "");
                       }}
                     >
                       <Pencil className="size-3.5" />
@@ -210,9 +215,30 @@ export function SchoolStudentsManager({ schoolId }: { schoolId: string }) {
                 onChange={(e) => setEditStatus(e.target.value as any)}
               >
                 <option value="active">Ativo</option>
-                <option value="transferred">Transferido</option>
+                <option value="transferred">Transferido (Interno)</option>
+                <option value="school_transfer">Transferência de Escola</option>
               </select>
             </div>
+            {editStatus === 'school_transfer' && (
+              <>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Motivo da Transferência</Label>
+                  <Input 
+                    placeholder="Ex: Mudança de cidade, solicitação dos pais..." 
+                    value={editReason} 
+                    onChange={(e) => setEditReason(e.target.value)} 
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Data da Transferência</Label>
+                  <Input 
+                    type="date"
+                    value={editDate} 
+                    onChange={(e) => setEditDate(e.target.value)} 
+                  />
+                </div>
+              </>
+            )}
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
